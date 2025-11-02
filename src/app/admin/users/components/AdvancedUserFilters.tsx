@@ -105,7 +105,7 @@ export function AdvancedUserFilters({
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* Mobile: Collapsible header */}
       {isMobile && (
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen as any}>
           <CollapsibleTrigger asChild>
             <button className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50">
               <div className="flex items-center gap-2">
