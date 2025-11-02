@@ -102,6 +102,41 @@ export function RbacTab() {
     }
   }, [loadRoles])
 
+  const handleRoleModalSave = useCallback(async (formData: RoleFormData) => {
+    try {
+      const endpoint = roleModal.mode === 'role-create'
+        ? '/api/admin/roles'
+        : `/api/admin/roles/${formData.id}`
+      const method = roleModal.mode === 'role-create' ? 'POST' : 'PATCH'
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          permissions: formData.permissions,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to ${roleModal.mode === 'role-create' ? 'create' : 'update'} role`)
+      }
+
+      toast.success(
+        roleModal.mode === 'role-create'
+          ? 'Role created successfully'
+          : 'Role updated successfully'
+      )
+      closeRoleModal()
+      loadRoles()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save role')
+      throw err
+    }
+  }, [roleModal.mode, closeRoleModal, loadRoles])
+
   return (
     <div className="space-y-6 p-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
