@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import { AdminSettingsService } from '@/services/admin-settings.service'
+import { AuditLoggingService, AuditActionType, AuditSeverity } from '@/services/audit-logging.service'
 
 const ImportSchema = z.object({
   exportedAt: z.string().datetime().optional(),
@@ -63,6 +64,26 @@ const _api_POST = async (req: NextRequest) => {
 
     // Persist settings using the service
     const importedSettings = await AdminSettingsService.updateSettings(tenantId, cleanSettings)
+
+    // Log the import action
+    await AuditLoggingService.logAuditEvent({
+      action: AuditActionType.SETTINGS_IMPORTED,
+      severity: AuditSeverity.INFO,
+      userId: ctx.userId,
+      tenantId,
+      targetResourceId: 'admin-settings',
+      targetResourceType: 'SETTINGS',
+      description: `Imported admin settings (${Object.keys(cleanSettings).length} field(s))`,
+      changes: cleanSettings,
+      metadata: {
+        importedAt: new Date().toISOString(),
+        fieldsCount: Object.keys(cleanSettings).length,
+        exportedAt: parsed.data.exportedAt,
+      },
+    }).catch(err => {
+      console.warn('Failed to log settings import:', err)
+      // Don't fail the request if audit logging fails
+    })
 
     return NextResponse.json({
       ok: true,

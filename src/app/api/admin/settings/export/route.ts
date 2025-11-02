@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import { AdminSettingsService } from '@/services/admin-settings.service'
+import { AuditLoggingService, AuditActionType, AuditSeverity } from '@/services/audit-logging.service'
 
 const _api_GET = async (request: NextRequest) => {
   try {
@@ -34,6 +35,27 @@ const _api_GET = async (request: NextRequest) => {
 
     const body = JSON.stringify(payload, null, 2)
     const timestamp = new Date().toISOString().split('T')[0]
+
+    // Log the export action
+    await AuditLoggingService.logAuditEvent({
+      action: AuditActionType.SETTINGS_EXPORTED,
+      severity: AuditSeverity.INFO,
+      userId: ctx.userId,
+      tenantId,
+      targetResourceId: 'admin-settings',
+      targetResourceType: 'SETTINGS',
+      description: `Exported admin settings (${Object.keys(settings).length} field(s))`,
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        fieldsExported: Object.keys(settings).filter(k =>
+          settings[k as keyof typeof settings] !== undefined &&
+          settings[k as keyof typeof settings] !== null
+        ),
+      },
+    }).catch(err => {
+      console.warn('Failed to log settings export:', err)
+      // Don't fail the request if audit logging fails
+    })
 
     return new NextResponse(body, {
       status: 200,

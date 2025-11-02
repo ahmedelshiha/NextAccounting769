@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import { hasPermission, PERMISSIONS } from '@/lib/permissions'
+import { AuditLoggingService, AuditActionType, AuditSeverity } from '@/services/audit-logging.service'
 
 export const GET = withTenantContext(async (req: Request, { params }: { params: { id: string } }) => {
   try {
@@ -103,6 +104,29 @@ export const PATCH = withTenantContext(async (req: Request, { params }: { params
       },
     })
 
+    // Log role update
+    const changes: Record<string, any> = {}
+    if (name) changes.name = { from: targetRole.name, to: name }
+    if (description) changes.description = { from: targetRole.description, to: description }
+    if (permissions) changes.permissions = { from: targetRole.permissions, to: permissions }
+
+    await AuditLoggingService.logAuditEvent({
+      action: AuditActionType.ROLE_UPDATED,
+      severity: AuditSeverity.INFO,
+      userId: ctx.userId,
+      tenantId: ctx.tenantId,
+      targetResourceId: params.id,
+      targetResourceType: 'ROLE',
+      description: `Updated role: ${updated.name}`,
+      changes,
+      metadata: {
+        changedFields: Object.keys(changes),
+      },
+    }).catch(err => {
+      console.warn('Failed to log role update:', err)
+      // Don't fail the request if audit logging fails
+    })
+
     return NextResponse.json(updated)
   } catch (err) {
     console.error('PATCH /api/admin/roles/[id] error', err)
@@ -135,6 +159,32 @@ export const DELETE = withTenantContext(async (req: Request, { params }: { param
 
     await prisma.customRole.delete({
       where: { id: params.id },
+    })
+
+    // Log role deletion
+    await AuditLoggingService.logAuditEvent({
+      action: AuditActionType.ROLE_DELETED,
+      severity: AuditSeverity.WARNING,
+      userId: ctx.userId,
+      tenantId: ctx.tenantId,
+      targetResourceId: params.id,
+      targetResourceType: 'ROLE',
+      description: `Deleted role: ${targetRole.name}`,
+      changes: {
+        name: targetRole.name,
+        description: targetRole.description,
+        permissionsCount: (targetRole.permissions as any[])?.length || 0,
+      },
+      metadata: {
+        deletedRole: {
+          id: targetRole.id,
+          name: targetRole.name,
+          description: targetRole.description,
+        },
+      },
+    }).catch(err => {
+      console.warn('Failed to log role deletion:', err)
+      // Don't fail the request if audit logging fails
     })
 
     return NextResponse.json({ success: true })

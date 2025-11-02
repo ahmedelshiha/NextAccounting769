@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { withAdminAuth, AuthenticatedRequest } from '@/lib/auth-middleware'
 import { UserManagementSettings } from '@/app/admin/settings/user-management/types'
+import { AuditLoggingService, AuditActionType, AuditSeverity } from '@/services/audit-logging.service'
 
 /**
  * GET /api/admin/settings/user-management
@@ -135,7 +136,77 @@ async function handlePUT(request: AuthenticatedRequest) {
       })
     }
 
-    // Log the change
+    // Determine severity and prepare change details
+    let severity = AuditSeverity.INFO
+    const changedSections: string[] = []
+    const changes: Record<string, any> = {}
+
+    // Analyze what changed
+    if (body.roles !== undefined) {
+      changedSections.push('roles')
+      changes.roles = body.roles
+      // Role changes can be critical if admins are modified
+      if (JSON.stringify(body.roles).includes('ADMIN') || JSON.stringify(body.roles).includes('SUPER_ADMIN')) {
+        severity = AuditSeverity.CRITICAL
+      }
+    }
+    if (body.permissions !== undefined) {
+      changedSections.push('permissions')
+      changes.permissions = body.permissions
+    }
+    if (body.onboarding !== undefined) {
+      changedSections.push('onboarding')
+      changes.onboarding = body.onboarding
+    }
+    if (body.policies !== undefined) {
+      changedSections.push('policies')
+      changes.policies = body.policies
+      // Policy changes related to security can be critical
+      if (JSON.stringify(body.policies).includes('MFA') || JSON.stringify(body.policies).includes('password')) {
+        severity = AuditSeverity.CRITICAL
+      }
+    }
+    if (body.rateLimits !== undefined) {
+      changedSections.push('rate-limits')
+      changes.rateLimits = body.rateLimits
+    }
+    if (body.sessions !== undefined) {
+      changedSections.push('sessions')
+      changes.sessions = body.sessions
+    }
+    if (body.invitations !== undefined) {
+      changedSections.push('invitations')
+      changes.invitations = body.invitations
+    }
+    if (body.entities?.clients !== undefined) {
+      changedSections.push('client-settings')
+      if (!changes.entities) changes.entities = {}
+      changes.entities.clients = body.entities.clients
+    }
+    if (body.entities?.teams !== undefined) {
+      changedSections.push('team-settings')
+      if (!changes.entities) changes.entities = {}
+      changes.entities.teams = body.entities.teams
+    }
+
+    // Log the change with comprehensive audit logging
+    await AuditLoggingService.logAuditEvent({
+      action: AuditActionType.SETTING_CHANGED,
+      severity,
+      userId,
+      tenantId,
+      targetResourceId: 'user-management-settings',
+      targetResourceType: 'SETTINGS',
+      description: `Updated user management settings (${changedSections.join(', ')})`,
+      changes,
+      metadata: {
+        changedSections,
+        sectionCount: changedSections.length,
+        timestamp: new Date().toISOString(),
+      },
+    })
+
+    // Also create the legacy settingChangeDiff record for backward compatibility
     await prisma.settingChangeDiff.create({
       data: {
         tenantId,
@@ -145,6 +216,9 @@ async function handlePUT(request: AuthenticatedRequest) {
         before: {},
         after: body,
       },
+    }).catch(err => {
+      console.warn('Failed to create settingChangeDiff record:', err)
+      // Don't fail the request if legacy logging fails
     })
 
     // Convert JSON strings to objects for response
