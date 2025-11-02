@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import RolePermissionsViewer from '@/components/admin/permissions/RolePermissionsViewer'
 import UserPermissionsInspector from '@/components/admin/permissions/UserPermissionsInspector'
-import { RoleFormModal } from '@/components/admin/shared/RoleFormModal'
+import UnifiedPermissionModal, { RoleFormData } from '@/components/admin/permissions/UnifiedPermissionModal'
 import { Button } from '@/components/ui/button'
 import { Plus, Edit3, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -20,7 +20,11 @@ interface Role {
 export function RbacTab() {
   const [roles, setRoles] = useState<Role[]>([])
   const [loadingRoles, setLoadingRoles] = useState(true)
-  const [roleFormModal, setRoleFormModal] = useState({ isOpen: false, mode: 'create' as 'create' | 'edit', data: undefined as Partial<Role> | undefined })
+  const [roleModal, setRoleModal] = useState({
+    isOpen: false,
+    mode: 'create' as 'role-create' | 'role-edit',
+    data: undefined as Partial<RoleFormData> | undefined
+  })
 
   // Load roles on mount and listen for role changes
   useEffect(() => {
