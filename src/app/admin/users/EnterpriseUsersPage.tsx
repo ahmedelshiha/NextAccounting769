@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense, lazy } from 'react'
 import { TabNavigation, TabType } from './components/TabNavigation'
 import {
   ExecutiveDashboardTab,
-  EntitiesTab,
   RbacTab
 } from './components/tabs'
 import { CreateUserModal } from '@/components/admin/shared/CreateUserModal'
@@ -13,8 +12,6 @@ import { ErrorBoundary } from '@/components/providers/error-boundary'
 import { TabSkeleton, DashboardTabSkeleton, MinimalTabSkeleton } from './components/TabSkeleton'
 import { toast } from 'sonner'
 import { performanceMetrics } from '@/lib/performance/metrics'
-import { isFeatureEnabled } from '@/lib/feature-flags'
-import { trackEvent } from '@/lib/analytics'
 
 // Dynamic imports for less-frequently used tabs (reduces initial bundle by ~40KB)
 const WorkflowsTab = lazy(() => import('./components/tabs/WorkflowsTab').then(m => ({ default: m.WorkflowsTab })))
@@ -56,21 +53,13 @@ export function EnterpriseUsersPage() {
       const params = new URLSearchParams(window.location.search)
       const tab = params.get('tab') as TabType | null
       const roleParam = params.get('role') as string | null
-      const isRetireEntitiesTabEnabled = isFeatureEnabled('retireEntitiesTab', false)
 
       let tabToSet: TabType = 'dashboard'
-      const validTabs: TabType[] = ['dashboard', 'entities', 'workflows', 'bulk-operations', 'audit', 'rbac', 'admin']
+      const validTabs: TabType[] = ['dashboard', 'workflows', 'bulk-operations', 'audit', 'rbac', 'admin']
       const validRoles = ['ALL', 'ADMIN', 'TEAM_LEAD', 'TEAM_MEMBER', 'STAFF', 'CLIENT']
 
       if (tab && (validTabs as string[]).includes(tab)) {
-        // If Entities tab is requested but feature flag is enabled, redirect to Dashboard
-        if (tab === 'entities' && isRetireEntitiesTabEnabled) {
-          tabToSet = 'dashboard'
-          // Track legacy redirect for telemetry
-          trackEvent('users.redirect_legacy', { from: 'entities', to: 'dashboard' })
-        } else {
-          tabToSet = tab
-        }
+        tabToSet = tab
       }
 
       // Apply role filter if provided in URL
@@ -219,30 +208,6 @@ export function EnterpriseUsersPage() {
                 onExport={handleExport}
                 onRefresh={handleRefresh}
               />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-
-        {/* Entities Tab */}
-        {activeTab === 'entities' && !isFeatureEnabled('retireEntitiesTab', false) && (
-          <ErrorBoundary
-            fallback={({ error, resetError }) => (
-              <div className="p-8 text-center">
-                <div className="inline-block">
-                  <div className="text-red-600 text-lg font-semibold mb-2">Failed to load entities</div>
-                  <p className="text-gray-600 text-sm mb-4">{error?.message}</p>
-                  <button
-                    onClick={resetError}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              </div>
-            )}
-          >
-            <Suspense fallback={<TabSkeleton />}>
-              <EntitiesTab />
             </Suspense>
           </ErrorBoundary>
         )}
