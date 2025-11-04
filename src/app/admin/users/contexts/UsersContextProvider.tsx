@@ -4,6 +4,7 @@ import React, { createContext, useContext, useMemo, ReactNode } from 'react'
 import { UserDataContextProvider, useUserDataContext, UserStats, UserItem, HealthLog } from './UserDataContext'
 import { UserUIContextProvider, useUserUIContext } from './UserUIContext'
 import { UserFilterContextProvider, useUserFilterContext } from './UserFilterContext'
+import { useUserManagementRealtime } from '../hooks/useUserManagementRealtime'
 
 type TabType = 'overview' | 'details' | 'activity' | 'settings'
 type StatusAction = 'activate' | 'deactivate' | 'suspend'
