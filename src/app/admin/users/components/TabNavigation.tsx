@@ -11,55 +11,69 @@ interface TabNavigationProps {
   onTabChange: (tab: TabType) => void
 }
 
-const TABS: Array<{
+function getTabs(): Array<{
   id: TabType
   label: string
   icon: string
   description: string
-}> = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: '📊',
-    description: 'Operations overview and user management'
-  },
-  {
-    id: 'entities',
-    label: 'Entities',
-    icon: '🏢',
-    description: 'Manage Clients and Team'
-  },
-  {
-    id: 'workflows',
-    label: 'Workflows',
-    icon: '🔄',
-    description: 'User lifecycle workflows (onboarding, offboarding, etc.)'
-  },
-  {
-    id: 'bulk-operations',
-    label: 'Bulk Operations',
-    icon: '⚙️',
-    description: 'Batch user operations and mass updates'
-  },
-  {
-    id: 'audit',
-    label: 'Audit Log',
-    icon: '🔐',
-    description: 'Compliance and audit trail'
-  },
-  {
-    id: 'rbac',
-    label: 'Roles & Permissions',
-    icon: '🔒',
-    description: 'Manage roles and user access'
-  },
-  {
-    id: 'admin',
-    label: 'Admin Settings',
-    icon: '⚙️',
-    description: 'System configuration and templates'
+}> {
+  const isRetireEntitiesTabEnabled = isFeatureEnabled('retireEntitiesTab', false)
+
+  const baseTabs: Array<{
+    id: TabType
+    label: string
+    icon: string
+    description: string
+  }> = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: '����',
+      description: 'Operations overview and user management'
+    },
+    {
+      id: 'workflows',
+      label: 'Workflows',
+      icon: '🔄',
+      description: 'User lifecycle workflows (onboarding, offboarding, etc.)'
+    },
+    {
+      id: 'bulk-operations',
+      label: 'Bulk Operations',
+      icon: '⚙️',
+      description: 'Batch user operations and mass updates'
+    },
+    {
+      id: 'audit',
+      label: 'Audit Log',
+      icon: '🔐',
+      description: 'Compliance and audit trail'
+    },
+    {
+      id: 'rbac',
+      label: 'Roles & Permissions',
+      icon: '🔒',
+      description: 'Manage roles and user access'
+    },
+    {
+      id: 'admin',
+      label: 'Admin Settings',
+      icon: '⚙️',
+      description: 'System configuration and templates'
+    }
+  ]
+
+  if (!isRetireEntitiesTabEnabled) {
+    baseTabs.splice(1, 0, {
+      id: 'entities',
+      label: 'Entities',
+      icon: '🏢',
+      description: 'Manage Clients and Team'
+    })
   }
-]
+
+  return baseTabs
+}
 
 /**
  * Enterprise-grade tab navigation for Admin Users page
