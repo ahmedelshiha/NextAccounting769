@@ -1,0 +1,222 @@
+/* Sidebar Styles */
+.workstation-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+  gap: 1.5rem;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sidebar-section.flex-1 {
+  flex: 1;
+}
+
+.sidebar-section.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.sidebar-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  background-color: var(--muted);
+  border-radius: var(--radius-md, 0.375rem);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  border: 1px dashed var(--border);
+}
+
+.sidebar-footer {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border: none;
+  border-radius: var(--radius-md, 0.375rem);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-hover, var(--secondary));
+  opacity: 0.9;
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* Main Content Styles */
+.workstation-main-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 1rem;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.main-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.main-section.flex-1 {
+  flex: 1;
+}
+
+.main-section.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.main-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+}
+
+.user-directory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+}
+
+.main-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  background-color: var(--muted);
+  border-radius: var(--radius-md, 0.375rem);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  border: 1px dashed var(--border);
+}
+
+/* Insights Panel Styles */
+.workstation-insights-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+.insights-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.insights-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+}
+
+.insights-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+.insights-close-btn:hover {
+  color: var(--foreground);
+}
+
+.insights-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.insights-section.flex-1 {
+  flex: 1;
+}
+
+.insights-section.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.insights-subtitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+}
+
+.insights-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  background-color: var(--muted);
+  border-radius: var(--radius-md, 0.375rem);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  border: 1px dashed var(--border);
+}
+
+/* Utility Classes */
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+/* Mobile Close Button - Show on Mobile */
+@media (max-width: 767px) {
+  .insights-close-btn {
+    display: block;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .sidebar-placeholder,
+  .main-placeholder,
+  .insights-placeholder {
+    background-color: var(--muted, rgba(0, 0, 0, 0.2));
+  }
+}

@@ -1,0 +1,154 @@
+.workstation-container {
+  display: grid;
+  grid-template-columns: var(--sidebar-width, 280px) 1fr var(--insights-width, 300px);
+  gap: 1rem;
+  height: calc(100vh - 60px);
+  background-color: var(--background);
+}
+
+.workstation-sidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background-color: var(--card);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.workstation-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workstation-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workstation-sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+
+.workstation-main-content {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.workstation-main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workstation-main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workstation-main-content::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+
+.workstation-insights-panel {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background-color: var(--card);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.workstation-insights-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workstation-insights-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workstation-insights-panel::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+
+.workstation-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  display: none;
+}
+
+/* Tablet Breakpoint (1024px - 1399px): Sidebar as drawer */
+@media (max-width: 1399px) {
+  .workstation-container {
+    grid-template-columns: 1fr var(--insights-width, 300px);
+  }
+
+  .workstation-sidebar {
+    position: fixed;
+    left: 0;
+    top: 60px;
+    width: var(--sidebar-width, 280px);
+    height: calc(100vh - 60px);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 40;
+  }
+
+  .workstation-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .workstation-overlay {
+    display: block;
+  }
+
+  .workstation-sidebar.open ~ .workstation-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Mobile Breakpoint (<768px): Full-width main, hidden insights */
+@media (max-width: 767px) {
+  .workstation-container {
+    grid-template-columns: 1fr;
+  }
+
+  .workstation-insights-panel {
+    display: none;
+  }
+
+  .workstation-sidebar {
+    position: fixed;
+    left: 0;
+    top: 60px;
+    width: var(--sidebar-width, 280px);
+    height: calc(100vh - 60px);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 40;
+  }
+
+  .workstation-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .workstation-overlay {
+    display: block;
+  }
+
+  .workstation-sidebar.open ~ .workstation-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

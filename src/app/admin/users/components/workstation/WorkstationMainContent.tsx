@@ -1,154 +1,166 @@
 'use client'
 
-import React, { useMemo } from 'react'
-import { WorkstationMainContentProps } from '../../types/workstation'
+import { memo, useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import type { WorkstationMainContentProps } from '../../types/workstation'
 import './workstation.css'
 
-/**
- * WorkstationMainContent Component
- * Central area containing:
- * - Quick actions bar
- * - Operations overview cards
- * - User directory table
- * - Pagination controls
- *
- * Features:
- * - Responsive layout (full-width main content)
- * - Scrollable table area
- * - Loading and empty states
- * - Performance-optimized with memoization
- */
-export function WorkstationMainContent({
+export const WorkstationMainContent = memo(function WorkstationMainContent({
   users,
   stats,
-  isLoading = false,
+  isLoading,
   onAddUser,
   onImport,
   onBulkOperation,
   onExport,
   onRefresh,
-  className
 }: WorkstationMainContentProps) {
-  // Calculate stats display values
-  const displayStats = useMemo(() => ({
-    totalUsers: users?.length || 0,
-    pending: stats?.pendingApprovals || 0,
-    inProgress: stats?.inProgressWorkflows || 0,
-    dueThisWeek: stats?.dueThisWeek || 0
-  }), [users, stats])
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const handleRefresh = React.useCallback(async () => {
-    if (onRefresh && !isLoading) {
-      await onRefresh()
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      if (onRefresh) {
+        await onRefresh()
+      }
+    } finally {
+      setIsRefreshing(false)
     }
-  }, [onRefresh, isLoading])
+  }
 
   return (
-    <div className={`workstation-main-content ${className || ''}`}>
-      {/* Quick Actions Bar */}
-      <section className="main-section actions-section" aria-label="Quick actions">
+    <div className="workstation-main-content">
+      {/* Quick Actions Section */}
+      <section className="main-section actions-section" aria-label="Quick Actions">
         <div className="quick-actions-container">
-          {onAddUser && (
-            <button
-              onClick={onAddUser}
-              className="action-btn add-btn"
-              disabled={isLoading}
-              aria-label="Add a new user"
-            >
-              + Add User
-            </button>
-          )}
-          {onImport && (
-            <button
-              onClick={onImport}
-              className="action-btn import-btn"
-              disabled={isLoading}
-              aria-label="Import users"
-            >
-              ⬆ Import
-            </button>
-          )}
-          {onExport && (
-            <button
-              onClick={onExport}
-              className="action-btn export-btn"
-              disabled={isLoading}
-              aria-label="Export users"
-            >
-              ⬇ Export
-            </button>
-          )}
-          {onRefresh && (
-            <button
-              onClick={handleRefresh}
-              className="action-btn refresh-btn"
-              disabled={isLoading}
-              aria-label="Refresh user list"
-              title="Refresh user list"
-            >
-              {isLoading ? '⟳ Refreshing...' : '⟳ Refresh'}
-            </button>
-          )}
+          <button
+            className="action-btn"
+            onClick={onAddUser}
+            aria-label="Add new user"
+          >
+            + Add User
+          </button>
+          <button
+            className="action-btn"
+            onClick={onImport}
+            aria-label="Import users"
+          >
+            ⬆ Import
+          </button>
+          <button
+            className="action-btn"
+            onClick={onBulkOperation}
+            aria-label="Bulk operations"
+          >
+            ⚙ Bulk
+          </button>
+          <button
+            className="action-btn"
+            onClick={onExport}
+            aria-label="Export user list"
+          >
+            ⬇ Export
+          </button>
+          <button
+            className="action-btn"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            aria-label="Refresh user list"
+          >
+            {isRefreshing ? (
+              <>
+                <Loader2 size={16} className="animate-spin mr-1" />
+                Refreshing...
+              </>
+            ) : (
+              '🔄 Refresh'
+            )}
+          </button>
         </div>
       </section>
 
-      {/* Operations Overview Cards */}
-      <section className="main-section metrics-section" aria-label="Overview metrics">
-        <div className="metrics-grid">
-          <div className="metric-card">
-            <span className="metric-label">Total Users</span>
-            <span className="metric-value">{displayStats.totalUsers}</span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">Pending Approvals</span>
-            <span className="metric-value">{displayStats.pending}</span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">In Progress</span>
-            <span className="metric-value">{displayStats.inProgress}</span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">Due This Week</span>
-            <span className="metric-value">{displayStats.dueThisWeek}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* User Directory Header */}
-      <section className="main-section directory-header" aria-label="User directory section">
-        <h2 className="directory-title">User Directory</h2>
-      </section>
-
-      {/* User Directory Table */}
-      <section className="main-section directory-section" aria-label="User list">
-        <div className="users-table-container">
-          {isLoading ? (
-            <div className="loading-state" role="status" aria-live="polite">
-              Loading users...
+      {/* Metrics Cards Section */}
+      {stats && (
+        <section className="main-section metrics-section" aria-label="User Metrics">
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <span className="metric-label">Total Users</span>
+              <span className="metric-value">{stats.total || 0}</span>
             </div>
-          ) : users && users.length > 0 ? (
+            <div className="metric-card">
+              <span className="metric-label">Pending</span>
+              <span className="metric-value">0</span>
+            </div>
+            <div className="metric-card">
+              <span className="metric-label">In Progress</span>
+              <span className="metric-value">0</span>
+            </div>
+            <div className="metric-card">
+              <span className="metric-label">Due This Week</span>
+              <span className="metric-value">0</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* User Directory Section */}
+      <section className="main-section directory-section" aria-label="User Directory">
+        <header className="directory-header">
+          <h2 className="directory-title">User Directory</h2>
+          {users && (
+            <span className="text-sm text-muted-foreground">
+              {users.length} users
+            </span>
+          )}
+        </header>
+
+        {isLoading && (
+          <div className="loading-state">
+            <Loader2 className="animate-spin mr-2" />
+            Loading user directory...
+          </div>
+        )}
+
+        {!isLoading && users && users.length === 0 && (
+          <div className="empty-state">
+            No users found. Try adjusting your filters or create a new user.
+          </div>
+        )}
+
+        {!isLoading && users && users.length > 0 && (
+          <div className="users-table-container">
+            {/* UsersTable component will be integrated here in Phase 2 */}
             <div className="table-placeholder">
-              {/* Table component will be integrated in Phase 2 */}
-              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>
-                Table component ready for integration ({users.length} users)
+              📋 Users Table Component (Phase 2 Integration)
+              <div style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                {users.length} users loaded
               </div>
             </div>
-          ) : (
-            <div className="empty-state" role="status">
-              No users found. Try adjusting your filters or add a new user.
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
-      {/* Pagination Controls */}
+      {/* Pagination Section */}
       <section className="main-section pagination-section" aria-label="Pagination">
         <div className="pagination-container">
-          <span className="pagination-info">Page 1 of 1 {users && users.length > 0 && `(${users.length} users)`}</span>
+          <span className="pagination-info">
+            Page 1 of {users && users.length > 0 ? Math.ceil(users.length / 50) : 1}
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="action-btn" disabled aria-label="Previous page">
+              ← Previous
+            </button>
+            <button className="action-btn" disabled aria-label="Next page">
+              Next →
+            </button>
+          </div>
         </div>
       </section>
+
+      {/* Bulk Actions Panel - Will appear when users are selected (Phase 2) */}
+      <div className="bulk-actions-panel-placeholder" style={{ display: 'none' }}>
+        {/* BulkActionsPanel component will be integrated here in Phase 2 */}
+      </div>
     </div>
   )
-}
-
-export default WorkstationMainContent
+})

@@ -662,3 +662,162 @@
     transition: none;
   }
 }
+
+/* ============================================================================
+   SIDEBAR CLOSE BUTTON
+   ============================================================================ */
+
+.sidebar-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.sidebar-close-btn:hover {
+  background: var(--accent);
+}
+
+.sidebar-close-btn:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   FILTER STYLES
+   ============================================================================ */
+
+.sidebar-filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-input,
+.filter-select {
+  padding: 0.5rem 0.75rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  color: var(--foreground);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  font-family: inherit;
+}
+
+.filter-input:hover,
+.filter-select:hover {
+  border-color: var(--primary);
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: var(--background);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+}
+
+.filter-input::placeholder {
+  color: var(--muted-foreground);
+}
+
+/* ============================================================================
+   SIDEBAR RESET BUTTON
+   ============================================================================ */
+
+.sidebar-reset-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-reset-btn:hover {
+  opacity: 0.9;
+}
+
+.sidebar-reset-btn:focus {
+  outline: 2px solid var(--destructive);
+  outline-offset: 2px;
+}
+
+.sidebar-reset-btn:active {
+  opacity: 0.8;
+}
+
+/* ============================================================================
+   QUICK STATS CARD
+   ============================================================================ */
+
+.stats-refresh-btn {
+  padding: 0.25rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.stats-refresh-btn:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--foreground);
+  border-color: var(--primary);
+}
+
+.stats-refresh-btn:focus:not(:disabled) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.stats-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stats-refresh-btn:active:not(:disabled) {
+  opacity: 0.8;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

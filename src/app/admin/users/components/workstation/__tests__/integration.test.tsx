@@ -1,121 +1,55 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { WorkstationLayout } from '../WorkstationLayout'
+import { WorkstationSidebar } from '../WorkstationSidebar'
+import { WorkstationMainContent } from '../WorkstationMainContent'
+import { WorkstationInsightsPanel } from '../WorkstationInsightsPanel'
 
-describe('Workstation Integration Tests', () => {
-  describe('Layout Assembly', () => {
-    it('renders all three columns together', () => {
-      render(
-        <WorkstationLayout
-          sidebar={<div data-testid="sidebar">Sidebar</div>}
-          main={<div data-testid="main">Main</div>}
-          insights={<div data-testid="insights">Insights</div>}
-        />
-      )
+describe('Workstation Integration', () => {
+  it('renders complete workstation layout', () => {
+    render(
+      <WorkstationLayout
+        sidebar={<WorkstationSidebar />}
+        main={<WorkstationMainContent />}
+        insights={<WorkstationInsightsPanel />}
+      />
+    )
 
-      expect(screen.getByTestId('sidebar')).toBeInTheDocument()
-      expect(screen.getByTestId('main')).toBeInTheDocument()
-      expect(screen.getByTestId('insights')).toBeInTheDocument()
-    })
-
-    it('maintains layout structure with content changes', async () => {
-      const { rerender } = render(
-        <WorkstationLayout
-          sidebar={<div data-testid="sidebar">Original Sidebar</div>}
-          main={<div data-testid="main">Original Main</div>}
-          insights={<div data-testid="insights">Original Insights</div>}
-        />
-      )
-
-      expect(screen.getByText('Original Sidebar')).toBeInTheDocument()
-
-      rerender(
-        <WorkstationLayout
-          sidebar={<div data-testid="sidebar">Updated Sidebar</div>}
-          main={<div data-testid="main">Updated Main</div>}
-          insights={<div data-testid="insights">Updated Insights</div>}
-        />
-      )
-
-      expect(screen.getByText('Updated Sidebar')).toBeInTheDocument()
-      expect(screen.getByText('Updated Main')).toBeInTheDocument()
-      expect(screen.getByText('Updated Insights')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Quick Stats')).toBeInTheDocument()
+    expect(screen.getByText('Quick Actions')).toBeInTheDocument()
+    expect(screen.getByText('Analytics')).toBeInTheDocument()
   })
 
-  describe('Component Communication', () => {
-    it('calls onSidebarToggle when sidebar state changes', () => {
-      const mockToggle = vi.fn()
-      render(
-        <WorkstationLayout
-          sidebar={<div>Sidebar</div>}
-          main={<div>Main</div>}
-          insights={<div>Insights</div>}
-          onSidebarToggle={mockToggle}
-        />
-      )
+  it('sidebar is initially visible on desktop', () => {
+    const { container } = render(
+      <WorkstationLayout
+        sidebar={<WorkstationSidebar />}
+        main={<div>Main</div>}
+        insights={<div>Insights</div>}
+      />
+    )
 
-      // Toggle behavior implementation will be tested in Phase 1
-    })
-
-    it('calls onInsightsToggle when insights state changes', () => {
-      const mockToggle = vi.fn()
-      render(
-        <WorkstationLayout
-          sidebar={<div>Sidebar</div>}
-          main={<div>Main</div>}
-          insights={<div>Insights</div>}
-          onInsightsToggle={mockToggle}
-        />
-      )
-
-      // Toggle behavior implementation will be tested in Phase 1
-    })
+    const sidebar = container.querySelector('.workstation-sidebar')
+    expect(sidebar).toBeInTheDocument()
   })
 
-  describe('Responsive Behavior', () => {
-    it('renders layout at desktop size', () => {
-      const { container } = render(
-        <WorkstationLayout
-          sidebar={<div>Sidebar</div>}
-          main={<div>Main</div>}
-          insights={<div>Insights</div>}
-        />
-      )
+  it('insights panel is initially visible on desktop', () => {
+    const { container } = render(
+      <WorkstationLayout
+        sidebar={<div>Sidebar</div>}
+        main={<div>Main</div>}
+        insights={<WorkstationInsightsPanel />}
+      />
+    )
 
-      const layoutContainer = container.querySelector('.workstation-container')
-      expect(layoutContainer).toBeInTheDocument()
-    })
-
-    it('handles custom width properties', () => {
-      render(
-        <WorkstationLayout
-          sidebar={<div>Sidebar</div>}
-          main={<div>Main</div>}
-          insights={<div>Insights</div>}
-          sidebarWidth={300}
-          insightsPanelWidth={350}
-        />
-      )
-
-      // Width verification in Phase 1 CSS implementation
-      expect(screen.getByText('Sidebar')).toBeInTheDocument()
-    })
+    const insightsPanel = container.querySelector('.workstation-insights-panel')
+    expect(insightsPanel).toBeInTheDocument()
   })
 
-  describe('Accessibility', () => {
-    it('uses semantic HTML structure', () => {
-      const { container } = render(
-        <WorkstationLayout
-          sidebar={<aside data-testid="sidebar-aside">Sidebar</aside>}
-          main={<main data-testid="main-element">Main</main>}
-          insights={<aside data-testid="insights-aside">Insights</aside>}
-        />
-      )
-
-      expect(screen.getByTestId('sidebar-aside')).toBeInTheDocument()
-      expect(screen.getByTestId('main-element')).toBeInTheDocument()
-      expect(screen.getByTestId('insights-aside')).toBeInTheDocument()
-    })
-  })
+  // TODO: Test filter -> table integration
+  // TODO: Test bulk selection workflow
+  // TODO: Test mobile drawer behavior
+  // TODO: Test modal open/close
+  // TODO: Test real-time data updates
 })

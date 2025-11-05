@@ -1,168 +1,127 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import { WorkstationContextType, QuickStatsData } from '../types/workstation'
-import { UserFilters } from '../components/AdvancedUserFilters'
-
-/**
- * WorkstationProvider
- * Manages state for the Oracle Fusion-inspired workstation layout
- * Includes layout visibility, filter state, selections, and bulk operations
- */
-const WorkstationContext = createContext<WorkstationContextType | undefined>(undefined)
-
-/**
- * Hook to use the WorkstationContext
- * @throws {Error} If used outside of WorkstationProvider
- */
-export function useWorkstationContext(): WorkstationContextType {
-  const context = useContext(WorkstationContext)
-  if (!context) {
-    throw new Error('useWorkstationContext must be used within WorkstationProvider')
-  }
-  return context
-}
+import { useState, useCallback, ReactNode, useEffect } from 'react'
+import { WorkstationContext } from './WorkstationContext'
+import type { WorkstationContextType, QuickStatsData, UserFilters } from '../types/workstation'
 
 interface WorkstationProviderProps {
   children: ReactNode
-  initialStats?: QuickStatsData
 }
 
-/**
- * WorkstationProvider Component
- * Manages all workstation state and provides it to child components
- */
-export function WorkstationProvider({ 
-  children,
-  initialStats = {
-    totalUsers: 0,
-    activeUsers: 0,
-    pendingApprovals: 0,
-    inProgressWorkflows: 0,
-    refreshedAt: new Date()
-  }
-}: WorkstationProviderProps) {
-  // Layout State
+const defaultQuickStats: QuickStatsData = {
+  totalUsers: 0,
+  activeUsers: 0,
+  pendingApprovals: 0,
+  inProgressWorkflows: 0,
+  refreshedAt: new Date(),
+}
+
+export function WorkstationProvider({ children }: WorkstationProviderProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [insightsPanelOpen, setInsightsPanelOpen] = useState(true)
-
-  // Main Content Layout
-  const [mainContentLayout, setMainContentLayout] = useState<'full' | 'split'>('split')
-
-  // Filter State
-  const [selectedFilters, setSelectedFilters] = useState<UserFilters>({
-    search: '',
-    role: undefined,
-    status: undefined,
-    department: undefined,
-    dateRange: 'all'
-  })
-
-  // Quick Stats
-  const [quickStats, setQuickStats] = useState<QuickStatsData | null>(initialStats)
-  const [quickStatsLoading, setQuickStatsLoading] = useState(false)
-
-  // User Selection State
+  const [filters, setFilters] = useState<UserFilters>({})
+  const [quickStats, setQuickStats] = useState<QuickStatsData>(defaultQuickStats)
+  const [quickStatsRefreshing, setQuickStatsRefreshing] = useState(false)
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
-
-  // Bulk Actions
-  const [bulkActionType, setBulkActionType] = useState<string>('')
-  const [bulkActionValue, setBulkActionValue] = useState<string>('')
+  const [bulkActionType, setBulkActionType] = useState('')
+  const [bulkActionValue, setBulkActionValue] = useState('')
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
 
-  // General State
-  const [isLoading, setIsLoading] = useState(false)
-
-  // Helper methods
-  const toggleUserSelection = useCallback((userId: string) => {
-    setSelectedUserIds(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(userId)) {
-        newSet.delete(userId)
-      } else {
-        newSet.add(userId)
+  // Load state from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('workstation-layout-prefs')
+      if (stored) {
+        const prefs = JSON.parse(stored)
+        if (typeof prefs.sidebarOpen === 'boolean') setSidebarOpen(prefs.sidebarOpen)
+        if (typeof prefs.insightsPanelOpen === 'boolean') setInsightsPanelOpen(prefs.insightsPanelOpen)
       }
-      return newSet
-    })
+    } catch (e) {
+      console.warn('Failed to load workstation preferences:', e)
+    }
   }, [])
 
-  const selectAllUsers = useCallback((userIds: string[]) => {
-    setSelectedUserIds(new Set(userIds))
+  // Save layout preferences to localStorage
+  const handleSetSidebarOpen = useCallback((open: boolean) => {
+    setSidebarOpen(open)
+    try {
+      const current = JSON.parse(localStorage.getItem('workstation-layout-prefs') || '{}')
+      localStorage.setItem('workstation-layout-prefs', JSON.stringify({
+        ...current,
+        sidebarOpen: open,
+      }))
+    } catch (e) {
+      console.warn('Failed to save workstation preferences:', e)
+    }
   }, [])
 
-  const clearSelection = useCallback(() => {
-    setSelectedUserIds(new Set())
+  const handleSetInsightsPanelOpen = useCallback((open: boolean) => {
+    setInsightsPanelOpen(open)
+    try {
+      const current = JSON.parse(localStorage.getItem('workstation-layout-prefs') || '{}')
+      localStorage.setItem('workstation-layout-prefs', JSON.stringify({
+        ...current,
+        insightsPanelOpen: open,
+      }))
+    } catch (e) {
+      console.warn('Failed to save workstation preferences:', e)
+    }
   }, [])
 
   const refreshQuickStats = useCallback(async () => {
-    setQuickStatsLoading(true)
+    setQuickStatsRefreshing(true)
     try {
-      // This will be implemented in Phase 2 with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setQuickStats(prev => prev ? {
-        ...prev,
-        refreshedAt: new Date()
-      } : null)
+      // TODO: Fetch quick stats from API
+      setQuickStats({
+        ...defaultQuickStats,
+        refreshedAt: new Date(),
+      })
+    } catch (error) {
+      console.error('Failed to refresh quick stats:', error)
     } finally {
-      setQuickStatsLoading(false)
+      setQuickStatsRefreshing(false)
     }
   }, [])
 
   const applyBulkAction = useCallback(async () => {
-    if (!bulkActionType || !bulkActionValue || selectedUserIds.size === 0) {
+    if (!bulkActionType || selectedUserIds.size === 0) {
+      console.warn('Bulk action requires action type and selected users')
       return
     }
 
     setIsApplyingBulkAction(true)
     try {
-      // This will be implemented in Phase 2 with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      clearSelection()
-      await refreshQuickStats()
+      // TODO: Call API to apply bulk action
+      console.log('Applying bulk action:', {
+        action: bulkActionType,
+        value: bulkActionValue,
+        users: Array.from(selectedUserIds),
+      })
+    } catch (error) {
+      console.error('Failed to apply bulk action:', error)
     } finally {
       setIsApplyingBulkAction(false)
-      setBulkActionType('')
-      setBulkActionValue('')
     }
-  }, [bulkActionType, bulkActionValue, selectedUserIds, clearSelection, refreshQuickStats])
+  }, [bulkActionType, bulkActionValue, selectedUserIds])
 
   const value: WorkstationContextType = {
-    // Layout State
     sidebarOpen,
     insightsPanelOpen,
-    setSidebarOpen,
-    setInsightsPanelOpen,
-
-    // Main Content Layout
-    mainContentLayout,
-    setMainContentLayout,
-
-    // Filter State
-    selectedFilters,
-    setSelectedFilters,
-
-    // Quick Stats
+    setSidebarOpen: handleSetSidebarOpen,
+    setInsightsPanelOpen: handleSetInsightsPanelOpen,
+    filters,
+    setFilters,
     quickStats,
-    quickStatsLoading,
+    quickStatsRefreshing,
     refreshQuickStats,
-
-    // User Selection State
     selectedUserIds,
     setSelectedUserIds,
-    toggleUserSelection,
-    selectAllUsers,
-    clearSelection,
-
-    // Bulk Actions
     bulkActionType,
     setBulkActionType,
     bulkActionValue,
     setBulkActionValue,
     applyBulkAction,
     isApplyingBulkAction,
-
-    // General State
-    isLoading
   }
 
   return (
@@ -171,5 +130,3 @@ export function WorkstationProvider({
     </WorkstationContext.Provider>
   )
 }
-
-export { WorkstationContext }

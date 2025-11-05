@@ -1,141 +1,154 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
-import { QuickStatsCardProps } from '../../types/workstation'
+import { memo, useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
+import type { QuickStatsData } from '../../types/workstation'
 import './workstation.css'
 
-/**
- * QuickStatsCard Component
- * Displays real-time statistics in the workstation sidebar
- * Shows: Total Users, Active Users, Pending Approvals, In Progress Workflows
- *
- * Features:
- * - Real-time updates (5-minute auto-refresh)
- * - Manual refresh button
- * - Trend indicators (up/down/stable)
- * - Color-coded status
- * - Loading skeleton
- */
-export function QuickStatsCard({
+interface QuickStatsCardProps {
+  stats?: QuickStatsData
+  isRefreshing?: boolean
+  onRefresh?: () => Promise<void>
+  className?: string
+}
+
+export const QuickStatsCard = memo(function QuickStatsCard({
   stats,
   isRefreshing = false,
   onRefresh,
-  className
+  className = '',
 }: QuickStatsCardProps) {
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
-  const [localRefreshing, setLocalRefreshing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(stats?.refreshedAt || null)
 
-  const refreshing = isRefreshing || localRefreshing
+  useEffect(() => {
+    if (stats?.refreshedAt) {
+      setLastUpdated(stats.refreshedAt)
+    }
+  }, [stats?.refreshedAt])
 
   const handleRefresh = async () => {
-    setLocalRefreshing(true)
+    if (!onRefresh || isLoading) return
+
+    setIsLoading(true)
     try {
-      await onRefresh?.()
+      await onRefresh()
+    } catch (error) {
+      console.error('Failed to refresh stats:', error)
     } finally {
-      setLocalRefreshing(false)
-      setLastUpdated(new Date())
+      setIsLoading(false)
     }
   }
 
-  // Auto-refresh every 5 minutes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      handleRefresh()
-    }, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [])
+  const formatTime = (date: Date | null) => {
+    if (!date) return 'Never'
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+
+    if (seconds < 60) return 'Just now'
+    if (minutes < 60) return `${minutes}m ago`
+    if (hours < 24) return `${hours}h ago`
+    return date.toLocaleDateString()
+  }
+
+  if (!stats) {
+    return (
+      <div className={`quick-stats-card ${className}`}>
+        <div className="stat-item">
+          <span className="stat-label">Loading...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className={`quick-stats-card ${className || ''}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground">Quick Stats</h3>
+    <div className={`quick-stats-card ${className}`}>
+      {/* Refresh Button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
+          Quick Stats
+        </span>
         <button
           onClick={handleRefresh}
-          disabled={refreshing}
-          className="p-1 hover:bg-muted rounded transition-colors disabled:opacity-50"
+          disabled={isLoading || isRefreshing}
+          className="stats-refresh-btn"
+          title={`Last updated: ${formatTime(lastUpdated)}`}
           aria-label="Refresh statistics"
-          title="Refresh statistics"
         >
-          <RefreshCw
-            size={14}
-            className={refreshing ? 'animate-spin' : ''}
-          />
+          <RefreshCw size={14} className={isLoading || isRefreshing ? 'animate-spin' : ''} />
         </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="space-y-2">
-        {/* Total Users */}
+      {/* Stats Items */}
+      <div className="sidebar-stats-container">
         <div className="stat-item">
-          <div className="flex items-center justify-between">
-            <span className="stat-label">Total Users</span>
-            <span className="text-xs text-muted-foreground">{stats.totalUsers}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="stat-value text-lg">{stats.totalUsers}</span>
-          </div>
+          <span className="stat-label">Total Users</span>
+          <span className="stat-value">{stats.totalUsers}</span>
         </div>
-
-        {/* Active Users */}
         <div className="stat-item">
-          <div className="flex items-center justify-between">
-            <span className="stat-label">Active</span>
-            <span className="text-xs text-green-600">✓</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="stat-value text-lg text-green-600">{stats.activeUsers}</span>
-            <span className="text-xs text-muted-foreground">
-              ({Math.round((stats.activeUsers / (stats.totalUsers || 1)) * 100)}%)
-            </span>
-          </div>
+          <span className="stat-label">Active</span>
+          <span className="stat-value">{stats.activeUsers}</span>
         </div>
-
-        {/* Pending Approvals */}
         <div className="stat-item">
-          <div className="flex items-center justify-between">
-            <span className="stat-label">Pending</span>
-            {stats.pendingApprovals > 0 && (
-              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-yellow-500 rounded-full">
-                {stats.pendingApprovals}
-              </span>
-            )}
-          </div>
-          <span className="text-sm text-yellow-600 font-medium">
-            {stats.pendingApprovals} awaiting approval
-          </span>
+          <span className="stat-label">Pending</span>
+          <span className="stat-value">{stats.pendingApprovals}</span>
         </div>
-
-        {/* In Progress Workflows */}
         <div className="stat-item">
-          <div className="flex items-center justify-between">
-            <span className="stat-label">In Progress</span>
-            {stats.inProgressWorkflows > 0 && (
-              <span className="inline-flex items-center gap-1">
-                <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                <span className="text-xs font-semibold text-blue-600">{stats.inProgressWorkflows}</span>
-              </span>
-            )}
-          </div>
+          <span className="stat-label">Workflows</span>
+          <span className="stat-value">{stats.inProgressWorkflows}</span>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-3 pt-2 border-t border-border">
-        <p className="text-xs text-muted-foreground">
-          Updated {lastUpdated.toLocaleTimeString()}
-        </p>
+      {/* Last Updated Info */}
+      <div style={{
+        marginTop: '0.75rem',
+        paddingTop: '0.75rem',
+        borderTop: '1px solid var(--border)',
+        fontSize: '0.75rem',
+        color: 'var(--muted-foreground)',
+        textAlign: 'center',
+      }}>
+        Updated {formatTime(lastUpdated)}
       </div>
-
-      {/* Loading State */}
-      {refreshing && (
-        <div className="absolute inset-0 bg-background/50 rounded flex items-center justify-center">
-          <RefreshCw size={16} className="animate-spin text-muted-foreground" />
-        </div>
-      )}
     </div>
   )
+})
+
+// Additional styles
+const additionalStyles = `
+.stats-refresh-btn {
+  padding: 0.25rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-export default QuickStatsCard
+.stats-refresh-btn:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--foreground);
+  border-color: var(--primary);
+}
+
+.stats-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+`
