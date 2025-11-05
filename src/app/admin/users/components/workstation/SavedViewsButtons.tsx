@@ -71,9 +71,9 @@ export function SavedViewsButtons({
   ]
 
   return (
-    <div className={`sidebar-section ${className || ''}`}>
+    <div className={`sidebar-section ${className || ''}`} data-testid="saved-views-section">
       <h3 className="sidebar-title">Saved Views</h3>
-      <div className="sidebar-views-container">
+      <div className="sidebar-views-container" data-testid="saved-views-container">
         {savedViews.map(view => (
           <button
             key={view.name}
@@ -82,6 +82,7 @@ export function SavedViewsButtons({
             title={view.description}
             aria-pressed={activeView === view.name}
             aria-label={`${view.label} (${view.count || 0} users)`}
+            data-testid={`view-btn-${view.name}`}
           >
             <span className="flex items-center gap-1">
               {view.icon}
