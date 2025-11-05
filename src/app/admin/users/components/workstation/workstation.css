@@ -1,0 +1,604 @@
+/**
+ * Workstation Layout Styles
+ * Oracle Fusion-inspired 3-column layout with responsive behavior
+ * 
+ * Desktop (≥1400px): sidebar | main | insights
+ * Tablet (768px-1399px): main + insights (sidebar as drawer)
+ * Mobile (<768px): main fullwidth (sidebar & insights as drawers)
+ */
+
+/* ============================================================================
+   MAIN CONTAINER - CSS Grid Layout
+   ============================================================================ */
+
+.workstation-container {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap: 1rem;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  padding: 1rem;
+  background: var(--background);
+}
+
+/* ============================================================================
+   SIDEBAR - Left Column (Fixed Width)
+   ============================================================================ */
+
+.workstation-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  height: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.workstation-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+}
+
+/* Sidebar Sections */
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.sidebar-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Quick Stats Container */
+.sidebar-stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--muted);
+  border-radius: var(--radius-sm);
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* Saved Views Container */
+.sidebar-views-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.view-btn {
+  padding: 0.75rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-btn:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.view-btn.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+/* Filters Container */
+.sidebar-filters {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-reset-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-reset-btn:hover {
+  opacity: 0.9;
+}
+
+/* ============================================================================
+   MAIN CONTENT - Center Column (Flexible)
+   ============================================================================ */
+
+.workstation-main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--background);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: var(--radius-md);
+}
+
+.workstation-main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 1rem;
+}
+
+/* Main Sections */
+.main-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.actions-section {
+  flex-shrink: 0;
+}
+
+.quick-actions-container {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  opacity: 0.9;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Metrics Grid */
+.metrics-section {
+  flex-shrink: 0;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.metric-label {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* Directory Header */
+.directory-header {
+  flex-shrink: 0;
+  padding: 0.5rem 0;
+}
+
+.directory-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* Directory Table */
+.directory-section {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.users-table-container {
+  width: 100%;
+  height: 100%;
+}
+
+.table-placeholder,
+.loading-state,
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+/* ============================================================================
+   INSIGHTS PANEL - Right Column (Fixed Width)
+   ============================================================================ */
+
+.workstation-insights {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  height: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.workstation-insights-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+}
+
+.insights-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.insights-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.insights-close-btn {
+  display: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s ease;
+}
+
+.insights-close-btn:hover {
+  background: var(--accent);
+}
+
+.insights-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.insights-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.chart-placeholder,
+.actions-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  background: var(--muted);
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+/* ============================================================================
+   RESPONSIVE: TABLET (768px - 1399px)
+   ============================================================================ */
+
+@media (max-width: 1399px) {
+  .workstation-container {
+    grid-template-columns: 1fr 200px;
+    gap: 1rem;
+  }
+
+  .workstation-sidebar {
+    position: fixed;
+    left: 0;
+    top: 60px;
+    width: 280px;
+    height: calc(100vh - 60px);
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    border-radius: 0;
+  }
+
+  .workstation-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .workstation-insights {
+    width: 200px;
+  }
+
+  .sidebar-views-container {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================================
+   OVERLAY - For Sidebar Drawer (Tablet/Mobile)
+   ============================================================================ */
+
+.workstation-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.workstation-sidebar.open ~ .workstation-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============================================================================
+   RESPONSIVE: MOBILE (<768px)
+   ============================================================================ */
+
+@media (max-width: 767px) {
+  .workstation-container {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    height: calc(100vh - 50px);
+  }
+
+  .workstation-sidebar {
+    position: fixed;
+    left: 0;
+    top: 50px;
+    width: 280px;
+    height: calc(100vh - 50px);
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    border-radius: 0;
+  }
+
+  .workstation-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .workstation-main {
+    width: 100%;
+    border-radius: var(--radius-sm);
+  }
+
+  .workstation-insights {
+    display: none;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quick-actions-container {
+    gap: 0.25rem;
+  }
+
+  .action-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .sidebar-views-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE: SMALL MOBILE (<375px)
+   ============================================================================ */
+
+@media (max-width: 374px) {
+  .workstation-container {
+    gap: 0.25rem;
+    padding: 0.25rem;
+  }
+
+  .sidebar-views-container {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-btn {
+    padding: 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* ============================================================================
+   SCROLLBAR STYLING
+   ============================================================================ */
+
+.workstation-sidebar::-webkit-scrollbar,
+.workstation-main::-webkit-scrollbar,
+.workstation-insights::-webkit-scrollbar,
+.insights-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workstation-sidebar::-webkit-scrollbar-track,
+.workstation-main::-webkit-scrollbar-track,
+.workstation-insights::-webkit-scrollbar-track,
+.insights-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workstation-sidebar::-webkit-scrollbar-thumb,
+.workstation-main::-webkit-scrollbar-thumb,
+.workstation-insights::-webkit-scrollbar-thumb,
+.insights-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.workstation-sidebar::-webkit-scrollbar-thumb:hover,
+.workstation-main::-webkit-scrollbar-thumb:hover,
+.workstation-insights::-webkit-scrollbar-thumb:hover,
+.insights-content::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  .workstation-overlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .workstation-sidebar,
+  .workstation-insights {
+    display: none;
+  }
+
+  .workstation-container {
+    grid-template-columns: 1fr;
+    gap: 0;
+    height: auto;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY - HIGH CONTRAST MODE
+   ============================================================================ */
+
+@media (prefers-contrast: more) {
+  .workstation-sidebar,
+  .workstation-main,
+  .workstation-insights {
+    border-width: 2px;
+  }
+
+  .action-btn,
+  .view-btn {
+    border-width: 2px;
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .workstation-sidebar,
+  .action-btn,
+  .view-btn,
+  .insights-close-btn {
+    transition: none;
+  }
+}

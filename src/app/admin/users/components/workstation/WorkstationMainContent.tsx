@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { WorkstationMainContentProps } from '../../types/workstation'
+import './workstation.css'
 
 /**
  * WorkstationMainContent Component

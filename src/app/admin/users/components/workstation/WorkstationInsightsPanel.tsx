@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { WorkstationInsightsPanelProps } from '../../types/workstation'
+import './workstation.css'
 
 /**
  * WorkstationInsightsPanel Component
