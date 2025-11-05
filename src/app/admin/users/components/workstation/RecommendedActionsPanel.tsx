@@ -13,7 +13,7 @@ interface RecommendedActionsPanelProps {
   onDismiss?: (actionId: string) => void
 }
 
-const ICON_MAP: Record<string, React.ComponentType<{ size: number }>> = {
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
   critical: AlertCircle,
   high: AlertCircle,
   medium: Info,

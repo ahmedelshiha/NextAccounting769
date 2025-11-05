@@ -82,6 +82,12 @@ export const WorkstationInsightsPanel = memo(function WorkstationInsightsPanel({
 
   const effectiveChartData = chartData || fallbackChartData
 
+  // Normalize userGrowthTrend to match TimeSeriesData[] expected by AnalyticsCharts
+  const normalizedUserGrowthTrend = (effectiveChartData.userGrowthTrend || []).map((d: any) => ({
+    date: d.date,
+    users: typeof d.users === 'number' ? d.users : (typeof d.value === 'number' ? d.value : 0),
+  }))
+
   if (chartsError) {
     console.error('Failed to load analytics charts:', chartsError)
   }
@@ -133,7 +139,7 @@ export const WorkstationInsightsPanel = memo(function WorkstationInsightsPanel({
           ) : (
             <Suspense fallback={<ChartSkeleton />}>
               <AnalyticsCharts
-                userGrowthTrend={effectiveChartData.userGrowthTrend}
+                userGrowthTrend={normalizedUserGrowthTrend}
                 departmentDistribution={effectiveChartData.departmentDistribution}
                 roleDistribution={effectiveChartData.roleDistribution}
                 workflowEfficiency={effectiveChartData.workflowEfficiency}
