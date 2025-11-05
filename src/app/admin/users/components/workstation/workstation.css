@@ -389,8 +389,8 @@
 
 .insights-close-btn {
   display: none;
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   background: var(--muted);
   border: 1px solid var(--border);
@@ -398,10 +398,19 @@
   cursor: pointer;
   font-size: 1rem;
   transition: background 0.2s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .insights-close-btn:hover {
   background: var(--accent);
+}
+
+.insights-close-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .insights-content {
