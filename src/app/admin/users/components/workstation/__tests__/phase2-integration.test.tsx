@@ -430,9 +430,8 @@ describe('Phase 2: Workstation Integration Tests', () => {
         </WorkstationTestWrapper>
       )
 
-      // Look for metric card labels
-      const pageText = document.body.textContent
-      expect(pageText || '').toMatch(/Total|Pending|Progress|Week/i)
+      // Look for operations overview cards
+      expect(screen.queryByTestId('operations-overview-cards')).toBeInTheDocument()
     })
   })
 
