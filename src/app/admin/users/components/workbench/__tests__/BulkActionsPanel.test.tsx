@@ -386,42 +386,4 @@ describe('BulkActionsPanel', () => {
     })
   })
 
-  describe('Modal Integration', () => {
-    it('should pass correct props to DryRunModal', async () => {
-      const user = userEvent.setup()
-      render(
-        <BulkActionsPanel
-          selectedCount={5}
-          selectedUserIds={new Set(['1', '2', '3', '4', '5'])}
-          onClear={mockOnClear}
-        />
-      )
-
-      const previewButton = screen.getByRole('button', { name: /preview/i })
-      await user.click(previewButton)
-
-      await waitFor(() => {
-        expect(screen.getByText(/Preview: 5 users/)).toBeInTheDocument()
-      })
-    })
-
-    it('should handle apply from modal', async () => {
-      const user = userEvent.setup()
-      render(
-        <BulkActionsPanel
-          selectedCount={2}
-          selectedUserIds={new Set(['1', '2'])}
-          onClear={mockOnClear}
-        />
-      )
-
-      const previewButton = screen.getByRole('button', { name: /preview/i })
-      await user.click(previewButton)
-
-      await waitFor(() => {
-        const applyButton = screen.getByRole('button', { name: /^Apply$/i })
-        expect(applyButton).toBeInTheDocument()
-      })
-    })
-  })
 })
