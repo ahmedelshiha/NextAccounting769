@@ -1,5 +1,3 @@
-import RedisCache from './cache/redis'
-
 type CacheEntry = { value: any; expiresAt: number | null }
 
 class InMemoryCache {
@@ -35,10 +33,17 @@ export class CacheService {
     const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL
     if (redisUrl) {
       try {
-        this.backend = new RedisCache(redisUrl)
+        // Only require the server-only Redis cache implementation at runtime on the server
+        if (typeof window === 'undefined') {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { default: RedisCache } = require('./cache/redis')
+          this.backend = new RedisCache(redisUrl)
+        } else {
+          // In browser environments, avoid pulling server-only modules into the bundle
+          this.backend = new InMemoryCache()
+        }
       } catch (e) {
         // If Redis client not available, fallback to in-memory and log
-         
         console.warn('RedisCache unavailable, falling back to in-memory cache:', (e as any)?.message)
         this.backend = new InMemoryCache()
       }

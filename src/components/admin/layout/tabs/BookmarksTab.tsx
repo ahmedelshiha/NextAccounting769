@@ -4,20 +4,74 @@
  * Allows users to:
  * - Search for pages to bookmark
  * - Manage bookmarked items
- * - Reorder bookmarks
+ * - Reorder bookmarks via drag-and-drop
  */
 
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { Search, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { Search, Trash2, GripVertical } from 'lucide-react'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { MenuCustomizationData, Bookmark } from '@/types/admin/menuCustomization'
 import { useMenuCustomizationModalStore } from '@/stores/admin/menuCustomizationModal.store'
 import { getBookmarkableItems } from '@/lib/menu/menuMapping'
+import { getIconComponent } from '@/lib/menu/iconMap'
 import Fuse from 'fuse.js'
 
 export interface BookmarksTabProps {
   draftCustomization: MenuCustomizationData
+}
+
+/**
+ * Draggable bookmark item component
+ */
+function DraggableBookmarkItem({
+  bookmark,
+  onRemove,
+}: {
+  bookmark: Bookmark
+  onRemove: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: bookmark.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  const IconComponent = getIconComponent(bookmark.icon)
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow group"
+    >
+      {/* Drag handle */}
+      <div {...attributes} {...listeners} className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
+        <GripVertical className="h-5 w-5" />
+      </div>
+
+      {/* Icon and name */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-blue-50">
+          <IconComponent className="h-5 w-5 text-blue-600" />
+        </div>
+        <span className="text-sm font-medium text-gray-900 truncate">{bookmark.name}</span>
+      </div>
+
+      {/* Remove button */}
+      <button
+        onClick={onRemove}
+        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-gray-600 hover:text-red-600 opacity-0 group-hover:opacity-100"
+        title="Remove bookmark"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  )
 }
 
 /**
@@ -27,11 +81,7 @@ export function BookmarksTab({ draftCustomization }: BookmarksTabProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const bookmarkableItems = getBookmarkableItems()
 
-  const {
-    addBookmark,
-    setBookmarks,
-    removeBookmark,
-  } = useMenuCustomizationModalStore()
+  const { addBookmark, setBookmarks, removeBookmark } = useMenuCustomizationModalStore()
 
   // Search functionality using Fuse.js
   const fuse = useMemo(
@@ -66,6 +116,25 @@ export function BookmarksTab({ draftCustomization }: BookmarksTabProps) {
     [draftCustomization.bookmarks]
   )
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (active.id !== over?.id) {
+      const oldIndex = bookmarksInOrder.findIndex((b) => b.id === active.id)
+      const newIndex = bookmarksInOrder.findIndex((b) => b.id === over!.id)
+
+      const newBookmarks = arrayMove(bookmarksInOrder, oldIndex, newIndex)
+      setBookmarks(newBookmarks)
+    }
+  }
+
   const handleAddBookmark = (item: any) => {
     const bookmark: Bookmark = {
       id: item.id,
@@ -78,122 +147,86 @@ export function BookmarksTab({ draftCustomization }: BookmarksTabProps) {
     setSearchQuery('')
   }
 
-  const handleMoveBookmark = (fromIndex: number, direction: 'up' | 'down') => {
-    const newBookmarks = [...bookmarksInOrder]
-    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1
-
-    if (toIndex < 0 || toIndex >= newBookmarks.length) return
-
-    [newBookmarks[fromIndex], newBookmarks[toIndex]] = [
-      newBookmarks[toIndex],
-      newBookmarks[fromIndex],
-    ]
-    setBookmarks(newBookmarks)
-  }
-
   return (
     <div className="space-y-4">
       {/* Search Box */}
       <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
         <input
           type="text"
           placeholder="Search pages to bookmark..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm placeholder-gray-400 transition-colors"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* Available Items */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h3 className="font-medium text-sm text-gray-900">
-              Available Pages ({filteredResults.length})
+        {/* Available Pages */}
+        <div className="border border-gray-200 rounded-lg overflow-hidden flex flex-col">
+          <div className="bg-gradient-to-r from-blue-50 to-transparent px-4 py-3 border-b border-gray-200">
+            <h3 className="font-semibold text-sm text-gray-900">
+              Available Pages
             </h3>
+            <p className="text-xs text-gray-600 mt-0.5">{filteredResults.length} pages</p>
           </div>
-          <div className="divide-y divide-gray-200 bg-white max-h-96 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-200 bg-white">
             {filteredResults.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-gray-500">
-                {searchQuery ? 'No matching pages found' : 'All pages are bookmarked'}
+              <div className="px-4 py-8 text-center text-sm text-gray-500">
+                <p>{searchQuery ? '🔍 No matching pages' : '✓ All pages bookmarked'}</p>
               </div>
             ) : (
-              filteredResults.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleAddBookmark(item)}
-                  className="w-full px-4 py-2 text-left hover:bg-blue-50 transition-colors flex items-center gap-2 group"
-                >
-                  <span className="text-lg flex-shrink-0">
-                    {item.icon || '📄'}
-                  </span>
-                  <span className="text-sm text-gray-900 group-hover:text-blue-600 flex-1 truncate">
-                    {item.name}
-                  </span>
-                  <span className="text-blue-600 opacity-0 group-hover:opacity-100 text-sm font-medium">
-                    +
-                  </span>
-                </button>
-              ))
+              filteredResults.map((item) => {
+                const IconComponent = getIconComponent(item.icon)
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleAddBookmark(item)}
+                    className="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 group border-b border-gray-100 last:border-0"
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 group-hover:bg-blue-100">
+                      <IconComponent className="h-4 w-4 text-gray-600 group-hover:text-blue-600" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 flex-1 truncate">
+                      {item.name}
+                    </span>
+                    <span className="text-blue-600 opacity-0 group-hover:opacity-100 text-lg font-bold">
+                      +
+                    </span>
+                  </button>
+                )
+              })
             )}
           </div>
         </div>
 
-        {/* Bookmarked Items */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h3 className="font-medium text-sm text-gray-900">
-              My Bookmarks ({bookmarksInOrder.length})
+        {/* My Bookmarks */}
+        <div className="border border-gray-200 rounded-lg overflow-hidden flex flex-col">
+          <div className="bg-gradient-to-r from-blue-50 to-transparent px-4 py-3 border-b border-gray-200">
+            <h3 className="font-semibold text-sm text-gray-900">
+              My Bookmarks
             </h3>
+            <p className="text-xs text-gray-600 mt-0.5">{bookmarksInOrder.length} bookmarks</p>
           </div>
-          <div className="divide-y divide-gray-200 bg-white max-h-96 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto bg-white">
             {bookmarksInOrder.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-gray-500">
-                No bookmarks yet. Add one from the left.
+              <div className="px-4 py-8 text-center text-sm text-gray-500">
+                <p>📌 Add your first bookmark from the left</p>
               </div>
             ) : (
-              bookmarksInOrder.map((bookmark, index) => (
-                <div
-                  key={bookmark.id}
-                  className="px-4 py-2 flex items-center justify-between hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-lg flex-shrink-0">
-                      {bookmark.icon || '🔖'}
-                    </span>
-                    <span className="text-sm text-gray-900 truncate">
-                      {bookmark.name}
-                    </span>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={bookmarksInOrder.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2 p-3">
+                    {bookmarksInOrder.map((bookmark) => (
+                      <DraggableBookmarkItem
+                        key={bookmark.id}
+                        bookmark={bookmark}
+                        onRemove={() => removeBookmark(bookmark.id)}
+                      />
+                    ))}
                   </div>
-
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                    <button
-                      onClick={() => handleMoveBookmark(index, 'up')}
-                      disabled={index === 0}
-                      className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Move up"
-                    >
-                      <ChevronUp className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => handleMoveBookmark(index, 'down')}
-                      disabled={index === bookmarksInOrder.length - 1}
-                      className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Move down"
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => removeBookmark(bookmark.id)}
-                      className="p-1 rounded hover:bg-red-50 transition-colors text-gray-600 hover:text-red-600"
-                      title="Remove bookmark"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              ))
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </div>
@@ -202,7 +235,7 @@ export function BookmarksTab({ draftCustomization }: BookmarksTabProps) {
       {/* Info box */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
         <p className="font-medium mb-1">💡 Tip:</p>
-        <p>Click on available pages to add them to your bookmarks. Use the arrow buttons to reorder, or trash icon to remove.</p>
+        <p>Search and click pages to add them to bookmarks. Drag bookmarks to reorder, or remove with the trash icon.</p>
       </div>
     </div>
   )

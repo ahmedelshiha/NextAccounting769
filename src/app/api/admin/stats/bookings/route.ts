@@ -19,6 +19,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
     const ctx = requireTenantContext()
     const role = ctx.role as string | undefined
     if (!ctx.userId || !hasPermission(role, PERMISSIONS.ANALYTICS_VIEW)) {
+      console.warn('Forbidden access to /api/admin/stats/bookings', { userId: ctx.userId, role, isSuperAdmin: ctx.isSuperAdmin })
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

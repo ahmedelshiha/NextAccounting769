@@ -39,19 +39,19 @@ function SortableSection({ section, expandedSections, toggleSectionExpanded, tog
   const hiddenCount = section.items.length - visibleItems.length
 
   return (
-    <div ref={setNodeRef} style={style} className="border border-gray-200 rounded-lg overflow-hidden mb-4 bg-white">
+    <div ref={setNodeRef} style={style} className="border border-gray-200 rounded-lg overflow-hidden mb-4 bg-white hover:shadow-md transition-shadow">
       {/* Section Header */}
       <div
-        className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-50 to-transparent hover:from-blue-100 transition-colors border-b border-gray-200"
       >
-        <div {...attributes} {...listeners} className="flex items-center gap-3 flex-1 cursor-grab">
-          <GripVertical className="h-5 w-5 text-gray-400" />
-          <span className="font-medium text-gray-900">{section.name}</span>
-          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-            {visibleItems.length} visible
+        <div {...attributes} {...listeners} className="flex items-center gap-3 flex-1 cursor-grab active:cursor-grabbing">
+          <GripVertical className="h-5 w-5 text-blue-400" />
+          <span className="font-semibold text-gray-900">{section.name}</span>
+          <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-medium">
+            {visibleItems.length}
           </span>
           {hiddenCount > 0 && (
-            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">
+            <span className="text-xs bg-gray-200 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
               {hiddenCount} hidden
             </span>
           )}
@@ -60,13 +60,13 @@ function SortableSection({ section, expandedSections, toggleSectionExpanded, tog
         <div className="flex items-center gap-2">
           <button
             onClick={() => toggleSectionExpanded(section.id)}
-            className="p-1 rounded hover:bg-gray-200"
+            className="p-1.5 rounded-lg hover:bg-blue-100 transition-colors text-gray-600 hover:text-blue-600"
             title={isExpanded ? 'Collapse section' : 'Expand section'}
           >
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4 text-gray-600" />
+              <ChevronUp className="h-5 w-5" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-gray-600" />
+              <ChevronDown className="h-5 w-5" />
             )}
           </button>
         </div>
@@ -113,7 +113,7 @@ function SortableSection({ section, expandedSections, toggleSectionExpanded, tog
 
                       <button
                         onClick={() => toggleItemVisibility(currentItem.href || '')}
-                        className="p-1 rounded hover:bg-gray-200 transition-colors text-gray-600 hover:text-gray-900"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
                         title={currentIsHidden ? 'Show item' : 'Hide item'}
                       >
                         {currentIsHidden ? (

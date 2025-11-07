@@ -1,20 +1,28 @@
-# Builder.io Implementation Prompt for User Profile Dropdown Enhancement
+# Builder.io Implementation Prompt for Admin Workbench Transformation
+
+**⚠️ IMPORTANT UPDATE (January 2025):** All Phases 1-5 have been **COMPLETED and VERIFIED** ✅
+
+See `docs/ADMIN_WORKBENCH_PROJECT_STATUS.md` for complete verification results and deployment status. The codebase now has 27+ verified implementation files and is production-ready. This prompt has been updated with new documentation references.
+
+---
 
 ## 🎯 OBJECTIVE
 
-You are a senior full-stack developer tasked with implementing the **User Profile Dropdown Enhancement** as detailed in the comprehensive plan document. You will work **task by task**, implementing each component incrementally, testing thoroughly, and updating the markdown file with progress checkmarks after each completed task.
+You are a senior full-stack developer tasked with implementing the **Admin Workbench Transformation** as detailed in the comprehensive plan document. You will work **task by task**, implementing each component incrementally, testing thoroughly, and updating the markdown file with progress checkmarks after each completed task.
+
+**Current Status:** Phases 1-5 Complete (92% overall) | Ready for Phase 6-8 implementation or deployment
 
 ---
 
 ## 📋 YOUR ROLE & RESPONSIBILITIES
 
 ### Primary Role
-- Read and fully understand the enhancement plan document
+- Read and fully understand the transformation plan document
 - Implement features **exactly as specified** in the plan
-- Follow the 4-week roadmap structure (Week 1 → Week 2 → Week 3 → Week 4)
+- Follow the roadmap structure (Phase 1 → Phase 2 → ...)
 - Complete tasks **sequentially** within each week
 - Test each component before marking it complete
-- Update the markdown file progress after each task
+- Update the progress files after each task
 
 ### Key Principles
 1. **No shortcuts** - Implement everything as specified (accessibility, TypeScript, memoization, etc.)
@@ -29,16 +37,18 @@ You are a senior full-stack developer tasked with implementing the **User Profil
 
 ### Before You Start
 
-1. **Read the entire enhancement plan document thoroughly**
-   - Understand the current state analysis (Part 1)
-   - Review all proposed enhancements (Part 2)
-   - Study the code examples provided
-   - Note the file structure in Appendix A
+1. **Read the entire transformation plan document thoroughly**
+   - **📚 START HERE - Master Index:** `docs/DOCUMENTATION_INDEX.md` (Central navigation for all project docs)
+   - **📊 Project Status:** `docs/ADMIN_WORKBENCH_PROJECT_STATUS.md` (Complete status, verification results, deployment checklist)
+   - **🚀 Quick Start:** `docs/ADMIN_WORKBENCH_QUICK_START.md`
+   - **📋 Main Roadmap:** `docs/ADMIN_WORKBENCH_TRANSFORMATION_ROADMAP.MD`
+   - **🔧 Implementation Summary:** `docs/ADMIN_WORKBENCH_IMPLEMENTATION_SUMMARY.md`
+   - **✅ Verification Checklist:** `docs/ADMIN_WORKBENCH_VERIFICATION.md`
 
 2. **Understand the existing codebase**
-   - Review the audit document (USER_PROFILE_MODAL_COMPREHENSIVE_AUDIT.md)
-   - Understand current UserProfileDropdown implementation
-   - Check existing hooks (useTheme, useUserStatus)
+   - Review the progress details: `docs/ADMIN_WORKBENCH_PHASE_1_5_PROGRESS.md`
+   - Understand the existing codebase and architecture
+   - Check existing hooks and utilities
    - Review component structure and patterns
 
 3. **Set up your environment**
@@ -94,163 +104,37 @@ For **EACH task**, follow this exact format:
 ```
 
 ### Step 5: Update Markdown File
-- Update the corresponding checkbox in the roadmap (Part 6)
+- Update the corresponding progress file (e.g., `docs/ADMIN_WORKBENCH_PHASE_1_5_PROGRESS.md` or `docs/PHASE_6_7_8_COMPLETION_SUMMARY.md`)
 - Change `[ ]` to `[x]` for completed tasks
 - Add completion timestamp: `[x] Task completed - [Date Time]`
-- Update deliverables section if needed
+- Update the implementation summary (`docs/ADMIN_WORKBENCH_IMPLEMENTATION_SUMMARY.md`) if needed
 
 ---
 
-## 🗓️ IMPLEMENTATION SEQUENCE
+## 🗓️ IMPLEMENTATION SEQUENCE (Refer to docs/ADMIN_WORKBENCH_TRANSFORMATION_ROADMAP.md)
 
-### **WEEK 1: Core Components (Priority 1)**
-
-#### Day 1: Theme Selector Component
-**TASK 1.1 - Create ThemeSelector Component**
-- File: `src/components/admin/layout/Header/UserProfileDropdown/ThemeSelector.tsx`
-- Requirements:
-  - Horizontal radio group layout
-  - Icon-only buttons (Sun, Moon, Monitor from lucide-react)
-  - Active state styling with shadow
-  - Theme switching with useTheme hook
-  - Toast notification on change
-  - Full TypeScript typing
-  - Memoization with React.memo
-  - ARIA attributes (role="radiogroup", aria-checked)
-  - Keyboard navigation support
-
-**Expected Output:**
-```typescript
-// Complete ThemeSelector.tsx with:
-// - Import statements
-// - TypeScript interfaces
-// - Memoized component
-// - Event handlers with useCallback
-// - Proper ARIA labels
-// - Tailwind CSS classes matching spec
-```
-
-**Testing:**
-- Unit test: renders all theme options
-- Unit test: highlights active theme
-- Unit test: calls setTheme on click
-- Unit test: keyboard navigation works
-
-**After Completion:**
-- Update markdown: `[x] Create ThemeSelector component - [Date]`
-- Update markdown: `[x] Add unit tests - [Date]`
-- Commit to git: "feat: add horizontal theme selector component"
+### **PHASE 1-5: Core Components (Refer to docs/ADMIN_WORKBENCH_PHASE_1_5_PROGRESS.md)**
 
 ---
 
-#### Day 1: Theme Selector Tests
-**TASK 1.2 - Create ThemeSelector Unit Tests**
-- File: `__tests__/components/admin/layout/Header/UserProfileDropdown/ThemeSelector.test.tsx`
-- Requirements:
-  - Test all theme options render
-  - Test active theme highlighting
-  - Test theme change callback
-  - Test keyboard navigation
-  - Test accessibility attributes
-  - Mock useTheme hook
-  - 100% code coverage
+### **PHASE 6-8: Completion & Rollout Documentation**
 
-**Expected Output:**
-```typescript
-// Complete test suite with:
-// - Jest/React Testing Library setup
-// - Mock implementations
-// - At least 5 test cases
-// - Accessibility checks
-```
+The following documentation has been created to finalize the project. You MUST review these files to understand the implementation, testing, and rollout strategy for the Builder.io integration and final phases.
 
-**After Completion:**
-- Update markdown: `[x] Test keyboard navigation - [Date]`
-- Run: `npm test ThemeSelector`
-- Verify: All tests pass
-- Commit: "test: add ThemeSelector unit tests"
-
----
-
-#### Day 2: Status Selector Component
-**TASK 2.1 - Create StatusSelector Component**
-- File: `src/components/admin/layout/Header/UserProfileDropdown/StatusSelector.tsx`
-- Requirements:
-  - Compact button with current status
-  - Popover component from Radix UI
-  - Status options (Online/Away/Busy)
-  - Color-coded dots (green/amber/red)
-  - useUserStatus hook integration
-  - Toast notification on change
-  - Full TypeScript typing
-  - Memoization
-  - Popover state management (useState for open)
-
-**Expected Output:**
-```typescript
-// Complete StatusSelector.tsx with:
-// - Popover trigger button
-// - Popover content with status options
-// - Status change handler
-// - Color mapping for status dots
-// - Proper ARIA labels
-```
-
-**Testing:**
-- Unit test: renders current status
-- Unit test: opens popover on click
-- Unit test: closes popover after selection
-- Unit test: status change updates UI
-
-**After Completion:**
-- Update markdown: `[x] Create StatusSelector component - [Date]`
-- Update markdown: `[x] Add unit tests - [Date]`
-- Commit: "feat: add compact status selector with popover"
-
----
-
-#### Day 3: UserProfileDropdown Refactor
-**TASK 3.1 - Refactor UserProfileDropdown Component**
-- File: `src/components/admin/layout/Header/UserProfileDropdown.tsx`
-- Requirements:
-  - Import ThemeSelector and StatusSelector
-  - Add MenuSection component for grouping
-  - Add section headers (Profile, Preferences, Quick Actions)
-  - Add DropdownMenuSeparator between sections
-  - Add icons to all menu items (User, Shield, HelpCircle, LogOut)
-  - Add keyboard shortcut hints (⌘P, ⌘S, etc.)
-  - Update UserInfo integration with Settings icon button
-  - Maintain all existing functionality
-  - Keep all ARIA attributes
-  - Ensure backward compatibility
-
-**Expected Output:**
-```typescript
-// Updated UserProfileDropdown.tsx with:
-// - MenuSection helper component
-// - Three distinct sections
-// - ThemeSelector in Preferences section
-// - StatusSelector in Preferences section
-// - Icons from lucide-react on all items
-// - Keyboard shortcut display
-// - Settings icon button in header
-```
-
-**Testing:**
-- Unit test: renders all sections
-- Unit test: separators display correctly
-- Unit test: icons render for menu items
-- E2E test: dropdown opens and sections visible
-- E2E test: theme selector works in dropdown
-- E2E test: status selector works in dropdown
-
-**After Completion:**
-- Update markdown: `[x] Refactor UserProfileDropdown - [Date]`
-- Update markdown: `[x] Add section grouping - [Date]`
-- Update markdown: `[x] Integrate new selectors - [Date]`
-- Commit: "refactor: restructure UserProfileDropdown with sections and new selectors"
-
----
+| Phase | Document | Summary |
+| :--- | :--- | :--- |
+| **Master Index** | `docs/DOCUMENTATION_INDEX.md` | **Central navigation hub** for ALL project documentation. Links to all phase docs, contact matrix, deployment checklist, and quick-start guides. Start here for easy navigation. |
+| **Project Status** | `docs/ADMIN_WORKBENCH_PROJECT_STATUS.md` | **Complete project status report** with verification results, file inventory (27+ files verified), pre-deployment checklist, and 5-week rollout timeline. Production-ready summary. |
+| **Phase 6: Builder.io Integration** | `docs/BUILDER_IO_INTEGRATION_GUIDE.md` | Complete setup, architecture, and workflow guide for the Builder.io CMS integration, including API configuration and fallback logic. |
+| | `docs/BUILDER_IO_SETUP_MODELS.md` | Step-by-step instructions for creating the required Builder.io models (`admin-workbench-header`, `metrics`, `sidebar`, `footer`) and defining their schemas. |
+| | `docs/BUILDER_IO_TESTING_PLAN.md` | Comprehensive testing plan with 9 suites and over 50 scenarios to verify content loading, caching, fallback, and E2E functionality. |
+| **Phase 7: Testing & Accessibility** | `docs/PHASE_7_TESTING_STATUS.md` | **Current session status** - Test inventory, issues found & fixed, accessibility & performance audit requirements. |
+| | `docs/PHASE_7_INDIVIDUAL_EXECUTION_PLAN.md` | **Step-by-step execution guide** - 10 individual test execution steps with detailed commands, expected outputs, troubleshooting, and extended timeline. |
+| | `docs/PHASE_7_SESSION_SUMMARY.md` | **Session progress summary** - Accomplishments, current status, key learnings, and timeline estimates for Phase 7 execution. |
+| | `docs/PHASE_7_READY_FOR_EXECUTION.md` | **Quick reference & status** - Assessment complete, ready for test execution with commands and success criteria. |
+| | `docs/ACCESSIBILITY_AUDIT_PLAN.md` | Detailed plan for achieving **WCAG 2.1 AA compliance**, including keyboard navigation, screen reader testing (NVDA, VoiceOver), and color contrast verification (100+ scenarios). |
+| | `docs/PERFORMANCE_AUDIT_PLAN.md` | Guide for conducting a **Lighthouse audit**, setting Web Vitals targets (LCP < 2.5s), and outlining the performance monitoring and optimization strategy. |
+| **Phase 8: Monitoring & Rollout** | `docs/PHASE_6_7_8_COMPLETION_SUMMARY.md` | Final summary of all work completed in Phases 6, 7, and 8, including key metrics, file structures, testing results, and the staged rollout plan. |
 
 ### **Continue This Pattern for All Tasks**
 
@@ -322,316 +206,58 @@ Update the markdown file with this format:
 - **Tests Added**: [count]
 - **Estimated Time**: 6 hours
 - **Actual Time**: 5.5 hours
-- **Git Commit**: feat: [commit message]
-```
-
-### Weekly Summary
-
-At the end of each week, add a summary:
-
-```markdown
-### Week X Summary
-**Completion Status**: 5/5 tasks complete (100%)
-**Files Created**: 8
-**Files Modified**: 3
-**Tests Added**: 23 unit tests, 8 E2E tests
-**Code Coverage**: 92%
-**Issues Encountered**: [list]
-**Blockers Resolved**: [list]
-**Ready for**: Week X+1 tasks
+- **Blockers**: None
+- **Notes**: [Any notes about implementation]
 ```
 
 ---
 
-## 🔍 VERIFICATION REQUIREMENTS
+## 📦 DELIVERABLES
 
-### Before Moving to Next Task
+### Final Output
+- **Pull Request** with all implemented features
+- **Updated Markdown File** with all tasks checked off
+- **Loom Video** demonstrating the new functionality
+- **Test Coverage Report** showing >80% coverage
 
-You MUST verify:
-1. ✅ Code compiles without TypeScript errors
-2. ✅ Component renders in Storybook (if applicable)
-3. ✅ All unit tests pass (`npm test [ComponentName]`)
-4. ✅ ESLint passes (`npm run lint`)
-5. ✅ No console errors in development
-6. ✅ Accessibility audit passes (Chrome DevTools)
-7. ✅ Visual regression test passes (if applicable)
-8. ✅ Git commit created with proper message format
-
-### Commit Message Format
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-**Types**: feat, fix, refactor, test, docs, style, chore
-
-**Examples**:
-- `feat(dropdown): add horizontal theme selector`
-- `test(theme-selector): add unit tests for theme switching`
-- `refactor(dropdown): restructure menu with sections`
-- `fix(status-selector): correct popover positioning`
+### Definition of Done
+- All tasks in the roadmap are complete
+- All tests are passing
+- Code is reviewed and approved
+- PR is merged to main
+- No regressions in existing functionality
 
 ---
 
-## 🚨 ERROR HANDLING
+## 📚 RELATED PROJECT DOCUMENTATION
 
-### If You Encounter Issues
+### Entities Tab Retirement (Parallel Project - Ready for Rollout)
+The **Entities Tab Retirement** project (100% complete) is being coordinated with AdminWorkBench rollout. Review the following documentation:
 
-1. **TypeScript Errors**
-   - Check type definitions in types.ts
-   - Verify import paths
-   - Check for missing type exports
-   - Review interface compatibility
+- **📊 Readiness Report:** `docs/ENTITIES_TAB_RETIREMENT_READINESS_REPORT.md` - Production-ready, verified complete
+- **📋 Implementation Plan:** `docs/ADMIN_ENTITIES_TAB_RETIREMENT_PLAN.md` - Full action plan
+- **🧪 Test Plan:** `docs/ENTITIES_TAB_RETIREMENT_TEST_PLAN.md` - 45 test cases documented
+- **✅ Validation Checklist:** `docs/ENTITIES_TAB_RETIREMENT_VALIDATION_CHECKLIST.md` - QA verification guide
 
-2. **Component Not Rendering**
-   - Check import paths (use aliases: @/components, @/hooks)
-   - Verify parent component integration
-   - Check for circular dependencies
-   - Review React DevTools component tree
-
-3. **Tests Failing**
-   - Check mock implementations
-   - Verify async behavior with waitFor
-   - Check for state updates with act()
-   - Review jest configuration
-
-4. **Styling Issues**
-   - Verify Tailwind classes are valid
-   - Check for CSS conflicts
-   - Review responsive breakpoints
-   - Test in multiple browsers
-
-### Reporting Issues
-
-When encountering blockers:
-```
-🚨 ISSUE ENCOUNTERED:
-   Task: [Task name]
-   Issue: [Description]
-   Attempted Solutions:
-      - [Solution 1] - Result: [Failed/Partial]
-      - [Solution 2] - Result: [Failed/Partial]
-   Blocker Status: [High/Medium/Low]
-   Assistance Needed: [Yes/No]
-   Next Steps: [Plan]
-```
+See `docs/DOCUMENTATION_INDEX.md` for complete navigation of all project documentation.
 
 ---
 
-## 📈 SUCCESS CRITERIA
+## ❓ QUESTIONS & BLOCKERS
 
-### Task-Level Success
-- [ ] Code compiles without errors
-- [ ] Component renders correctly
-- [ ] All tests pass (unit + E2E)
-- [ ] Accessibility requirements met
-- [ ] Code review checklist complete
-- [ ] Git commit created
-- [ ] Markdown updated
+If you have any questions or are blocked, please **immediately** post in the project channel with:
+- **Blocker**: [Description of issue]
+- **Task**: [Task you are working on]
+- **Attempts to Resolve**: [What you have tried]
+- **Urgency**: [High/Medium/Low]
 
-### Week-Level Success
-- [ ] All week's tasks completed
-- [ ] Weekly summary added
-- [ ] Integration testing passed
-- [ ] No regressions in existing features
-- [ ] Performance metrics within targets
-- [ ] Ready for next week
-
-### Project-Level Success
-- [ ] All 4 weeks completed
-- [ ] All deliverables achieved
-- [ ] Bundle size < 26KB (target)
-- [ ] WCAG 2.1 AA compliance
-- [ ] Performance targets met
-- [ ] User acceptance criteria passed
+Do not proceed with a task if you are unsure about the requirements.
 
 ---
 
-## 🎬 GETTING STARTED
+## 📞 DOCUMENTATION SUPPORT
 
-### Your First Actions
-
-1. **Read the enhancement plan completely** (30 minutes)
-   - Understand the full scope
-   - Note all dependencies
-   - Review code examples
-   - Check file structure
-
-2. **Review existing codebase** (30 minutes)
-   - Read current UserProfileDropdown.tsx
-   - Check existing hooks (useTheme, useUserStatus)
-   - Review UI component library usage
-   - Understand project structure
-
-3. **Start Week 1, Day 1, Task 1.1** (ThemeSelector)
-   - Announce task using format above
-   - Create file with complete code
-   - Test thoroughly
-   - Update markdown
-   - Commit to git
-
-4. **Report progress**
-   ```
-   📊 SESSION STARTED
-   Date: [Current Date]
-   Starting Task: Week 1, Day 1, Task 1.1
-   Target Completion: Day 1 end (5 tasks)
-   Status: In Progress
-   ```
-
----
-
-## 💬 COMMUNICATION PROTOCOL
-
-### Progress Updates
-
-Provide updates after each task:
-```
-✅ TASK COMPLETED: Week 1, Day 1, Task 1.1
-   Component: ThemeSelector
-   Files: src/components/.../ThemeSelector.tsx
-   Tests: 5 unit tests passing
-   Time: 4.5 hours (estimated: 6 hours)
-   Status: Ready for code review
-   Next: Week 1, Day 1, Task 1.2 (ThemeSelector tests)
-```
-
-### Daily Summary
-
-At end of each day:
-```
-📅 DAY 1 SUMMARY
-   Tasks Completed: 2/2 ✅
-   Components Created: 1 (ThemeSelector)
-   Tests Added: 5 unit tests
-   Code Coverage: 95%
-   Issues: None
-   Tomorrow: Day 2 - StatusSelector component
-```
-
-### Weekly Summary
-
-At end of each week:
-```
-📊 WEEK 1 SUMMARY
-   Progress: 100% (5/5 days complete)
-   Components: ThemeSelector ✅, StatusSelector ✅, UserProfileDropdown ✅
-   Tests: 23 unit tests, 8 E2E tests
-   Coverage: 92%
-   Performance: Bundle size +2KB (within target)
-   Status: ✅ Ready for Week 2
-```
-
----
-
-## 🎯 FINAL DELIVERABLE FORMAT
-
-### When ALL Tasks Complete
-
-Provide a final comprehensive report:
-
-```markdown
-# 🎉 USER PROFILE DROPDOWN ENHANCEMENT - COMPLETE
-
-## ✅ Implementation Summary
-- **Duration**: 4 weeks
-- **Tasks Completed**: 80/80 (100%)
-- **Components Created**: 8
-- **Components Modified**: 5
-- **Unit Tests Added**: 45
-- **E2E Tests Added**: 18
-- **Code Coverage**: 94%
-- **Bundle Size Impact**: +4.2KB (+21% - within target)
-
-## 📊 Metrics Achieved
-- [x] Theme switch time: 180ms (target: <200ms) ✅
-- [x] Dropdown open time: 85ms (target: <100ms) ✅
-- [x] Mobile sheet animation: 280ms (target: <300ms) ✅
-- [x] WCAG 2.1 AA compliance: 100% ✅
-- [x] Keyboard navigation: 100% functional ✅
-- [x] Touch target sizes: 100% meet 48×48px ✅
-
-## 📝 Files Created/Modified
-### Created (12 files)
-- src/components/admin/layout/Header/UserProfileDropdown/ThemeSelector.tsx
-- src/components/admin/layout/Header/UserProfileDropdown/StatusSelector.tsx
-- [... list all files ...]
-
-### Modified (8 files)
-- src/components/admin/layout/Header/UserProfileDropdown.tsx
-- [... list all files ...]
-
-## 🧪 Testing Summary
-- Unit Tests: 45 tests, 100% passing
-- E2E Tests: 18 scenarios, 100% passing
-- Accessibility: All WCAG 2.1 AA criteria met
-- Performance: All targets achieved
-- Browser Testing: Chrome, Firefox, Safari, Edge - all passing
-
-## 🚀 Deployment Readiness
-- [x] All code reviewed and approved
-- [x] Tests passing on CI/CD
-- [x] Documentation updated
-- [x] CHANGELOG.md updated
-- [x] Migration guide created
-- [x] Feature flag configured
-- [x] Rollback plan documented
-
-## 📋 Handoff Checklist
-- [x] Code merged to main branch
-- [x] Enhancement plan markdown updated with all completions
-- [x] README updated with new component usage
-- [x] Storybook stories created
-- [x] TypeScript types exported
-- [x] Performance benchmarks documented
-
-**Status**: ✅ READY FOR PRODUCTION DEPLOYMENT
-**Recommended Rollout**: Phased rollout with 10% → 50% → 100%
-```
-
----
-
-## 🎓 REMEMBER
-
-### Key Success Factors
-
-1. **Follow the plan exactly** - Don't deviate from specifications
-2. **Test everything** - No untested code should be committed
-3. **Update markdown religiously** - Keep progress tracking accurate
-4. **Commit frequently** - Small, focused commits with good messages
-5. **Ask questions** - If anything is unclear, ask before implementing
-6. **Maintain quality** - Don't rush, quality over speed
-7. **Document as you go** - Add inline comments for complex logic
-8. **Think accessibility** - WCAG 2.1 AA is non-negotiable
-
-### Your Mission
-
-Transform the user profile dropdown from a vertical list into a modern, efficient, accessible, and delightful user experience - **exactly as specified in the enhancement plan**.
-
----
-
-## 🚀 START COMMAND
-
-When you're ready to begin, respond with:
-
-```
-🎬 IMPLEMENTATION STARTING
-
-📋 Plan Review: ✅ Complete
-🔍 Codebase Review: ✅ Complete
-⚙️ Environment Setup: ✅ Ready
-
-🎯 STARTING: Week 1, Day 1, Task 1.1
-📄 Component: ThemeSelector
-📁 File: src/components/admin/layout/Header/UserProfileDropdown/ThemeSelector.tsx
-⏱️ Estimated: 6 hours
-
-Let's build something amazing! 🚀
-```
-
----
-
-**Good luck, and happy coding! Remember: Quality, Accessibility, Performance - in that order.** 🎯✨
+For questions about documentation structure or references:
+- See `docs/DOCUMENTATION_INDEX.md` for central navigation
+- See `docs/ADMIN_WORKBENCH_PROJECT_STATUS.md` for comprehensive project overview
+- Contact the Engineering Lead for clarification on implementation details

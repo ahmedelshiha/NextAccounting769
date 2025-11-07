@@ -2,13 +2,14 @@
 
 import StandardPage from "./StandardPage"
 import DataTable from "@/components/dashboard/DataTable"
+import VirtualizedDataTable from "@/components/dashboard/VirtualizedDataTable"
 import AdvancedDataTable from "@/components/dashboard/tables/AdvancedDataTable"
 import type { ActionItem, Column, FilterConfig, RowAction, TabItem } from "@/types/dashboard"
 import { ReactNode, useMemo, useState } from "react"
 
 /**
  * Props for ListPage, a composition of StandardPage and a table component.
- * Supports both the basic DataTable and AdvancedDataTable (sticky header + pagination).
+ * Supports DataTable (basic), VirtualizedDataTable (large datasets), and AdvancedDataTable (pagination).
  */
 interface ListPageProps<T extends { id?: string | number }> {
   title: string
@@ -39,6 +40,10 @@ interface ListPageProps<T extends { id?: string | number }> {
   renderBulkActions?: (selectedIds: Array<string | number>) => ReactNode
   /** Use AdvancedDataTable (adds sticky header + pagination UI) */
   useAdvancedTable?: boolean
+  /** Use VirtualizedDataTable for large datasets (100+ rows). Default: true */
+  useVirtualization?: boolean
+  /** Virtualization threshold - enable virtual scrolling when rows exceed this count. Default: 100 */
+  virtualizationThreshold?: number
   /** Current page (1-based). If omitted, internal pagination state is used. */
   page?: number
   /** Page size for pagination (AdvancedDataTable only). Defaults to 20. */
@@ -81,6 +86,8 @@ export default function ListPage<T extends { id?: string | number }>(props: List
     selectable = true,
     renderBulkActions,
     useAdvancedTable = false,
+    useVirtualization = true,
+    virtualizationThreshold = 100,
     page,
     pageSize,
     total,
@@ -90,6 +97,10 @@ export default function ListPage<T extends { id?: string | number }>(props: List
 
   const [selectedIds, setSelectedIds] = useState<Array<string | number>>([])
   const activeFilters = useMemo(() => (filters || []).filter((f) => f.value).map((f) => ({ key: f.key, label: f.label, value: String(f.value) })), [filters])
+
+  // Determine which table component to use
+  // Priority: AdvancedDataTable > VirtualizedDataTable > DataTable
+  const useVirtualizationProp = useVirtualization !== false // Default to true
 
   return (
     <StandardPage
@@ -130,6 +141,20 @@ export default function ListPage<T extends { id?: string | number }>(props: List
           onPageChange={onPageChange}
           emptyMessage={emptyMessage}
           onSelectionChange={setSelectedIds}
+        />
+      ) : useVirtualizationProp ? (
+        <VirtualizedDataTable<T>
+          columns={columns}
+          rows={rows}
+          loading={loading}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={onSort}
+          actions={actions}
+          selectable={selectable}
+          onSelectionChange={setSelectedIds}
+          useVirtualization={true}
+          virtualizationThreshold={virtualizationThreshold ?? 100}
         />
       ) : (
         <DataTable<T>

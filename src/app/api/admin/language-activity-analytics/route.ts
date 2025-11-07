@@ -31,7 +31,7 @@ export interface LanguageActivityResponse {
   }
 }
 
-export function detectDeviceFromUA(ua?: string | null): string {
+function detectDeviceFromUA(ua?: string | null): string {
   if (!ua) return 'unknown'
   const u = ua.toLowerCase()
   if (/ipad|tablet/.test(u)) return 'tablet'
@@ -41,7 +41,7 @@ export function detectDeviceFromUA(ua?: string | null): string {
 
 import { lookupCountryISO } from '@/lib/country-map'
 
-export function normalizeCountryName(name: string): string | null {
+function normalizeCountryName(name: string): string | null {
   if (!name) return null
   const n = String(name).trim()
   const lower = n.toLowerCase()
@@ -56,7 +56,7 @@ export function normalizeCountryName(name: string): string | null {
   return lookupCountryISO(clean)
 }
 
-export function regionFromProfile(profile: any): string {
+function regionFromProfile(profile: any): string {
   try {
     const meta = profile.metadata || {}
     if (meta && typeof meta === 'object') {
@@ -79,7 +79,7 @@ export function regionFromProfile(profile: any): string {
   return 'unknown'
 }
 
-export async function handler(request: Request) {
+async function handler(request: Request) {
   try {
     const ctx = requireTenantContext()
 

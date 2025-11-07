@@ -69,10 +69,50 @@ export const POST = withTenantContext(async (req: Request) => {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const body = await req.json().catch(() => ({}))
-    const { name, email, role: memberRole = 'TEAM_MEMBER', department = 'tax', title = '', userId = null } = body || {}
-    if (!name || !email) return NextResponse.json({ error: 'Missing name or email' }, { status: 400 })
-    const created = await prisma.teamMember.create({ data: { name, email, role: memberRole, department, title, userId } as any })
-    return NextResponse.json({ teamMember: created }, { status: 201 })
+    const {
+      name,
+      email,
+      role: memberRole = 'TEAM_MEMBER',
+      department = 'Accounting',
+      title = '',
+      userId = null,
+      phone = null,
+      status = 'ACTIVE',
+      specialties = [],
+      certifications = [],
+      availability = '9am-5pm',
+      notes = null,
+    } = body || {}
+
+    if (!name || !email) {
+      return NextResponse.json({ error: 'Missing name or email' }, { status: 400 })
+    }
+
+    if (!title) {
+      return NextResponse.json({ error: 'Job title is required' }, { status: 400 })
+    }
+
+    if (!department) {
+      return NextResponse.json({ error: 'Department is required' }, { status: 400 })
+    }
+
+    const created = await prisma.teamMember.create({
+      data: {
+        name,
+        email,
+        role: memberRole,
+        department,
+        title,
+        userId,
+        phone,
+        status,
+        specialties,
+        certifications,
+        availability,
+        notes,
+      } as any
+    })
+    return NextResponse.json(created, { status: 201 })
   } catch (err) {
     console.error('POST /api/admin/team-members error', err)
     return NextResponse.json({ error: 'Failed to create team member' }, { status: 500 })

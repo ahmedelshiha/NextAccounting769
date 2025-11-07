@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
+import { hasRole } from '@/lib/permissions'
 
 export const GET = withTenantContext(async () => {
   try {
     const ctx = requireTenantContext()
 
     const allowed = ['ADMIN', 'TEAM_LEAD']
-    if (!ctx.role || !allowed.includes(ctx.role)) {
+    if (!ctx.role || !hasRole(ctx.role, allowed)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

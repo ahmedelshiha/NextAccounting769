@@ -36,7 +36,7 @@ import SETTINGS_REGISTRY from '@/lib/settings/registry'
 import useRovingTabIndex from '@/hooks/useRovingTabIndex'
 import SidebarHeader from './SidebarHeader'
 import SidebarFooter from './SidebarFooter'
-import { useSidebarCollapsed, useSidebarActions } from '@/stores/admin/layout.store.selectors'
+import { useSidebarCollapsed, useSidebarActions, useExpandedGroups } from '@/stores/admin/layout.store.selectors'
 import { useMenuCustomizationStore } from '@/stores/admin/menuCustomization.store'
 import { applyCustomizationToNavigation } from '@/lib/menu/menuUtils'
 
@@ -69,11 +69,11 @@ function AdminSidebar(props: AdminSidebarProps) {
   const DEFAULT_WIDTH = 256
   const COLLAPSED_WIDTH = 64
 
-  // Integrate with centralized Zustand store where available. Fall back to legacy localStorage keys for migration.
-  // Use selectors to read/write collapsed state.
-  // Always use store values for state; props are legacy compatibility only
+  // Integrate with centralized Zustand store for state management
+  // Use selectors to read/write sidebar state
   const storeCollapsed = useSidebarCollapsed()
-  const { setCollapsed: storeSetCollapsed } = useSidebarActions()
+  const { setCollapsed: storeSetCollapsed, setExpandedGroups } = useSidebarActions()
+  const expandedSections = useExpandedGroups()
 
   // Fetch notification counts for badges
   const { data: counts } = useUnifiedData({
@@ -105,12 +105,6 @@ function AdminSidebar(props: AdminSidebarProps) {
           { name: 'Availability', href: '/admin/availability', icon: Clock },
           { name: 'New Booking', href: '/admin/bookings/new', icon: Calendar },
         ] },
-        { name: 'Clients', href: '/admin/clients', icon: Users, badge: counts?.newClients, children: [
-          { name: 'All Clients', href: '/admin/clients', icon: Users },
-          { name: 'Profiles', href: '/admin/clients/profiles', icon: Users },
-          { name: 'Invitations', href: '/admin/clients/invitations', icon: Mail },
-          { name: 'Add Client', href: '/admin/clients/new', icon: Users },
-        ] },
         { name: 'Services', href: '/admin/services', icon: Briefcase, permission: PERMISSIONS.SERVICES_VIEW, children: [
           { name: 'All Services', href: '/admin/services', icon: Briefcase },
           { name: 'Categories', href: '/admin/services/categories', icon: Target },
@@ -136,14 +130,25 @@ function AdminSidebar(props: AdminSidebarProps) {
       section: 'operations',
       items: [
         { name: 'Tasks', href: '/admin/tasks', icon: CheckSquare, badge: counts?.overdueTasks, permission: PERMISSIONS.TASKS_READ_ALL },
-        { name: 'Team', href: '/admin/team', icon: UserCog, permission: PERMISSIONS.TEAM_VIEW },
         { name: 'Chat', href: '/admin/chat', icon: Mail },
         { name: 'Reminders', href: '/admin/reminders', icon: Bell },
       ]
+    },
+    {
+      section: 'system',
+      items: [
+        { name: 'User Management', href: '/admin/users', icon: Users, permission: PERMISSIONS.USERS_MANAGE },
+        { name: 'Audits', href: '/admin/audits', icon: FileText, permission: PERMISSIONS.ANALYTICS_VIEW },
+        { name: 'Compliance', href: '/admin/compliance', icon: CheckSquare, permission: PERMISSIONS.SECURITY_COMPLIANCE_SETTINGS_VIEW },
+        { name: 'Integrations', href: '/admin/integrations', icon: Briefcase, permission: PERMISSIONS.INTEGRATION_HUB_VIEW },
+        { name: 'Security', href: '/admin/security', icon: Shield, permission: PERMISSIONS.SECURITY_COMPLIANCE_SETTINGS_VIEW },
+        { name: 'Posts', href: '/admin/posts', icon: FileText, permission: PERMISSIONS.ANALYTICS_VIEW },
+        { name: 'Newsletter', href: '/admin/newsletter', icon: Mail, permission: PERMISSIONS.COMMUNICATION_SETTINGS_VIEW },
+        { name: 'Notifications', href: '/admin/notifications', icon: Bell, permission: PERMISSIONS.COMMUNICATION_SETTINGS_VIEW },
+        { name: 'Performance Metrics', href: '/admin/perf-metrics', icon: BarChart3, permission: PERMISSIONS.ANALYTICS_VIEW },
+      ]
     }
   ]
-
-  {/* Static link reference for telemetry test: <Link href="/admin/cron-telemetry">Cron Telemetry</Link> */}
 
   // Apply customization to navigation with memoization for performance
   const navigation = useMemo(
@@ -151,25 +156,12 @@ function AdminSidebar(props: AdminSidebarProps) {
     [customization]
   )
 
-  const [expandedSections, setExpandedSections] = useState<string[]>(() => {
-    try {
-      const fromLs = typeof window !== 'undefined' ? window.localStorage.getItem('admin:sidebar:expanded') : null
-      if (fromLs) {
-        const parsed = JSON.parse(fromLs) as string[]
-        if (Array.isArray(parsed)) return parsed
-      }
-    } catch (e) {}
-    return ['dashboard', 'business']
-  })
-
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') window.localStorage.setItem('admin:sidebar:expanded', JSON.stringify(expandedSections))
-    } catch (e) {}
-  }, [expandedSections])
-
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section])
+    const sections = expandedSections || []
+    const newSections = sections.includes(section)
+      ? sections.filter(s => s !== section)
+      : [...sections, section]
+    setExpandedGroups(newSections)
   }
 
   const isActiveRoute = (href: string) => {
@@ -187,7 +179,7 @@ function AdminSidebar(props: AdminSidebarProps) {
 
     const isActive = isActiveRoute(item.href)
     const hasChildren = item.children && item.children.length > 0
-    const isExpanded = expandedSections.includes(item.href.split('/').pop() || '')
+    const isExpanded = (expandedSections || []).includes(item.href.split('/').pop() || '')
 
     const baseStyles = `
       transition-all duration-200 flex items-center rounded-lg font-medium relative

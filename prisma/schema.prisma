@@ -7,145 +7,160 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Language registry model for data-driven language configuration
 model Language {
-  code          String    @id @default("en") @db.VarChar(10)
-  name          String    @db.VarChar(100)
-  nativeName    String    @db.VarChar(100)
-  direction     String    @default("ltr") @db.VarChar(3) // "ltr" or "rtl"
-  flag          String?   @db.VarChar(5)
-  bcp47Locale   String    @db.VarChar(10) // e.g., "en-US", "ar-SA", "hi-IN"
-  enabled       Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  code        String   @id @default("en") @db.VarChar(10)
+  name        String   @db.VarChar(100)
+  nativeName  String   @db.VarChar(100)
+  direction   String   @default("ltr") @db.VarChar(3)
+  flag        String?  @db.VarChar(5)
+  bcp47Locale String   @db.VarChar(10)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([enabled])
   @@map("languages")
 }
 
-// User model for authentication and role management
 model User {
-  id             String    @id @default(cuid())
-  tenantId       String
-  email          String
-  name           String?
-  password       String?
-  image          String?
-  role           UserRole  @default(CLIENT)
-  emailVerified  DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  sessionVersion Int       @default(0)
-
-  employeeId            String?  @unique
-  department            String?
-  position              String?
-  skills                String[]
-  expertiseLevel        ExpertiseLevel?
-  hourlyRate            Decimal?
-  availabilityStatus    AvailabilityStatus @default(AVAILABLE)
-  maxConcurrentProjects Int?     @default(3)
-  hireDate              DateTime?
-  managerId             String?
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  // Relations
-  accounts Account[]
-  sessions Session[]
-  posts    Post[]
-  bookings Booking[]
-  tasks    Task[]
-  teamMembers TeamMember[] @relation("UserTeamMember")
-  taskComments TaskComment[]
-  taskTemplates TaskTemplate[]
-  // Back-relations for ServiceRequest
-  clientServiceRequests      ServiceRequest[] @relation("ServiceRequestClient")
-  assignedByServiceRequests  ServiceRequest[] @relation("ServiceRequestAssignedBy")
-  serviceRequestComments     ServiceRequestComment[]
-  manager     User?            @relation("ManagerEmployee", fields: [managerId], references: [id], onDelete: SetNull)
-  employees   User[]           @relation("ManagerEmployee")
-  grantedPermissions UserPermission[] @relation("GrantedBy")
-  userPermissions    UserPermission[] @relation("UserPermissions")
-  attachments Attachment[]
-  bookingPreferences BookingPreferences?
-  workOrdersAsClient WorkOrder[] @relation("WorkOrderClient")
-  assignedWorkOrders WorkOrder[] @relation("WorkOrderAssignee")
-  invoices Invoice[]
-  expenses Expense[]
-  tenantMemberships TenantMembership[]
-  auditLogs AuditLog[]
-  settingChangeDiffs SettingChangeDiff[]
-  favoriteSettings   FavoriteSetting[]
-  auditEvents        AuditEvent[]
-  userProfile        UserProfile?
-  menuCustomization  MenuCustomization?
+  id                        String                  @id @default(cuid())
+  tenantId                  String
+  email                     String
+  name                      String?
+  password                  String?
+  image                     String?
+  role                      UserRole                @default(CLIENT)
+  emailVerified             DateTime?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  sessionVersion            Int                     @default(0)
+  employeeId                String?                 @unique
+  department                String?
+  position                  String?
+  skills                    String[]
+  expertiseLevel            ExpertiseLevel?
+  hourlyRate                Decimal?
+  availabilityStatus        AvailabilityStatus      @default(AVAILABLE)
+  maxConcurrentProjects     Int?                    @default(3)
+  hireDate                  DateTime?
+  managerId                 String?
+  tier                      String?                 // Client tier: INDIVIDUAL, SMB, ENTERPRISE
+  workingHours              Json?                   // Team working hours schedule
+  bookingBuffer             Int?                    // Minutes buffer between bookings
+  autoAssign                Boolean?                // Auto-assign tasks
+  certifications            String[]                // Team certifications
+  experienceYears           Int?                    // Years of experience
+  attachments               Attachment[]
+  bookingPreferences        BookingPreferences?
+  assignedByServiceRequests ServiceRequest[]        @relation("ServiceRequestAssignedBy")
+  clientServiceRequests     ServiceRequest[]        @relation("ServiceRequestClient")
+  tasks                     Task[]
+  taskComments              TaskComment[]
+  assignedWorkOrders        WorkOrder[]             @relation("WorkOrderAssignee")
+  workOrdersAsClient        WorkOrder[]             @relation("WorkOrderClient")
+  accounts                  Account[]
+  auditEvents               AuditEvent[]
+  auditLogs                 AuditLog[]
+  bookings                  Booking[]
+  rolesCreated              CustomRole[]            @relation("RoleCreatedBy")
+  expenses                  Expense[]
+  favoriteSettings          FavoriteSetting[]
+  invoices                  Invoice[]
+  menuCustomization         MenuCustomization?
+  permissionAuditsChanged   PermissionAudit[]       @relation("AuditChangedBy")
+  permissionAudits          PermissionAudit[]
+  templatesCreated          PermissionTemplate[]    @relation("TemplateCreatedBy")
+  posts                     Post[]
+  serviceRequestComments    ServiceRequestComment[]
+  sessions                  Session[]
+  settingChangeDiffs        SettingChangeDiff[]
+  taskTemplates             TaskTemplate[]
+  teamMembers               TeamMember[]            @relation("UserTeamMember")
+  tenantMemberships         TenantMembership[]
+  grantedPermissions        UserPermission[]        @relation("GrantedBy")
+  userPermissions           UserPermission[]        @relation("UserPermissions")
+  userProfile               UserProfile?
+  manager                   User?                   @relation("ManagerEmployee", fields: [managerId], references: [id])
+  employees                 User[]                  @relation("ManagerEmployee")
+  tenant                    Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workflowsAsUser           UserWorkflow[]          @relation("WorkflowUser")
+  workflowsTriggered        UserWorkflow[]          @relation("WorkflowTriggeredBy")
+  workflowsApproved         UserWorkflow[]          @relation("WorkflowApprovedBy")
+  workflowStepsApproved     WorkflowStep[]          @relation("WorkflowStepApprovedBy")
+  workflowTemplatesCreated  WorkflowTemplate[]      @relation("WorkflowTemplateCreatedBy")
+  workflowHistoryChanges    WorkflowHistory[]       @relation("WorkflowHistoryChangedBy")
+  bulkOperationsCreated     BulkOperation[]         @relation("BulkOperationCreatedBy")
+  bulkOperationsApproved    BulkOperation[]         @relation("BulkOperationApprovedBy")
+  bulkOperationResults      BulkOperationResult[]
+  bulkOperationHistoryChanges BulkOperationHistory[] @relation("BulkOperationHistoryChangedBy")
 
   @@unique([tenantId, email])
   @@index([tenantId, role])
   @@index([tenantId, createdAt])
+  @@index([tenantId, availabilityStatus])
+  @@index([tenantId, department])
+  @@index([tenantId, tier])
+  @@index([tenantId, experienceYears])
+  @@index([tenantId, availabilityStatus, createdAt])
+  @@index([tenantId, role, createdAt])
+  // Phase 4.3: Server-side filtering optimization indexes
+  @@index([tenantId, email], name: "idx_users_tenantid_email")
+  @@index([tenantId, name], name: "idx_users_tenantid_name")
+  @@index([tenantId, role, availabilityStatus], name: "idx_users_tenantid_role_status")
+  @@index([tenantId, tier, createdAt(sort: Desc)], name: "idx_users_tenantid_tier_created")
+  @@index([tenantId, department, createdAt(sort: Desc)], name: "idx_users_tenantid_department_created")
   @@map("users")
 }
 
-// User profile model for extended profile data
 model UserProfile {
-  id                  String    @id @default(cuid())
-  userId              String    @unique
-  organization        String?
-  phoneNumber         String?
-  phoneNumberVerified DateTime?
-  twoFactorEnabled    Boolean   @default(false)
-  twoFactorSecret     String?
-  lastLoginAt         DateTime?
-  lastLoginIp         String?
-  loginAttempts       Int       @default(0)
-  lockoutUntil        DateTime?
-  metadata            Json?
-
-  // Preference fields
-  timezone            String?   @default("UTC")
-  preferredLanguage   String?   @default("en")
-
-  // Booking notification preferences
+  id                       String    @id @default(cuid())
+  userId                   String    @unique
+  organization             String?
+  phoneNumber              String?
+  phoneNumberVerified      DateTime?
+  twoFactorEnabled         Boolean   @default(false)
+  twoFactorSecret          String?
+  lastLoginAt              DateTime?
+  lastLoginIp              String?
+  loginAttempts            Int       @default(0)
+  lockoutUntil             DateTime?
+  metadata                 Json?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  bookingEmailCancellation Boolean?  @default(true)
   bookingEmailConfirm      Boolean?  @default(true)
   bookingEmailReminder     Boolean?  @default(true)
   bookingEmailReschedule   Boolean?  @default(true)
-  bookingEmailCancellation Boolean?  @default(true)
-  bookingSmsReminder       Boolean?  @default(false)
   bookingSmsConfirmation   Boolean?  @default(false)
+  bookingSmsReminder       Boolean?  @default(false)
+  preferredLanguage        String?   @default("en")
   reminderHours            Int[]     @default([24, 2])
-
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timezone                 String?   @default("UTC")
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("user_profiles")
 }
 
-// NextAuth Account model
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
 }
 
-// NextAuth Session model
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -156,7 +171,6 @@ model Session {
   @@map("sessions")
 }
 
-// NextAuth VerificationToken model
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -164,6 +178,1283 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verificationtokens")
+}
+
+model TranslationPriority {
+  id               String         @id @default(cuid())
+  key              String
+  notes            String?
+  assignedToUserId String?
+  createdAt        DateTime       @default(now())
+  dueDate          DateTime?
+  languageCode     String?        @db.VarChar(10)
+  tenantId         String
+  updatedAt        DateTime       @updatedAt
+  priority         Priority       @default(MEDIUM)
+  status           PriorityStatus @default(OPEN)
+
+  @@unique([tenantId, key, languageCode])
+  @@index([tenantId])
+  @@map("translation_priorities")
+}
+
+model Tenant {
+  id                    String                            @id @default(cuid())
+  slug                  String                            @unique
+  name                  String
+  status                TenantStatus                      @default(ACTIVE)
+  primaryDomain         String?                           @unique
+  description           String?
+  featureFlags          Json?
+  metadata              Json?
+  createdAt             DateTime                          @default(now())
+  updatedAt             DateTime                          @updatedAt
+  attachments           Attachment[]
+  complianceRecords     ComplianceRecord[]
+  healthLogs            HealthLog[]
+  idempotencyKeys       IdempotencyKey[]
+  scheduledReminders    ScheduledReminder[]
+  serviceRequests       ServiceRequest[]
+  tasks                 Task[]
+  workOrders            WorkOrder[]
+  auditEvents           AuditEvent[]
+  auditLogs             AuditLog[]
+  bookingSettings       BookingSettings?
+  bookings              Booking[]
+  chatMessages          ChatMessage[]
+  communicationSettings CommunicationSettings?
+  cronTelemetrySettings CronTelemetrySettings?
+  crowdinIntegration    CrowdinIntegration?
+  customRoles           CustomRole[]
+  expenses              Expense[]
+  favoriteSettings      FavoriteSetting[]
+  integrationSettings   IntegrationSettings?
+  invoices              Invoice[]
+  localizationSettings  OrganizationLocalizationSettings?
+  organizationSettings  OrganizationSettings?
+  permissionAudits      PermissionAudit[]
+  permissionTemplates   PermissionTemplate[]
+  regionalFormats       RegionalFormat[]
+  securitySettings      SecuritySettings?
+  services              Service[]
+  settingChangeDiffs    SettingChangeDiff[]
+  tenantMemberships     TenantMembership[]
+  translationKeys       TranslationKey[]
+  translationMetrics    TranslationMetrics[]
+  users                 User[]
+  userWorkflows         UserWorkflow[]
+  workflowTemplates     WorkflowTemplate[]
+  bulkOperations        BulkOperation[]
+  userManagementSettings UserManagementSettings?
+
+  @@index([status])
+}
+
+model TenantMembership {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      UserRole @default(CLIENT)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("tenant_memberships")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  userId    String?
+  action    String
+  resource  String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
+}
+
+model Post {
+  id             String       @id @default(cuid())
+  title          String
+  slug           String       @unique
+  content        String
+  excerpt        String?
+  published      Boolean      @default(false)
+  featured       Boolean      @default(false)
+  coverImage     String?
+  seoTitle       String?
+  seoDescription String?
+  tags           String[]
+  readTime       Int?
+  views          Int          @default(0)
+  authorId       String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  publishedAt    DateTime?
+  status         PostStatus   @default(DRAFT)
+  archived       Boolean      @default(false)
+  scheduledAt    DateTime?
+  priority       PostPriority @default(MEDIUM)
+  category       String?
+  reviewRequired Boolean      @default(false)
+  isCompliant    Boolean      @default(true)
+  approvedBy     String?
+  version        Int          @default(1)
+  shares         Int          @default(0)
+  comments       Int          @default(0)
+  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([publishedAt])
+  @@index([featured])
+  @@map("posts")
+}
+
+model Newsletter {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String?
+  subscribed Boolean  @default(true)
+  source     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("newsletter")
+}
+
+model NotificationSettings {
+  id           String   @id @default(cuid())
+  emailEnabled Boolean  @default(false)
+  emailFrom    String?
+  webhookUrl   String?
+  templates    Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("notification_settings")
+}
+
+model Service {
+  id                     String             @id @default(cuid())
+  name                   String
+  slug                   String
+  description            String
+  shortDesc              String?
+  features               String[]
+  price                  Decimal?
+  duration               Int?
+  category               String?
+  active                 Boolean            @default(true)
+  featured               Boolean            @default(false)
+  image                  String?
+  serviceSettings        Json?
+  views                  Int                @default(0)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  basePrice              Decimal?
+  estimatedDurationHours Int?
+  requiredSkills         String[]
+  status                 ServiceStatus      @default(ACTIVE)
+  tenantId               String
+  bookingEnabled         Boolean            @default(true)
+  advanceBookingDays     Int                @default(30)
+  minAdvanceHours        Int                @default(24)
+  maxDailyBookings       Int?
+  bufferTime             Int                @default(0)
+  businessHours          Json?
+  blackoutDates          DateTime[]
+  availabilitySlots      AvailabilitySlot[]
+  serviceRequests        ServiceRequest[]
+  workOrders             WorkOrder[]
+  bookings               Booking[]
+  serviceViews           ServiceView[]
+  tenant                 Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([active, bookingEnabled])
+  @@index([status])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([active, featured])
+  @@map("services")
+}
+
+model ServiceView {
+  id        String   @id @default(cuid())
+  serviceId String   @map("service_id")
+  tenantId  String?  @map("tenant_id")
+  ip        String?
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, createdAt])
+  @@map("service_views")
+}
+
+model Booking {
+  id                   String          @id @default(cuid())
+  clientId             String
+  serviceId            String
+  status               BookingStatus   @default(PENDING)
+  scheduledAt          DateTime
+  duration             Int
+  notes                String?
+  clientName           String
+  clientEmail          String
+  clientPhone          String?
+  adminNotes           String?
+  confirmed            Boolean         @default(false)
+  reminderSent         Boolean         @default(false)
+  tenantId             String
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  assignedTeamMemberId String?
+  serviceRequestId     String?
+  workOrders           WorkOrder[]
+  assignedTeamMember   TeamMember?     @relation(fields: [assignedTeamMemberId], references: [id])
+  client               User            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  service              Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceRequest       ServiceRequest? @relation(fields: [serviceRequestId], references: [id])
+  tenant               Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoices             Invoice[]
+
+  @@index([scheduledAt])
+  @@index([status])
+  @@index([clientId])
+  @@index([serviceId])
+  @@index([clientEmail])
+  @@index([createdAt])
+  @@index([status, scheduledAt])
+  @@index([tenantId])
+  @@map("bookings")
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  company   String?
+  subject   String?
+  message   String
+  source    String?
+  responded Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([responded, createdAt])
+  @@index([createdAt])
+  @@map("contact_submissions")
+}
+
+model HealthLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  service   String
+  status    String
+  message   String?
+  checkedAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, checkedAt])
+  @@index([tenantId, service, checkedAt])
+  @@index([tenantId, service, status, checkedAt])
+}
+
+model HealthThreshold {
+  id            Int      @id @default(autoincrement())
+  responseTime  Int      @default(100)
+  errorRate     Float    @default(1.0)
+  storageGrowth Float    @default(20.0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SidebarPreferences {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  collapsed      Boolean  @default(false)
+  width          Int      @default(256)
+  mobileOpen     Boolean  @default(false)
+  expandedGroups String[] @default(["dashboard", "business"])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sidebar_preferences")
+}
+
+model Currency {
+  code      String          @id
+  name      String
+  symbol    String?
+  decimals  Int             @default(2)
+  active    Boolean         @default(false)
+  isDefault Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  rates     ExchangeRate[]
+  overrides PriceOverride[]
+}
+
+model ExchangeRate {
+  id         Int      @id @default(autoincrement())
+  base       String
+  target     String
+  rate       Float
+  source     String?
+  fetchedAt  DateTime @default(now())
+  ttlSeconds Int?
+  currency   Currency @relation(fields: [target], references: [code])
+
+  @@index([base, target])
+}
+
+model PriceOverride {
+  id           Int      @id @default(autoincrement())
+  entity       String
+  entityId     String
+  currencyCode String
+  priceCents   Int
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+
+  @@index([entity, entityId, currencyCode])
+}
+
+model Task {
+  id                 String             @id @default(cuid())
+  tenantId           String
+  title              String
+  description        String?
+  dueAt              DateTime?
+  priority           TaskPriority       @default(MEDIUM)
+  status             TaskStatus         @default(OPEN)
+  assigneeId         String?
+  complianceRequired Boolean            @default(false)
+  complianceDeadline DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  complianceRecords  ComplianceRecord[]
+  assignee           User?              @relation(fields: [assigneeId], references: [id])
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  comments           TaskComment[]
+  requestTasks       RequestTask[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueAt])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, assigneeId])
+  @@index([tenantId, status, dueAt])
+}
+
+model ComplianceRecord {
+  id          String    @id @default(cuid())
+  tenantId    String
+  taskId      String
+  type        String
+  status      String
+  dueAt       DateTime?
+  completedAt DateTime?
+  riskScore   Int?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, taskId])
+}
+
+model TaskComment {
+  id          String        @id @default(cuid())
+  taskId      String
+  authorId    String?
+  parentId    String?
+  content     String
+  attachments Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  author      User?         @relation(fields: [authorId], references: [id])
+  parent      TaskComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     TaskComment[] @relation("CommentReplies")
+  task        Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model TaskTemplate {
+  id                  String       @id @default(cuid())
+  name                String
+  content             String
+  description         String?
+  category            String?
+  defaultPriority     TaskPriority @default(MEDIUM)
+  defaultCategory     String?
+  estimatedHours      Int?
+  checklistItems      String[]
+  requiredSkills      String[]
+  defaultAssigneeRole String?
+  createdById         String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  createdBy           User?        @relation(fields: [createdById], references: [id])
+
+  @@index([category])
+  @@map("task_templates")
+}
+
+model ServiceRequest {
+  id                   String                  @id @default(cuid())
+  uuid                 String                  @unique @default(uuid())
+  clientId             String
+  serviceId            String
+  title                String                  @db.VarChar(300)
+  description          String?
+  priority             RequestPriority         @default(MEDIUM)
+  status               RequestStatus           @default(DRAFT)
+  budgetMin            Decimal?
+  budgetMax            Decimal?
+  deadline             DateTime?
+  requirements         Json?
+  attachments          Json?
+  isBooking            Boolean                 @default(false)
+  scheduledAt          DateTime?
+  duration             Int?
+  clientName           String?
+  clientEmail          String?
+  clientPhone          String?
+  confirmed            Boolean                 @default(false)
+  reminderSent         Boolean                 @default(false)
+  bookingType          BookingType?
+  recurringPattern     Json?
+  parentBookingId      String?
+  assignedTeamMemberId String?
+  assignedAt           DateTime?
+  assignedBy           String?
+  completedAt          DateTime?
+  clientApprovalAt     DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  tenantId             String
+  paymentStatus        PaymentStatus?
+  paymentProvider      String?
+  paymentSessionId     String?                 @unique
+  paymentAmountCents   Int?
+  paymentCurrency      String?
+  paymentUpdatedAt     DateTime?
+  paymentAttempts      Int?                    @default(0)
+  attachmentsRel       Attachment[]
+  scheduledReminders   ScheduledReminder[]
+  assignedByUser       User?                   @relation("ServiceRequestAssignedBy", fields: [assignedBy], references: [id])
+  assignedTeamMember   TeamMember?             @relation(fields: [assignedTeamMemberId], references: [id])
+  client               User                    @relation("ServiceRequestClient", fields: [clientId], references: [id], onDelete: Cascade)
+  parentBooking        ServiceRequest?         @relation("RecurringBookings", fields: [parentBookingId], references: [id])
+  childBookings        ServiceRequest[]        @relation("RecurringBookings")
+  service              Service                 @relation(fields: [serviceId], references: [id])
+  tenant               Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workOrders           WorkOrder[]
+  linkedBookings       Booking[]
+  requestTasks         RequestTask[]
+  comments             ServiceRequestComment[]
+
+  @@index([clientId])
+  @@index([scheduledAt])
+  @@index([isBooking, status])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedTeamMemberId])
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, isBooking, status])
+}
+
+model RequestTask {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  taskId           String
+  createdAt        DateTime       @default(now())
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  task             Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceRequestId, taskId], name: "unique_request_task")
+  @@map("request_tasks")
+}
+
+model TeamMember {
+  id                      String             @id @default(cuid())
+  name                    String
+  email                   String?
+  userId                  String?
+  title                   String?
+  role                    UserRole?          @default(TEAM_MEMBER)
+  department              String?
+  specialties             String[]
+  hourlyRate              Decimal?
+  isAvailable             Boolean            @default(true)
+  status                  String?            @default("active")
+  workingHours            Json?
+  timeZone                String?            @default("UTC")
+  maxConcurrentBookings   Int                @default(3)
+  bookingBuffer           Int                @default(15)
+  autoAssign              Boolean            @default(true)
+  stats                   Json?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  availabilitySlots       AvailabilitySlot[]
+  assignedServiceRequests ServiceRequest[]
+  bookings                Booking[]
+  user                    User?              @relation("UserTeamMember", fields: [userId], references: [id])
+
+  @@index([isAvailable])
+  @@index([status])
+  @@map("team_members")
+}
+
+model ServiceRequestComment {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  authorId         String?
+  content          String
+  attachments      Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  author           User?          @relation(fields: [authorId], references: [id])
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+
+  @@map("service_request_comments")
+}
+
+model UserPermission {
+  id          String   @id @default(cuid())
+  userId      String
+  grantedById String?
+  permission  String
+  scope       String?
+  createdAt   DateTime @default(now())
+  grantedBy   User?    @relation("GrantedBy", fields: [grantedById], references: [id])
+  user        User     @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_permissions")
+}
+
+model AvailabilitySlot {
+  id              String      @id @default(cuid())
+  serviceId       String
+  teamMemberId    String?
+  date            DateTime
+  startTime       String
+  endTime         String
+  available       Boolean     @default(true)
+  reason          String?
+  maxBookings     Int         @default(1)
+  currentBookings Int         @default(0)
+  service         Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  teamMember      TeamMember? @relation(fields: [teamMemberId], references: [id])
+
+  @@unique([serviceId, teamMemberId, date, startTime])
+  @@index([date, serviceId])
+  @@index([teamMemberId, date])
+  @@index([available, date])
+}
+
+model BookingPreferences {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  emailConfirmation Boolean  @default(true)
+  emailReminder     Boolean  @default(true)
+  emailReschedule   Boolean  @default(true)
+  emailCancellation Boolean  @default(true)
+  smsReminder       Boolean  @default(false)
+  smsConfirmation   Boolean  @default(false)
+  reminderHours     Int[]    @default([24, 2])
+  timeZone          String   @default("UTC")
+  preferredLanguage String   @default("en")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ScheduledReminder {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  scheduledAt      DateTime
+  channel          String         @default("EMAIL")
+  sent             Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  tenantId         String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledAt])
+  @@index([serviceRequestId])
+}
+
+model Attachment {
+  id               String          @id @default(cuid())
+  key              String?         @unique
+  url              String?
+  name             String?
+  size             Int?
+  contentType      String?
+  avStatus         String?
+  avDetails        Json?
+  avScanAt         DateTime?
+  avThreatName     String?
+  avScanTime       Float?
+  provider         String?
+  uploadedAt       DateTime        @default(now())
+  uploaderId       String?
+  serviceRequestId String?
+  tenantId         String
+  serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploader         User?           @relation(fields: [uploaderId], references: [id])
+  expenses         Expense[]
+
+  @@index([serviceRequestId])
+  @@index([tenantId])
+}
+
+model WorkOrder {
+  id               String          @id @default(cuid())
+  tenantId         String
+  title            String
+  description      String?
+  status           WorkOrderStatus @default(OPEN)
+  priority         RequestPriority @default(MEDIUM)
+  code             String?         @unique
+  clientId         String?
+  serviceId        String?
+  serviceRequestId String?
+  bookingId        String?
+  assigneeId       String?
+  dueAt            DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  estimatedHours   Int?
+  actualHours      Int?
+  costCents        Int?
+  currency         String?
+  tags             String[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  assignee         User?           @relation("WorkOrderAssignee", fields: [assigneeId], references: [id])
+  booking          Booking?        @relation(fields: [bookingId], references: [id])
+  client           User?           @relation("WorkOrderClient", fields: [clientId], references: [id])
+  service          Service?        @relation(fields: [serviceId], references: [id])
+  serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id])
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status, priority])
+  @@index([assigneeId])
+  @@index([dueAt])
+  @@index([createdAt])
+}
+
+model BookingSettings {
+  id                        String                 @id @default(cuid())
+  tenantId                  String                 @unique
+  bookingEnabled            Boolean                @default(true)
+  requireApproval           Boolean                @default(false)
+  allowCancellation         Boolean                @default(true)
+  allowRescheduling         Boolean                @default(true)
+  cancellationDeadlineHours Int                    @default(24)
+  rescheduleDeadlineHours   Int                    @default(4)
+  paymentRequired           Boolean                @default(false)
+  acceptCash                Boolean                @default(true)
+  acceptCard                Boolean                @default(true)
+  acceptBankTransfer        Boolean                @default(false)
+  acceptWire                Boolean                @default(false)
+  acceptCrypto              Boolean                @default(false)
+  requireFullPayment        Boolean                @default(false)
+  allowPartialPayment       Boolean                @default(true)
+  depositPercentage         Int                    @default(50)
+  enableServiceSelection    Boolean                @default(true)
+  enableDateTimeSelection   Boolean                @default(true)
+  enableCustomerDetails     Boolean                @default(true)
+  enableAdditionalServices  Boolean                @default(true)
+  enablePaymentStep         Boolean                @default(false)
+  enableConfirmationStep    Boolean                @default(true)
+  enableFileUpload          Boolean                @default(false)
+  enableSpecialRequests     Boolean                @default(true)
+  advanceBookingDays        Int                    @default(365)
+  minAdvanceBookingHours    Int                    @default(2)
+  maxBookingsPerDay         Int                    @default(50)
+  maxBookingsPerCustomer    Int                    @default(5)
+  bufferTimeBetweenBookings Int                    @default(15)
+  businessHours             Json?
+  blackoutDates             Json?
+  holidaySchedule           Json?
+  sendBookingConfirmation   Boolean                @default(true)
+  sendReminders             Boolean                @default(true)
+  reminderHours             Json?
+  notifyTeamMembers         Boolean                @default(true)
+  emailNotifications        Boolean                @default(true)
+  smsNotifications          Boolean                @default(false)
+  requireLogin              Boolean                @default(false)
+  allowGuestBooking         Boolean                @default(true)
+  showPricing               Boolean                @default(true)
+  showTeamMemberSelection   Boolean                @default(false)
+  allowRecurringBookings    Boolean                @default(false)
+  enableWaitlist            Boolean                @default(false)
+  enableAutoAssignment      Boolean                @default(false)
+  assignmentStrategy        String                 @default("ROUND_ROBIN")
+  considerWorkload          Boolean                @default(true)
+  considerSpecialization    Boolean                @default(true)
+  enableDynamicPricing      Boolean                @default(false)
+  peakHoursSurcharge        Decimal                @default(0.0)
+  weekendSurcharge          Decimal                @default(0.0)
+  emergencyBookingSurcharge Decimal                @default(0.5)
+  calendarSync              Boolean                @default(false)
+  webhookUrl                String?
+  apiAccessEnabled          Boolean                @default(false)
+  automation                Json?
+  integrations              Json?
+  capacity                  Json?
+  forms                     Json?
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  updatedBy                 String?
+  tenant                    Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  steps                     BookingStepConfig[]
+  businessHoursConfig       BusinessHoursConfig[]
+  notificationTemplates     NotificationTemplate[]
+  paymentMethods            PaymentMethodConfig[]
+
+  @@index([tenantId])
+  @@map("booking_settings")
+}
+
+model BookingStepConfig {
+  id                String          @id @default(cuid())
+  bookingSettingsId String
+  stepName          String
+  stepOrder         Int
+  enabled           Boolean         @default(true)
+  required          Boolean         @default(true)
+  title             String
+  description       String?
+  validationRules   Json?
+  customFields      Json?
+  createdAt         DateTime        @default(now())
+  settings          BookingSettings @relation(fields: [bookingSettingsId], references: [id], onDelete: Cascade)
+
+  @@index([bookingSettingsId, stepOrder])
+  @@map("booking_step_config")
+}
+
+model BusinessHoursConfig {
+  id                 String          @id @default(cuid())
+  bookingSettingsId  String
+  dayOfWeek          Int
+  isWorkingDay       Boolean         @default(true)
+  startTime          String?
+  endTime            String?
+  breakStartTime     String?
+  breakEndTime       String?
+  maxBookingsPerHour Int             @default(4)
+  settings           BookingSettings @relation(fields: [bookingSettingsId], references: [id], onDelete: Cascade)
+
+  @@index([bookingSettingsId, dayOfWeek])
+  @@map("business_hours_config")
+}
+
+model PaymentMethodConfig {
+  id                String          @id @default(cuid())
+  bookingSettingsId String
+  methodType        String
+  enabled           Boolean         @default(true)
+  displayName       String
+  description       String?
+  processingFee     Decimal         @default(0.0)
+  minAmount         Decimal         @default(0.0)
+  maxAmount         Decimal?
+  gatewayConfig     Json?
+  settings          BookingSettings @relation(fields: [bookingSettingsId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingSettingsId, methodType])
+  @@map("payment_method_config")
+}
+
+model NotificationTemplate {
+  id                String          @id @default(cuid())
+  bookingSettingsId String
+  templateType      String
+  channel           String
+  enabled           Boolean         @default(true)
+  subject           String?
+  content           String
+  variables         Json?
+  settings          BookingSettings @relation(fields: [bookingSettingsId], references: [id], onDelete: Cascade)
+
+  @@index([bookingSettingsId, templateType])
+  @@map("notification_templates")
+}
+
+model Invoice {
+  id         String        @id @default(cuid())
+  tenantId   String
+  bookingId  String?
+  clientId   String?
+  number     String?       @unique
+  status     InvoiceStatus @default(UNPAID)
+  currency   String        @default("USD")
+  totalCents Int           @default(0)
+  paidAt     DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  items      InvoiceItem[]
+  booking    Booking?      @relation(fields: [bookingId], references: [id])
+  client     User?         @relation(fields: [clientId], references: [id])
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([bookingId])
+  @@index([clientId])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id             String  @id @default(cuid())
+  invoiceId      String
+  description    String
+  quantity       Int     @default(1)
+  unitPriceCents Int     @default(0)
+  totalCents     Int     @default(0)
+  invoice        Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Expense {
+  id           String      @id @default(cuid())
+  tenantId     String
+  vendor       String
+  category     String?
+  status       String      @default("PENDING")
+  amountCents  Int
+  currency     String      @default("USD")
+  date         DateTime
+  attachmentId String?
+  userId       String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  attachment   Attachment? @relation(fields: [attachmentId], references: [id])
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User?       @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([date])
+  @@index([status])
+  @@map("expenses")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  tenantId  String
+  room      String?
+  userId    String
+  userName  String
+  role      String
+  text      String
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, room, createdAt])
+  @@map("chat_messages")
+}
+
+model IdempotencyKey {
+  id         Int       @id @default(autoincrement())
+  key        String
+  userId     String?
+  tenantId   String
+  entityType String?
+  entityId   String?
+  status     String    @default("RESERVED")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  expiresAt  DateTime?
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
+model SettingChangeDiff {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  category  String
+  resource  String?
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, category, createdAt])
+  @@map("setting_change_diffs")
+}
+
+model FavoriteSetting {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String
+  settingKey String
+  route      String
+  label      String
+  createdAt  DateTime @default(now())
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, settingKey])
+  @@index([tenantId, userId])
+  @@map("favorite_settings")
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  userId    String?
+  type      String
+  resource  String?
+  details   Json?
+  createdAt DateTime @default(now())
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@index([type, createdAt])
+  @@map("audit_events")
+}
+
+model OrganizationSettings {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  name            String
+  logoUrl         String?
+  tagline         String?
+  description     String?
+  industry        String?
+  contactEmail    String?
+  contactPhone    String?
+  address         Json?
+  defaultTimezone String?  @default("UTC")
+  defaultCurrency String?  @default("USD")
+  defaultLocale   String?  @default("en")
+  branding        Json?
+  legalLinks      Json?
+  termsUrl        String?
+  privacyUrl      String?
+  refundUrl       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("organization_settings")
+}
+
+model UserManagementSettings {
+  id                String   @id @default(cuid())
+  tenantId          String   @unique
+  roles             Json     @default("{}")
+  permissions       Json     @default("[]")
+  onboarding        Json     @default("{}")
+  policies          Json     @default("{}")
+  rateLimits        Json     @default("{}")
+  sessions          Json     @default("{}")
+  invitations       Json     @default("{}")
+  clientSettings    Json?
+  teamSettings      Json?
+  lastUpdatedAt     DateTime @updatedAt
+  lastUpdatedBy     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("user_management_settings")
+}
+
+model TranslationKey {
+  id           String   @id @default(cuid())
+  tenantId     String
+  key          String
+  namespace    String?
+  enTranslated Boolean  @default(true)
+  arTranslated Boolean  @default(false)
+  hiTranslated Boolean  @default(false)
+  lastUpdated  DateTime @updatedAt
+  addedAt      DateTime @default(now())
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId, namespace])
+  @@index([tenantId, enTranslated])
+  @@index([tenantId, arTranslated])
+  @@index([tenantId, hiTranslated])
+  @@index([addedAt])
+  @@map("translation_keys")
+}
+
+model TranslationMetrics {
+  id               String   @id @default(cuid())
+  tenantId         String
+  date             DateTime @db.Date
+  enTotal          Int      @default(0)
+  enTranslated     Int      @default(0)
+  arTotal          Int      @default(0)
+  arTranslated     Int      @default(0)
+  hiTotal          Int      @default(0)
+  hiTranslated     Int      @default(0)
+  totalUniqueKeys  Int      @default(0)
+  usersWithArabic  Int      @default(0)
+  usersWithHindi   Int      @default(0)
+  usersWithEnglish Int      @default(0)
+  enCoveragePct    Decimal  @default(0) @db.Decimal(5, 2)
+  arCoveragePct    Decimal  @default(0) @db.Decimal(5, 2)
+  hiCoveragePct    Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt        DateTime @default(now())
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date])
+  @@index([tenantId, date])
+  @@index([date])
+  @@map("translation_metrics")
+}
+
+model IntegrationSettings {
+  id        String   @id @default(cuid())
+  tenantId  String   @unique
+  payments  Json?
+  calendars Json?
+  comms     Json?
+  analytics Json?
+  storage   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("integration_settings")
+}
+
+model CommunicationSettings {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  email         Json?
+  sms           Json?
+  chat          Json?
+  notifications Json?
+  newsletters   Json?
+  reminders     Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("communication_settings")
+}
+
+model SecuritySettings {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  passwordPolicy  Json?
+  sessionSecurity Json?
+  twoFactor       Json?
+  network         Json?
+  dataProtection  Json?
+  compliance      Json?
+  superAdmin      Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("security_settings")
+}
+
+model CronTelemetrySettings {
+  id          String   @id @default(cuid())
+  tenantId    String   @unique
+  performance Json?
+  reliability Json?
+  monitoring  Json?
+  status      Json?
+  scheduling  Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("cron_telemetry_settings")
+}
+
+model OrganizationLocalizationSettings {
+  id                         String   @id @default(cuid())
+  tenantId                   String   @unique
+  defaultLanguage            String   @default("en") @db.VarChar(10)
+  fallbackLanguage           String   @default("en") @db.VarChar(10)
+  showLanguageSwitcher       Boolean  @default(true)
+  persistLanguagePreference  Boolean  @default(true)
+  autoDetectBrowserLanguage  Boolean  @default(true)
+  allowUserLanguageOverride  Boolean  @default(true)
+  enableRtlSupport           Boolean  @default(true)
+  missingTranslationBehavior String   @default("show-fallback") @db.VarChar(20)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+  tenant                     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("org_localization_settings")
+}
+
+model RegionalFormat {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  languageCode       String   @db.VarChar(10)
+  dateFormat         String   @db.VarChar(50)
+  timeFormat         String   @db.VarChar(50)
+  currencyCode       String   @db.VarChar(3)
+  currencySymbol     String   @db.VarChar(10)
+  numberFormat       String   @db.VarChar(50)
+  decimalSeparator   String   @db.VarChar(1)
+  thousandsSeparator String   @db.VarChar(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, languageCode])
+  @@index([tenantId])
+  @@index([languageCode])
+  @@map("regional_formats")
+}
+
+model CrowdinIntegration {
+  id                String    @id @default(cuid())
+  tenantId          String    @unique
+  projectId         String    @db.VarChar(100)
+  apiTokenMasked    String    @db.VarChar(20)
+  apiTokenEncrypted String
+  autoSyncDaily     Boolean   @default(true)
+  syncOnDeploy      Boolean   @default(false)
+  createPrs         Boolean   @default(true)
+  lastSyncAt        DateTime?
+  lastSyncStatus    String?   @db.VarChar(50)
+  testConnectionOk  Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("crowdin_integrations")
+}
+
+model MenuCustomization {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  practiceItems Json     @default("[]")
+  bookmarks     Json     @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  sectionOrder  Json     @default("[]")
+  hiddenItems   Json     @default("[]")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("menu_customizations")
+}
+
+model PermissionAudit {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  userId             String
+  changedBy          String
+  oldRole            String?  @db.VarChar(100)
+  newRole            String?  @db.VarChar(100)
+  permissionsAdded   Json     @default("[]")
+  permissionsRemoved Json     @default("[]")
+  reason             String?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  changedByUser      User     @relation("AuditChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([changedBy])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@map("permission_audits")
+}
+
+model PermissionTemplate {
+  id            String   @id @default(cuid())
+  tenantId      String
+  name          String   @db.VarChar(100)
+  description   String?
+  icon          String?  @db.VarChar(50)
+  color         String?  @db.VarChar(20)
+  permissions   Json     @default("[]")
+  isCustom      Boolean  @default(true)
+  isActive      Boolean  @default(true)
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdByUser User     @relation("TemplateCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([isActive])
+  @@index([tenantId, isActive])
+  @@map("permission_templates")
+}
+
+model CustomRole {
+  id            String   @id @default(cuid())
+  tenantId      String
+  name          String   @db.VarChar(100)
+  description   String?
+  color         String?  @db.VarChar(20)
+  icon          String?  @db.VarChar(50)
+  permissions   Json     @default("[]")
+  isActive      Boolean  @default(true)
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdByUser User     @relation("RoleCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@map("custom_roles")
 }
 
 enum Priority {
@@ -186,1043 +1477,12 @@ enum TenantStatus {
   DECOMMISSIONED
 }
 
-model TranslationPriority {
-  id                String    @id @default(cuid())
-  tenantId          String
-  key               String
-  languageCode      String?   @db.VarChar(10)
-  priority          Priority  @default(MEDIUM)
-  status            PriorityStatus @default(OPEN)
-  dueDate           DateTime?
-  assignedToUserId  String?
-  notes             String?   @db.Text
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  @@unique([tenantId, key, languageCode])
-  @@index([tenantId])
-  @@map("translation_priorities")
-}
-
-model Tenant {
-  id                   String                @id @default(cuid())
-  slug                 String                @unique
-  name                 String
-  status               TenantStatus          @default(ACTIVE)
-  primaryDomain        String?               @unique
-  description          String?
-  featureFlags         Json?
-  metadata             Json?
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-
-  users                User[]
-  services             Service[]
-  bookings             Booking[]
-  serviceRequests      ServiceRequest[]
-  workOrders           WorkOrder[]
-  attachments          Attachment[]
-  scheduledReminders   ScheduledReminder[]
-  invoices             Invoice[]
-  expenses             Expense[]
-  chatMessages         ChatMessage[]
-  idempotencyKeys      IdempotencyKey[]
-  tasks                Task[]
-  complianceRecords    ComplianceRecord[]
-  healthLogs           HealthLog[]
-  bookingSettings      BookingSettings?
-  organizationSettings OrganizationSettings?
-  integrationSettings  IntegrationSettings?
-  communicationSettings CommunicationSettings?
-  securitySettings     SecuritySettings?
-  cronTelemetrySettings CronTelemetrySettings?
-  localizationSettings OrganizationLocalizationSettings?
-  regionalFormats      RegionalFormat[]
-  crowdinIntegration   CrowdinIntegration?
-  tenantMemberships    TenantMembership[]
-  auditLogs            AuditLog[]
-  settingChangeDiffs   SettingChangeDiff[]
-  favoriteSettings     FavoriteSetting[]
-  auditEvents          AuditEvent[]
-  translationKeys      TranslationKey[]
-  translationMetrics   TranslationMetrics[]
-
-  @@index([status])
-}
-
-model TenantMembership {
-  id        String   @id @default(cuid())
-  userId    String
-  tenantId  String
-  role      UserRole @default(CLIENT)
-  isDefault Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, tenantId])
-  @@index([tenantId])
-  @@index([userId])
-  @@map("tenant_memberships")
-}
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  tenantId  String?
-  userId    String?
-  action    String
-  resource  String?
-  metadata  Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-
-  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([createdAt])
-  @@index([action, createdAt])
-  @@index([userId, createdAt])
-  @@index([tenantId, createdAt])
-  @@map("audit_logs")
-}
-
-// Blog posts model
-model Post {
-  id          String      @id @default(cuid())
-  title       String
-  slug        String      @unique
-  content     String      @db.Text
-  excerpt     String?     @db.Text
-  published   Boolean     @default(false)
-  featured    Boolean     @default(false)
-  coverImage  String?
-  seoTitle    String?
-  seoDescription String?
-  tags        String[]
-  readTime    Int?
-  views       Int         @default(0)
-  authorId    String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  publishedAt DateTime?
-
-  // Advanced content management fields
-  status         PostStatus    @default(DRAFT)
-  archived       Boolean       @default(false)
-  scheduledAt    DateTime?
-  priority       PostPriority  @default(MEDIUM)
-  category       String?
-  reviewRequired Boolean       @default(false)
-  isCompliant    Boolean       @default(true)
-  approvedBy     String?
-  version        Int           @default(1)
-  shares         Int           @default(0)
-  comments       Int           @default(0)
-
-  // Relations
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@index([publishedAt])
-  @@index([featured])
-  @@map("posts")
-}
-
-// Newsletter subscribers
-model Newsletter {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String?
-  subscribed  Boolean  @default(true)
-  source      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("newsletter")
-}
-
-// Notification settings for tasks/alerts
-model NotificationSettings {
-  id           String   @id @default(cuid())
-  emailEnabled Boolean  @default(false)
-  emailFrom    String?
-  webhookUrl   String?
-  templates    Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("notification_settings")
-}
-
-// Services offered by the accounting firm
-model Service {
-  id          String    @id @default(cuid())
-  name        String
-  slug        String
-  description String    @db.Text
-  shortDesc   String?
-  features    String[]
-  price       Decimal?
-  duration    Int?
-  category    String?
-  active      Boolean   @default(true)
-  featured    Boolean   @default(false)
-  image       String?
-  serviceSettings Json?
-  views        Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  basePrice     Decimal?
-  estimatedDurationHours Int?
-  requiredSkills String[]
-  status        ServiceStatus @default(ACTIVE)
-  tenantId     String
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  // Booking enhancements
-  bookingEnabled      Boolean  @default(true)
-  advanceBookingDays  Int      @default(30)
-  minAdvanceHours     Int      @default(24)
-  maxDailyBookings    Int?
-  bufferTime          Int      @default(0)
-  businessHours       Json?
-  blackoutDates       DateTime[]
-
-  // Relations
-  bookings Booking[]
-  serviceRequests ServiceRequest[]
-  availabilitySlots AvailabilitySlot[]
-  serviceViews ServiceView[]
-  workOrders WorkOrder[]
-
-  @@index([tenantId])
-  @@unique([tenantId, slug])
-  @@index([active, bookingEnabled])
-  @@index([status])
-  @@index([createdAt])
-  @@index([updatedAt])
-  @@index([active, featured])
-  @@map("services")
-}
-
-// Per-month/per-hit view tracking for services to compute time-windowed conversions
-model ServiceView {
-  id         String   @id @default(cuid())
-  serviceId  String   @map("service_id")
-  tenantId   String?  @map("tenant_id")
-  ip         String?
-  userAgent  String?  @map("user_agent")
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-
-  @@index([serviceId, createdAt])
-  @@map("service_views")
-}
-
-// Booking system for client appointments
-model Booking {
-  id          String        @id @default(cuid())
-  clientId    String
-  serviceId   String
-  status      BookingStatus @default(PENDING)
-  scheduledAt DateTime
-  duration    Int
-  notes       String?       @db.Text
-  clientName  String
-  clientEmail String
-  clientPhone String?
-  adminNotes  String?       @db.Text
-  confirmed   Boolean       @default(false)
-  reminderSent Boolean      @default(false)
-  tenantId    String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  assignedTeamMemberId String?
-  assignedTeamMember   TeamMember? @relation(fields: [assignedTeamMemberId], references: [id], onDelete: SetNull)
-
-  // Service Request linkage (integration)
-  serviceRequestId String?
-  serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: SetNull)
-
-  // Relations
-  client  User    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  workOrders WorkOrder[]
-  invoices Invoice[]
-
-  // Helpful indexes for queries
-  @@index([scheduledAt])
-  @@index([status])
-  @@index([clientId])
-  @@index([serviceId])
-  @@index([clientEmail])
-  @@index([createdAt])
-  @@index([status, scheduledAt])
-  @@index([tenantId])
-
-  @@map("bookings")
-}
-
-// Contact form submissions
-model ContactSubmission {
-  id          String   @id @default(cuid())
-  name        String
-  email       String
-  phone       String?
-  company     String?
-  subject     String?
-  message     String   @db.Text
-  source      String?
-  responded   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  @@index([responded, createdAt])
-  @@index([createdAt])
-  @@map("contact_submissions")
-}
-
-
-// Health monitoring logs
-model HealthLog {
-  id        String   @id @default(cuid())
-  tenantId  String
-  service   String
-  status    String
-  message   String?
-  checkedAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([tenantId, checkedAt])
-  @@index([tenantId, service, checkedAt])
-  @@index([tenantId, service, status, checkedAt])
-}
-
-// Health thresholds stored in DB for admin-configurable alerts
-model HealthThreshold {
-  id            Int      @id @default(autoincrement())
-  responseTime  Int      @default(100)    // ms
-  errorRate     Float    @default(1.0)    // percent
-  storageGrowth Float    @default(20.0)   // percent
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-// Admin sidebar preferences per user
-model SidebarPreferences {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  collapsed      Boolean  @default(false)
-  width          Int      @default(256)
-  mobileOpen     Boolean  @default(false)
-  expandedGroups String[] @default(["dashboard", "business"])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([userId])
-  @@map("sidebar_preferences")
-}
-
-// Currency models for multi-currency support
-model Currency {
-  code        String   @id
-  name        String
-  symbol      String?
-  decimals    Int      @default(2)
-  active      Boolean  @default(false)
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  rates       ExchangeRate[]
-  overrides   PriceOverride[]
-}
-
-model ExchangeRate {
-  id         Int      @id @default(autoincrement())
-  base       String
-  target     String
-  rate       Float
-  source     String?
-  fetchedAt  DateTime @default(now())
-  ttlSeconds Int?
-
-  // relation to Currency (target)
-  currency   Currency @relation(fields: [target], references: [code])
-
-  @@index([base, target])
-}
-
-model PriceOverride {
-  id           Int      @id @default(autoincrement())
-  entity       String
-  entityId     String
-  currencyCode String
-  priceCents   Int
-  note         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // relation to Currency
-  currency     Currency @relation(fields: [currencyCode], references: [code])
-
-  @@index([entity, entityId, currencyCode])
-}
-
-// Admin task tracking for ops
-model Task {
-  id        String       @id @default(cuid())
-  tenantId  String
-  title     String
-  description String?    @db.Text
-  dueAt     DateTime?
-  priority  TaskPriority @default(MEDIUM)
-  status    TaskStatus   @default(OPEN)
-  assigneeId String?
-  assignee  User?        @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
-  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  // Compliance fields
-  complianceRequired Boolean  @default(false)
-  complianceDeadline DateTime?
-  complianceRecords   ComplianceRecord[]
-
-  // Relations
-  comments     TaskComment[]
-  requestTasks RequestTask[]
-
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  @@index([tenantId])
-  @@index([tenantId, status])
-  @@index([tenantId, dueAt])
-  @@index([tenantId, createdAt])
-  @@index([tenantId, assigneeId])
-  @@index([tenantId, status, dueAt])
-}
-
-model ComplianceRecord {
-  id          String   @id @default(cuid())
-  tenantId    String
-  taskId      String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  type        String
-  status      String
-  dueAt       DateTime?
-  completedAt DateTime?
-  riskScore   Int?
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([tenantId])
-  @@index([tenantId, taskId])
-}
-
-model TaskComment {
-  id          String        @id @default(cuid())
-  taskId      String
-  task        Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  authorId    String?
-  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  parentId    String?
-  parent      TaskComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
-  replies     TaskComment[] @relation("CommentReplies")
-  content     String
-  attachments Json?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  @@index([taskId])
-}
-
-model TaskTemplate {
-  id                  String        @id @default(cuid())
-  name                String
-  content             String        @db.Text
-  description         String?       @db.Text
-  category            String?
-  defaultPriority     TaskPriority  @default(MEDIUM)
-  defaultCategory     String?
-  estimatedHours      Int?
-  checklistItems      String[]
-  requiredSkills      String[]
-  defaultAssigneeRole String?
-
-  createdById String?
-  createdBy  User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([category])
-  @@map("task_templates")
-}
-
-model ServiceRequest {
-  id                    String          @id @default(cuid())
-  uuid                  String          @unique @default(uuid())
-  clientId              String
-  serviceId             String
-  title                 String          @db.VarChar(300)
-  description           String?         @db.Text
-  priority              RequestPriority @default(MEDIUM)
-  status                RequestStatus   @default(DRAFT)
-  budgetMin             Decimal?
-  budgetMax             Decimal?
-  deadline              DateTime?
-  requirements          Json?
-  attachments           Json?
-
-  // Booking fields (non-breaking)
-  isBooking             Boolean        @default(false)
-  scheduledAt           DateTime?
-  duration              Int?
-  clientName            String?
-  clientEmail           String?
-  clientPhone           String?
-  confirmed             Boolean        @default(false)
-  reminderSent          Boolean        @default(false)
-  bookingType           BookingType?
-  recurringPattern      Json?
-  parentBookingId       String?
-
-  assignedTeamMemberId  String?
-  assignedAt            DateTime?
-  assignedBy            String?
-  completedAt           DateTime?
-  clientApprovalAt      DateTime?
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  tenantId              String
-
-  tenant                Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  client                User            @relation("ServiceRequestClient", fields: [clientId], references: [id], onDelete: Cascade)
-  service               Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  assignedTeamMember    TeamMember?     @relation(fields: [assignedTeamMemberId], references: [id], onDelete: SetNull)
-  assignedByUser        User?           @relation("ServiceRequestAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
-  parentBooking         ServiceRequest? @relation("RecurringBookings", fields: [parentBookingId], references: [id], onDelete: SetNull)
-  childBookings         ServiceRequest[] @relation("RecurringBookings")
-  requestTasks          RequestTask[]
-  comments              ServiceRequestComment[]
-  attachmentsRel        Attachment[]
-  linkedBookings        Booking[]
-  scheduledReminders    ScheduledReminder[]
-  workOrders            WorkOrder[]
-
-  // Payment reflection fields
-  paymentStatus        PaymentStatus?
-  paymentProvider      String?
-  paymentSessionId     String? @unique
-  paymentAmountCents   Int?
-  paymentCurrency      String?
-  paymentUpdatedAt     DateTime?
-  paymentAttempts      Int? @default(0)
-
-  @@index([clientId])
-  @@index([scheduledAt])
-  @@index([isBooking, status])
-  @@index([tenantId])
-  @@index([tenantId, status])
-  @@index([tenantId, assignedTeamMemberId])
-  @@index([tenantId, scheduledAt])
-  @@index([tenantId, isBooking, status])
-}
-
-model RequestTask {
-  id               String         @id @default(cuid())
-  serviceRequestId String         
-  taskId           String         
-  createdAt        DateTime       @default(now())
-
-  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
-  task              Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  @@unique([serviceRequestId, taskId], name: "unique_request_task")
-  @@map("request_tasks")
-}
-
-// Team member model for assigning tasks and bookings
-model TeamMember {
-  id          String   @id @default(cuid())
-  name        String
-  email       String?
-  userId      String?
-  title       String?
-  role        UserRole?  @default(TEAM_MEMBER)
-  department  String?
-  specialties String[]
-  hourlyRate  Decimal?
-  isAvailable Boolean  @default(true)
-  status      String?  @default("active")
-  workingHours Json?
-  timeZone    String?  @default("UTC")
-  maxConcurrentBookings Int @default(3)
-  bookingBuffer Int @default(15)
-  autoAssign  Boolean @default(true)
-  stats       Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user        User?    @relation("UserTeamMember", fields: [userId], references: [id], onDelete: SetNull)
-
-  bookings    Booking[]
-  assignedServiceRequests ServiceRequest[]
-  availabilitySlots AvailabilitySlot[]
-
-  @@index([isAvailable])
-  @@index([status])
-  @@map("team_members")
-}
-
-// Comments on service requests
-model ServiceRequestComment {
-  id               String   @id @default(cuid())
-  serviceRequestId String
-  authorId         String?
-  content          String   @db.Text
-  attachments      Json?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
-  author           User?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
-
-  @@map("service_request_comments")
-}
-
-// User granted permissions
-model UserPermission {
-  id          String   @id @default(cuid())
-  userId      String
-  grantedById String?
-  permission  String
-  scope       String?
-  createdAt   DateTime @default(now())
-
-  user        User     @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
-  grantedBy   User?    @relation("GrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
-
-  @@map("user_permissions")
-}
-
-// Availability slots for booking
-model AvailabilitySlot {
-  id           String   @id @default(cuid())
-  serviceId    String
-  teamMemberId String?
-  date         DateTime
-  startTime    String
-  endTime      String
-  available    Boolean  @default(true)
-  reason       String?
-  maxBookings  Int      @default(1)
-  currentBookings Int   @default(0)
-
-  service      Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  teamMember   TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
-
-  @@unique([serviceId, teamMemberId, date, startTime])
-  @@index([date, serviceId])
-  @@index([teamMemberId, date])
-  @@index([available, date])
-}
-
-// Booking preferences per user
-model BookingPreferences {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  emailConfirmation Boolean  @default(true)
-  emailReminder     Boolean  @default(true)
-  emailReschedule   Boolean  @default(true)
-  emailCancellation Boolean  @default(true)
-  smsReminder       Boolean  @default(false)
-  smsConfirmation   Boolean  @default(false)
-  reminderHours     Int[]    @default([24,2])
-  timeZone          String   @default("UTC")
-  preferredLanguage String   @default("en")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// Scheduled reminders for bookings
-model ScheduledReminder {
-  id               String   @id @default(cuid())
-  serviceRequestId String
-  scheduledAt      DateTime
-  channel          String   @default("EMAIL")
-  sent             Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  tenantId         String
-
-  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
-
-  @@index([scheduledAt])
-  @@index([serviceRequestId])
-}
-
-// Attachment model to persist uploads and AV status
-model Attachment {
-  id            String   @id @default(cuid())
-  key           String?  @unique
-  url           String?
-  name          String?
-  size          Int?
-  contentType   String?
-
-  // Antivirus fields
-  avStatus      String?  // pending|clean|infected|error|released
-  avDetails     Json?
-  avScanAt      DateTime?
-  avThreatName  String?
-  avScanTime    Float?
-
-  provider      String?
-  uploadedAt    DateTime @default(now())
-  uploaderId    String?
-  serviceRequestId String?
-  tenantId      String
-
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  uploader      User?        @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
-  serviceRequest ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
-  expenses       Expense[]
-
-  @@index([serviceRequestId])
-  @@index([tenantId])
-}
-
-// Work orders for operational execution and tracking
-model WorkOrder {
-  id              String           @id @default(cuid())
-  tenantId        String
-
-  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  title           String
-  description     String?
-  status          WorkOrderStatus  @default(OPEN)
-  priority        RequestPriority  @default(MEDIUM)
-  code            String?          @unique
-
-  clientId        String?
-  client          User?            @relation("WorkOrderClient", fields: [clientId], references: [id], onDelete: SetNull)
-
-  serviceId       String?
-  service         Service?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-
-  serviceRequestId String?
-  serviceRequest  ServiceRequest?  @relation(fields: [serviceRequestId], references: [id], onDelete: SetNull)
-
-  bookingId       String?
-  booking         Booking?         @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-
-  assigneeId      String?
-  assignee        User?            @relation("WorkOrderAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-
-  dueAt           DateTime?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  estimatedHours  Int?
-  actualHours     Int?
-  costCents       Int?
-  currency        String?
-  tags            String[]
-
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-
-  @@index([tenantId])
-  @@index([status, priority])
-  @@index([assigneeId])
-  @@index([dueAt])
-  @@index([createdAt])
-}
-
-// Booking Settings models
-model BookingSettings {
-  id                         String   @id @default(cuid())
-  tenantId                   String
-
-  tenant                     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  // General
-  bookingEnabled             Boolean  @default(true)
-  requireApproval            Boolean  @default(false)
-  allowCancellation          Boolean  @default(true)
-  allowRescheduling          Boolean  @default(true)
-  cancellationDeadlineHours  Int      @default(24)
-  rescheduleDeadlineHours    Int      @default(4)
-  // Payments
-  paymentRequired            Boolean  @default(false)
-  acceptCash                 Boolean  @default(true)
-  acceptCard                 Boolean  @default(true)
-  acceptBankTransfer         Boolean  @default(false)
-  acceptWire                 Boolean  @default(false)
-  acceptCrypto               Boolean  @default(false)
-  requireFullPayment         Boolean  @default(false)
-  allowPartialPayment        Boolean  @default(true)
-  depositPercentage          Int      @default(50)
-  // Steps
-  enableServiceSelection     Boolean  @default(true)
-  enableDateTimeSelection    Boolean  @default(true)
-  enableCustomerDetails      Boolean  @default(true)
-  enableAdditionalServices   Boolean  @default(true)
-  enablePaymentStep          Boolean  @default(false)
-  enableConfirmationStep     Boolean  @default(true)
-  enableFileUpload           Boolean  @default(false)
-  enableSpecialRequests      Boolean  @default(true)
-  // Availability
-  advanceBookingDays         Int      @default(365)
-  minAdvanceBookingHours     Int      @default(2)
-  maxBookingsPerDay          Int      @default(50)
-  maxBookingsPerCustomer     Int      @default(5)
-  bufferTimeBetweenBookings  Int      @default(15)
-  // Calendars
-  businessHours              Json?
-  blackoutDates              Json?
-  holidaySchedule            Json?
-  // Notifications
-  sendBookingConfirmation    Boolean  @default(true)
-  sendReminders              Boolean  @default(true)
-  reminderHours              Json?
-  notifyTeamMembers          Boolean  @default(true)
-  emailNotifications         Boolean  @default(true)
-  smsNotifications           Boolean  @default(false)
-  // Customer
-  requireLogin               Boolean  @default(false)
-  allowGuestBooking          Boolean  @default(true)
-  showPricing                Boolean  @default(true)
-  showTeamMemberSelection    Boolean  @default(false)
-  allowRecurringBookings     Boolean  @default(false)
-  enableWaitlist             Boolean  @default(false)
-  // Assignment
-  enableAutoAssignment       Boolean  @default(false)
-  assignmentStrategy         String   @default("ROUND_ROBIN")
-  considerWorkload           Boolean  @default(true)
-  considerSpecialization     Boolean  @default(true)
-  // Pricing
-  enableDynamicPricing       Boolean  @default(false)
-  peakHoursSurcharge         Decimal  @default(0.0)
-  weekendSurcharge           Decimal  @default(0.0)
-  emergencyBookingSurcharge  Decimal  @default(0.5)
-  // Integration
-  calendarSync               Boolean  @default(false)
-  webhookUrl                 String?
-  apiAccessEnabled           Boolean  @default(false)
-
-  // Advanced sections stored as JSON
-  automation                 Json?
-  integrations               Json?
-  capacity                  Json?
-  forms                     Json?
-
-  // Meta
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
-  updatedBy                  String?
-
-  // Relations
-  steps                      BookingStepConfig[]
-  businessHoursConfig        BusinessHoursConfig[]
-  paymentMethods             PaymentMethodConfig[]
-  notificationTemplates      NotificationTemplate[]
-
-  @@index([tenantId])
-  @@unique([tenantId])
-  @@map("booking_settings")
-}
-
-model BookingStepConfig {
-  id                 String  @id @default(cuid())
-  bookingSettingsId  String
-  stepName           String
-  stepOrder          Int
-  enabled            Boolean @default(true)
-  required           Boolean @default(true)
-  title              String
-  description        String?
-  validationRules    Json?
-  customFields       Json?
-  createdAt          DateTime @default(now())
-
-  settings BookingSettings @relation(fields: [bookingSettingsId], references: [id], onDelete: Cascade)
-
-  @@index([bookingSettingsId, stepOrder])
-  @@map("booking_step_config")
-}
-
-model BusinessHoursConfig {
-  id                 String  @id @default(cuid())
-  bookingSettingsId  String
-  dayOfWeek          Int
-  isWorkingDay       Boolean @default(true)
-  startTime          String?
-  endTime            String?
-  breakStartTime     String?
-  breakEndTime       String?
-  maxBookingsPerHour Int     @default(4)
-
-  settings BookingSettings @relation(fields: [bookingSettingsId], references: [id], onDelete: Cascade)
-
-  @@index([bookingSettingsId, dayOfWeek])
-  @@map("business_hours_config")
-}
-
-model PaymentMethodConfig {
-  id                 String  @id @default(cuid())
-  bookingSettingsId  String
-  methodType         String
-  enabled            Boolean @default(true)
-  displayName        String
-  description        String?
-  processingFee      Decimal @default(0.0)
-  minAmount          Decimal @default(0.0)
-  maxAmount          Decimal?
-  gatewayConfig      Json?
-
-  settings BookingSettings @relation(fields: [bookingSettingsId], references: [id], onDelete: Cascade)
-
-  @@unique([bookingSettingsId, methodType])
-  @@map("payment_method_config")
-}
-
-model NotificationTemplate {
-  id                 String  @id @default(cuid())
-  bookingSettingsId  String
-  templateType       String
-  channel            String
-  enabled            Boolean @default(true)
-  subject            String?
-  content            String   @db.Text
-  variables          Json?
-
-  settings BookingSettings @relation(fields: [bookingSettingsId], references: [id], onDelete: Cascade)
-
-  @@index([bookingSettingsId, templateType])
-  @@map("notification_templates")
-}
-
-// Financial models
-
 enum InvoiceStatus {
   DRAFT
   SENT
   UNPAID
   PAID
   VOID
-}
-
-model Invoice {
-  id          String         @id @default(cuid())
-  tenantId    String
-
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  bookingId   String?
-  clientId    String?
-  number      String?        @unique
-  status      InvoiceStatus  @default(UNPAID)
-  currency    String         @default("USD")
-  totalCents  Int            @default(0)
-  paidAt      DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-
-  booking     Booking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  client      User?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  items       InvoiceItem[]
-
-  @@index([tenantId])
-  @@index([bookingId])
-  @@index([clientId])
-  @@map("invoices")
-}
-
-model InvoiceItem {
-  id              String   @id @default(cuid())
-  invoiceId       String
-  description     String
-  quantity        Int      @default(1)
-  unitPriceCents  Int      @default(0)
-  totalCents      Int      @default(0)
-
-  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([invoiceId])
-  @@map("invoice_items")
-}
-
-model Expense {
-  id           String   @id @default(cuid())
-  tenantId     String
-
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  vendor       String
-  category     String?
-  status       String    @default("PENDING")
-  amountCents  Int
-  currency     String    @default("USD")
-  date         DateTime
-  attachmentId String?
-  userId       String?
-
-  attachment   Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
-  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([tenantId])
-  @@index([date])
-  @@index([status])
-  @@map("expenses")
-}
-
-// ... rest of schema unchanged (omitted for brevity)
-
-model ChatMessage {
-  id        String   @id @default(cuid())
-  tenantId  String
-
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  room      String?
-  userId    String
-  userName  String
-  role      String
-  text      String   @db.Text
-  createdAt DateTime @default(now())
-
-  @@index([tenantId, room, createdAt])
-  @@map("chat_messages")
-}
-
-// Enums and other models
-model IdempotencyKey {
-  id         Int      @id @default(autoincrement())
-  key        String
-  userId     String?
-  tenantId   String
-
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  entityType String?
-  entityId   String?
-  status     String   @default("RESERVED")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  expiresAt  DateTime?
-
-  @@index([tenantId])
-  @@unique([tenantId, key])
 }
 
 enum ExpertiseLevel {
@@ -1292,6 +1552,150 @@ enum BookingStatus {
   CANCELLED
 }
 
+// Phase 4b Workflow Engine Enums
+enum WorkflowStatus {
+  DRAFT
+  PENDING
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum WorkflowType {
+  ONBOARDING
+  OFFBOARDING
+  ROLE_CHANGE
+}
+
+// Phase 4b Workflow Engine Models
+model UserWorkflow {
+  id              String          @id @default(cuid())
+  tenantId        String
+  userId          String
+  type            WorkflowType
+  status          WorkflowStatus  @default(DRAFT)
+  triggeredBy     String
+  approvedBy      String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  scheduledFor    DateTime?
+  totalSteps      Int
+  completedSteps  Int             @default(0)
+  progressPercent Int             @default(0)
+  errorMessage    String?
+  retryCount      Int             @default(0)
+  lastErrorAt     DateTime?
+  dueAt           DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user            User            @relation("WorkflowUser", fields: [userId], references: [id], onDelete: Cascade)
+  triggeredByUser User            @relation("WorkflowTriggeredBy", fields: [triggeredBy], references: [id])
+  approvedByUser  User?           @relation("WorkflowApprovedBy", fields: [approvedBy], references: [id])
+  steps           WorkflowStep[]
+  notifications   WorkflowNotification[]
+  history         WorkflowHistory[]
+
+  @@index([tenantId, status, createdAt])
+  @@index([userId, createdAt])
+  @@map("user_workflows")
+}
+
+model WorkflowStep {
+  id              String         @id @default(cuid())
+  workflowId      String
+  stepNumber      Int
+  name            String
+  description     String?
+  actionType      String
+  status          StepStatus     @default(PENDING)
+  config          Json?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  durationMs      Int?
+  errorMessage    String?
+  requiresApproval Boolean       @default(false)
+  approvedAt      DateTime?
+  approvedBy      String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  workflow        UserWorkflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  approvedByUser  User?          @relation("WorkflowStepApprovedBy", fields: [approvedBy], references: [id])
+
+  @@index([workflowId, stepNumber])
+  @@index([status])
+  @@map("workflow_steps")
+}
+
+model WorkflowTemplate {
+  id               String        @id @default(cuid())
+  tenantId         String
+  name             String        @db.VarChar(100)
+  description      String?
+  type             WorkflowType
+  steps            Json
+  requiresApproval Boolean       @default(false)
+  approvalEmails   String[]
+  isActive         Boolean       @default(true)
+  createdBy        String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdByUser    User          @relation("WorkflowTemplateCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([tenantId, isActive])
+  @@unique([tenantId, name])
+  @@map("workflow_templates")
+}
+
+model WorkflowNotification {
+  id           String        @id @default(cuid())
+  workflowId   String
+  emailTo      String
+  emailSubject String
+  emailBody    String
+  status       String        @default("PENDING")
+  sentAt       DateTime?
+  errorMessage String?
+  createdAt    DateTime      @default(now())
+
+  workflow     UserWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, createdAt])
+  @@map("workflow_notifications")
+}
+
+model WorkflowHistory {
+  id               String        @id @default(cuid())
+  workflowId       String
+  eventType        String
+  eventDescription String?
+  changedBy        String
+  oldValue         Json?
+  newValue         Json?
+  createdAt        DateTime      @default(now())
+
+  workflow         UserWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  changedByUser    User          @relation("WorkflowHistoryChangedBy", fields: [changedBy], references: [id])
+
+  @@index([workflowId, createdAt])
+  @@map("workflow_history")
+}
+
 enum TaskPriority {
   LOW
   MEDIUM
@@ -1341,325 +1745,142 @@ enum UserRole {
   SUPER_ADMIN
 }
 
-// Settings change diff records for auditing previews and applied changes
-model SettingChangeDiff {
-  id        String   @id @default(cuid())
-  tenantId  String
-  userId    String?
-  category  String
-  resource  String?
-  before    Json?
-  after     Json?
-  createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId, createdAt])
-  @@index([tenantId, category, createdAt])
-  @@map("setting_change_diffs")
+// Phase 4c Bulk Operations Enums
+enum BulkOperationType {
+  ROLE_CHANGE
+  STATUS_UPDATE
+  PERMISSION_GRANT
+  PERMISSION_REVOKE
+  SEND_EMAIL
+  IMPORT_CSV
+  CUSTOM
 }
 
-// Per-user pinned settings shortcuts
-model FavoriteSetting {
-  id         String   @id @default(cuid())
-  tenantId   String
-  userId     String
-  settingKey String
-  route      String
-  label      String
-  createdAt  DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, userId, settingKey])
-  @@index([tenantId, userId])
-  @@map("favorite_settings")
+enum BulkOperationStatus {
+  DRAFT
+  READY
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+  PAUSED
 }
 
-// Generic audit events (complements audit_logs)
-model AuditEvent {
-  id        String   @id @default(cuid())
-  tenantId  String?
-  userId    String?
-  type      String
-  resource  String?
-  details   Json?
-  createdAt DateTime @default(now())
+// Phase 4c Bulk Operations Models
+model BulkOperation {
+  id                String                  @id @default(cuid())
+  tenantId          String
+  name              String                  @db.VarChar(255)
+  description       String?
+  type              BulkOperationType
+  userFilter        Json?                   // Filters for user selection (role, status, etc)
+  operationConfig   Json                    // Operation-specific configuration
+  status            BulkOperationStatus     @default(DRAFT)
+  createdBy         String
+  approvalRequired  Boolean                 @default(false)
+  approvalStatus    String?                 // PENDING, APPROVED, REJECTED
+  approvedBy        String?
+  approvedAt        DateTime?
+  scheduledFor      DateTime?
+  notifyUsers       Boolean                 @default(true)
+  dryRunResults     Json?                   // Results of dry-run preview
+  totalUsersAffected Int                    @default(0)
+  successCount      Int                     @default(0)
+  failureCount      Int                     @default(0)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  errorMessage      String?
+  rollbackAvailable Boolean                 @default(true)
+  rollbackUntilDate DateTime?               // 30 days from completion
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
-  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // Relations
+  tenant            Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator           User                    @relation("BulkOperationCreatedBy", fields: [createdBy], references: [id])
+  approver          User?                   @relation("BulkOperationApprovedBy", fields: [approvedBy], references: [id])
+  results           BulkOperationResult[]
+  history           BulkOperationHistory[]
 
-  @@index([createdAt])
-  @@index([tenantId, createdAt])
-  @@index([type, createdAt])
-  @@map("audit_events")
+  @@index([tenantId, status, createdAt])
+  @@index([createdBy, createdAt])
+  @@index([status])
+  @@map("bulk_operations")
 }
 
-// Organization settings persisted per-tenant
-model OrganizationSettings {
-  id          String   @id @default(cuid())
-  tenantId    String   @unique
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+model BulkOperationResult {
+  id                String              @id @default(cuid())
+  bulkOperationId   String
+  userId            String
+  status            String              // SUCCESS, FAILED, SKIPPED, PENDING
+  errorMessage      String?
+  changesBefore     Json?               // State before operation
+  changesAfter      Json?               // State after operation
+  executionTimeMs   Int?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  // Core
-  name        String
-  logoUrl     String?
-  tagline     String?
-  description String?  @db.Text
-  industry    String?
+  // Relations
+  bulkOperation     BulkOperation       @relation(fields: [bulkOperationId], references: [id], onDelete: Cascade)
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Contact
-  contactEmail String?
-  contactPhone String?
-  address      Json?
-
-  // Localization
-  defaultTimezone String? @default("UTC")
-  defaultCurrency String? @default("USD")
-  defaultLocale   String? @default("en")
-
-  // Branding & legal
-  branding Json?
-  legalLinks Json?
-  // Explicit legal link columns for stricter querying and validation
-  termsUrl String?
-  privacyUrl String?
-  refundUrl String?
-
-  // Meta
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([tenantId])
-  @@map("organization_settings")
+  @@index([bulkOperationId, status])
+  @@index([userId, createdAt])
+  @@map("bulk_operation_results")
 }
 
-// Translation key registry for Phase 4 analytics
-model TranslationKey {
-  id           String   @id @default(cuid())
-  tenantId     String
-  key          String   // e.g., "nav.home", "hero.headline"
-  namespace    String?  // e.g., "nav", "hero" (extracted from key prefix)
-  enTranslated Boolean  @default(true)  // English is always baseline
-  arTranslated Boolean  @default(false) // Arabic translation status
-  hiTranslated Boolean  @default(false) // Hindi translation status
-  lastUpdated  DateTime @updatedAt
-  addedAt      DateTime @default(now())
+model BulkOperationHistory {
+  id                String              @id @default(cuid())
+  bulkOperationId   String
+  eventType         String              // CREATED, STATUS_CHANGED, DRY_RUN, EXECUTED, ROLLBACK, etc
+  eventDescription  String?
+  changedBy         String?
+  oldValue          Json?
+  newValue          Json?
+  createdAt         DateTime            @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Relations
+  bulkOperation     BulkOperation       @relation(fields: [bulkOperationId], references: [id], onDelete: Cascade)
+  changedByUser     User?               @relation("BulkOperationHistoryChangedBy", fields: [changedBy], references: [id])
 
-  @@unique([tenantId, key])
-  @@index([tenantId, namespace])
-  @@index([tenantId, enTranslated])
-  @@index([tenantId, arTranslated])
-  @@index([tenantId, hiTranslated])
-  @@index([addedAt])
-  @@map("translation_keys")
+  @@index([bulkOperationId, createdAt])
+  @@map("bulk_operation_history")
 }
 
-// Translation metrics for Phase 4 analytics & trending
-model TranslationMetrics {
-  id                    String   @id @default(cuid())
-  tenantId              String
-  date                  DateTime @db.Date // YYYY-MM-DD snapshot
+// Phase 3 Workflow Designer Models
+model Workflow {
+  id              String                @id @default(cuid())
+  name            String                @db.VarChar(255)
+  description     String?
+  version         Int                   @default(1)
+  status          String                @default("DRAFT") // DRAFT, ACTIVE, ARCHIVED
+  nodes           Json                  @default("[]") // WorkflowNode[]
+  edges           Json                  @default("[]") // WorkflowEdge[]
+  createdBy       String                @default("system")
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
-  // English (always 100%)
-  enTotal               Int      @default(0)
-  enTranslated          Int      @default(0)
+  // Relations
+  simulations     WorkflowSimulation[]
 
-  // Arabic
-  arTotal               Int      @default(0)
-  arTranslated          Int      @default(0)
-
-  // Hindi
-  hiTotal               Int      @default(0)
-  hiTranslated          Int      @default(0)
-
-  // Aggregate metrics
-  totalUniqueKeys       Int      @default(0)
-  usersWithArabic       Int      @default(0) // Count from UserProfile.preferredLanguage
-  usersWithHindi        Int      @default(0)
-  usersWithEnglish      Int      @default(0)
-
-  // Calculated fields (for trending)
-  enCoveragePct         Decimal  @default(0) @db.Decimal(5, 2) // 0-100
-  arCoveragePct         Decimal  @default(0) @db.Decimal(5, 2)
-  hiCoveragePct         Decimal  @default(0) @db.Decimal(5, 2)
-
-  createdAt             DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, date]) // One snapshot per day
-  @@index([tenantId, date])
-  @@index([date])
-  @@map("translation_metrics")
+  @@index([status, createdAt])
+  @@index([createdBy, createdAt])
+  @@map("workflows")
 }
 
-// Integration Hub settings per-tenant (no raw secrets stored)
-model IntegrationSettings {
-  id        String   @id @default(cuid())
-  tenantId  String   @unique
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+model WorkflowSimulation {
+  id              String                @id @default(cuid())
+  workflowId      String
+  testData        Json?
+  executionPath   Json                  @default("[]") // ExecutionStep[]
+  totalDuration   Int                   @default(0)
+  success         Boolean               @default(false)
+  errors          String[]              @default([])
+  createdAt       DateTime              @default(now())
 
-  payments   Json?   // e.g., { provider: 'stripe', publishableKeyMasked: 'pk_live_***7890', hasSecret: true, testMode: true }
-  calendars  Json?   // e.g., { googleConnected: false, outlookConnected: false }
-  comms      Json?   // e.g., { sendgridConfigured: true }
-  analytics  Json?   // e.g., { gaTrackingIdMasked: 'UA-***123' }
-  storage    Json?   // e.g., { provider: 'none'|'s3'|'netlify', bucket: 'masked' }
+  // Relations
+  workflow        Workflow              @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tenantId])
-  @@map("integration_settings")
-}
-
-// Communication settings stored per tenant
-model CommunicationSettings {
-  id        String   @id @default(cuid())
-  tenantId  String   @unique
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  email          Json?
-  sms            Json?
-  chat           Json?
-  notifications  Json?
-  newsletters    Json?
-  reminders      Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tenantId])
-  @@map("communication_settings")
-}
-
-// Security settings persisted per-tenant
-model SecuritySettings {
-  id        String   @id @default(cuid())
-  tenantId  String   @unique
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  passwordPolicy  Json?
-  sessionSecurity Json?
-  twoFactor       Json?
-  network         Json?
-  dataProtection  Json?
-  compliance      Json?
-  superAdmin      Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tenantId])
-  @@map("security_settings")
-}
-
-// Cron Telemetry settings per-tenant
-model CronTelemetrySettings {
-  id        String   @id @default(cuid())
-  tenantId  String   @unique
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  performance  Json?
-  reliability  Json?
-  monitoring   Json?
-  status       Json?
-  scheduling   Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tenantId])
-  @@map("cron_telemetry_settings")
-}
-
-// Organization-wide localization settings per-tenant
-model OrganizationLocalizationSettings {
-  id                          String   @id @default(cuid())
-  tenantId                    String   @unique
-  tenant                      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  defaultLanguage             String   @default("en") @db.VarChar(10)
-  fallbackLanguage            String   @default("en") @db.VarChar(10)
-  showLanguageSwitcher        Boolean  @default(true)
-  persistLanguagePreference   Boolean  @default(true)
-  autoDetectBrowserLanguage   Boolean  @default(true)
-  allowUserLanguageOverride   Boolean  @default(true)
-  enableRtlSupport            Boolean  @default(true)
-  missingTranslationBehavior  String   @default("show-fallback") @db.VarChar(20) // show-key | show-fallback | show-empty
-
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
-
-  @@index([tenantId])
-  @@map("org_localization_settings")
-}
-
-// Regional format settings per language per-tenant
-model RegionalFormat {
-  id                  String   @id @default(cuid())
-  tenantId            String
-  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  languageCode        String   @db.VarChar(10)
-  dateFormat          String   @db.VarChar(50)
-  timeFormat          String   @db.VarChar(50)
-  currencyCode        String   @db.VarChar(3)
-  currencySymbol      String   @db.VarChar(10)
-  numberFormat        String   @db.VarChar(50)
-  decimalSeparator    String   @db.VarChar(1)
-  thousandsSeparator  String   @db.VarChar(1)
-
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  @@unique([tenantId, languageCode])
-  @@index([tenantId])
-  @@index([languageCode])
-  @@map("regional_formats")
-}
-
-// Crowdin integration settings per-tenant
-model CrowdinIntegration {
-  id                  String   @id @default(cuid())
-  tenantId            String   @unique
-  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  projectId           String   @db.VarChar(100)
-  apiTokenMasked      String   @db.VarChar(20)  // Last 20 chars of token for display
-  apiTokenEncrypted   String   @db.Text         // Encrypted full token
-  autoSyncDaily       Boolean  @default(true)
-  syncOnDeploy        Boolean  @default(false)
-  createPrs           Boolean  @default(true)
-  lastSyncAt          DateTime?
-  lastSyncStatus      String?  @db.VarChar(50)  // success | failed | pending
-  testConnectionOk    Boolean  @default(false)
-
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  @@index([tenantId])
-  @@map("crowdin_integrations")
-}
-
-// Menu customization settings per-user
-model MenuCustomization {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  sectionOrder    Json     @default("[]")      // String[] - e.g., ["dashboard", "business", ...]
-  hiddenItems     Json     @default("[]")      // String[] - e.g., ["admin/analytics", "admin/reports"]
-  practiceItems   Json     @default("[]")      // PracticeItem[]
-  bookmarks       Json     @default("[]")      // Bookmark[]
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([userId])
-  @@map("menu_customizations")
+  @@index([workflowId, createdAt])
+  @@map("workflow_simulations")
 }

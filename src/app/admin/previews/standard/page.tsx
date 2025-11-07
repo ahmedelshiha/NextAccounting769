@@ -1,9 +1,10 @@
-"use client"
-
+import { getSessionOrBypass } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { hasRole } from '@/lib/permissions'
 import StandardPage from '@/components/dashboard/templates/StandardPage'
 import type { TabItem, FilterConfig } from '@/types/dashboard'
 
-export default function StandardPagePreview() {
+export default async function StandardPagePreview() {
   const primaryTabs: TabItem[] = [
     { key: 'all', label: 'All' },
     { key: 'active', label: 'Active' },
@@ -25,6 +26,10 @@ export default function StandardPagePreview() {
   if (!enabled) {
     return <div className="p-6 text-sm text-gray-600">Previews are disabled in production.</div>
   }
+  const session = await getSessionOrBypass()
+  if (!session?.user) { redirect('/login') }
+  const role = (session.user as any)?.role as string | undefined
+  if (!hasRole(role || '', ['ADMIN', 'TEAM_LEAD', 'SUPER_ADMIN', 'STAFF'])) { redirect('/admin') }
   return (
     <StandardPage
       title="Standard Template Preview"

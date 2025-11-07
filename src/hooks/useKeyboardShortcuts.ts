@@ -43,7 +43,7 @@ export function useKeyboardShortcuts(shortcuts: Shortcut[]) {
           s.handler(e)
           return
         } catch (err) {
-          // eslint-disable-next-line no-console
+           
           console.error('Shortcut handler error', err)
           return
         }

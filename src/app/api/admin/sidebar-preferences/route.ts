@@ -33,7 +33,7 @@ export const GET = withTenantContext(async () => {
   })
 })
 
-export const UpdateSchema = z.object({
+const UpdateSchema = z.object({
   collapsed: z.boolean().optional(),
   width: z.number().int().min(64).max(420).optional(),
   mobileOpen: z.boolean().optional(),

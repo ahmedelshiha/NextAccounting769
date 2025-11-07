@@ -62,7 +62,7 @@ export const LanguageActivityHeatmap: React.FC = () => {
   }, [])
 
   // Debounced loader to avoid rapid requests
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const debouncedLoad = useCallback(
     debounce(() => {
       loadActivityData()

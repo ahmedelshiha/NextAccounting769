@@ -7,11 +7,6 @@ export const navGroups: NavGroup[] = [
     { label: 'Overview', href: '/admin', icon: Home, exact: true },
     { label: 'Analytics', href: '/admin/analytics', icon: BarChart3, permission: PERMISSIONS.ANALYTICS_VIEW },
   ]},
-  { label: 'Clients', items: [
-    { label: 'Client List', href: '/admin/users', icon: Users, permission: PERMISSIONS.USERS_VIEW },
-    { label: 'Invitations', href: '/admin/clients/invitations', icon: UserCheck, badge: '3', permission: PERMISSIONS.USERS_MANAGE },
-    { label: 'Profiles', href: '/admin/clients/profiles', icon: Users, permission: PERMISSIONS.USERS_VIEW },
-  ]},
   { label: 'Bookings', items: [
     { label: 'Appointments', href: '/admin/bookings', icon: Calendar },
     { label: 'Services', href: '/admin/services', icon: Briefcase, permission: PERMISSIONS.SERVICES_VIEW },
@@ -25,11 +20,6 @@ export const navGroups: NavGroup[] = [
     { label: 'Expenses', href: '/admin/expenses', icon: DollarSign, permission: PERMISSIONS.ANALYTICS_VIEW },
     { label: 'Reports', href: '/admin/reports', icon: BarChart3, permission: PERMISSIONS.ANALYTICS_VIEW },
     { label: 'Taxes', href: '/admin/taxes', icon: Clock, permission: PERMISSIONS.ANALYTICS_VIEW },
-  ]},
-  { label: 'Team', permission: PERMISSIONS.TEAM_VIEW, items: [
-    { label: 'Staff', href: '/admin/team', icon: Users, permission: PERMISSIONS.TEAM_VIEW },
-    { label: 'Roles', href: '/admin/roles', icon: Shield, permission: PERMISSIONS.TEAM_MANAGE },
-    { label: 'Permissions', href: '/admin/permissions', icon: Shield, permission: PERMISSIONS.USERS_MANAGE },
   ]},
   { label: 'System', items: [
     { label: 'Settings', href: '/admin/settings', icon: Settings, permission: PERMISSIONS.BOOKING_SETTINGS_VIEW },

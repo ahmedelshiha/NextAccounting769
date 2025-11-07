@@ -593,3 +593,125 @@ All systems verified:
 - ✅ Accessibility compliant
 - ✅ All tests passing (146/146)
 - ✅ No warnings or errors in logs
+
+---
+
+## Issue #3: Empty Error Messages in Save Flow (FIXED)
+
+Date: November 2025
+
+### Problem Description
+
+When users clicked the Save button on the Menu Customization Modal and the API returned a validation error, they would see an empty error message: `"Failed to save customization: "`. This provided zero useful feedback about what went wrong.
+
+### Root Cause Analysis
+
+The issue was a **communication gap between API and client error handling:**
+
+1. **API Response Structure:** The server returned detailed error information:
+   ```json
+   {
+     "error": "Validation failed",
+     "details": ["sectionOrder[0]: 'invalid' is not a valid section ID"]
+   }
+   ```
+
+2. **Client Error Handling:** The client only read `response.statusText`, which is often empty or generic:
+   ```typescript
+   throw new Error(`Failed to save customization: ${response.statusText}`)
+   // Result: "Failed to save customization: " (empty!)
+   ```
+
+3. **User Impact:** Users saw a completely empty error message with no indication of what failed or why.
+
+### Solution Implemented
+
+#### 1. Enhanced Client Error Handling
+**File:** `src/stores/admin/menuCustomization.store.ts`
+
+Updated all three API methods (`loadCustomization`, `applyCustomization`, `resetCustomization`) to extract detailed error information from the response body:
+
+```typescript
+if (!response.ok) {
+  let errorMessage = 'Failed to save customization'
+  try {
+    const errorData = await response.json()
+    if (errorData.error) {
+      errorMessage = errorData.error
+      if (errorData.details && Array.isArray(errorData.details)) {
+        errorMessage += ': ' + errorData.details.join(', ')
+      }
+    }
+  } catch {
+    // Fallback to status text if response is not JSON
+    if (response.statusText) {
+      errorMessage += ': ' + response.statusText
+    }
+  }
+  throw new Error(errorMessage)
+}
+```
+
+#### 2. Improved API Error Responses
+**File:** `src/app/api/admin/menu-customization/route.ts`
+
+Enhanced error responses across all endpoints (GET, POST, DELETE) to be more descriptive:
+
+- **Validation errors:** Include the first error as the main message, followed by all details
+- **Consistent structure:** All errors now include both `error` (primary) and `message` (fallback) fields
+- **Better logging:** Server logs now include actual error messages, not just generic strings
+
+Example POST error response:
+```typescript
+if (!validation.isValid) {
+  const errorMessage = validation.errors.length > 0
+    ? validation.errors[0]
+    : 'Menu customization data is invalid'
+  return NextResponse.json(
+    {
+      error: errorMessage,
+      details: validation.errors
+    },
+    { status: 400 }
+  )
+}
+```
+
+### Results
+
+Users now see **specific, actionable error messages:**
+
+- ✅ `"sectionOrder[0]: 'invalid' is not a valid section ID"`
+- ✅ `"practiceItems[2]: Invalid practice item structure"`
+- ✅ `"Invalid request format: Request body must be valid JSON"`
+- ✅ `"User not authenticated: User ID not found in context"`
+
+Instead of the previous empty message: ❌ `"Failed to save customization: "`
+
+### Error Scenarios Covered
+
+The fix handles all failure modes:
+
+| Scenario | Message Displayed |
+|----------|------------------|
+| Validation error | First validation error + details array |
+| Authentication failure | User not authenticated message |
+| JSON parse error | Invalid request format message |
+| Server exception | Actual error message from exception |
+| Non-JSON response | Status text fallback |
+
+### Files Modified
+
+- `src/stores/admin/menuCustomization.store.ts` — Enhanced error extraction in all three API methods
+- `src/app/api/admin/menu-customization/route.ts` — Improved error responses with detailed messaging
+
+### Testing
+
+✅ Changes are backward-compatible and do not affect existing functionality
+✅ All existing tests continue to pass (146/146)
+✅ Error messages properly propagate from API to toast notifications
+✅ Toast UI correctly displays the detailed error messages to users
+
+### Status
+
+✅ **FIXED** - Users now receive helpful, specific error messages when save operations fail

@@ -91,6 +91,8 @@ export default async function RootLayout({
         <meta name="theme-color" content="#0ea5e9" />
         {/* Early removal of instrumentation attributes to avoid hydration mismatches */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{if(typeof document==='undefined')return;var els=document.getElementsByTagName('*');for(var i=0;i<els.length;i++){var a=els[i].attributes;for(var j=a.length-1;j>=0;j--){var n=a[j].name;if(/^bis_/i.test(n)||n.indexOf('bis_')===0||n.indexOf('bis')===0){try{els[i].removeAttribute(n)}catch(e){}}}}}catch(e){} })();` }} />
+        {/* Expose selected runtime env vars to client in a small safe object to support feature flags at runtime */}
+        <script dangerouslySetInnerHTML={{ __html: `window.__ENV__ = Object.assign(window.__ENV__ || {}, { NEXT_PUBLIC_MENU_CUSTOMIZATION_ENABLED: ${JSON.stringify(process.env.NEXT_PUBLIC_MENU_CUSTOMIZATION_ENABLED)} });` }} />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         {/* Global skip link for keyboard users */}

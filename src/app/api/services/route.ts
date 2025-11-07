@@ -4,6 +4,7 @@ import { withTenantContext } from '@/lib/api-wrapper'
 import { tenantContext } from '@/lib/tenant-context'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import { getTenantFromRequest, tenantFilter, isMultiTenancyEnabled } from '@/lib/tenant'
+import { hasRole } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -103,7 +104,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
 export const POST = withTenantContext(async (request: NextRequest) => {
   const ctx = requireTenantContext()
   const role = ctx.role ?? ''
-  if (!['ADMIN', 'OWNER', 'TEAM_LEAD'].includes(role)) {
+  if (!hasRole(role, ['ADMIN', 'OWNER', 'TEAM_LEAD'])) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

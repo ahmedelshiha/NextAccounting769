@@ -80,7 +80,7 @@ function MobileUserMenuComponent({
         >
           <div className="relative h-8 w-8 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
             {image ? (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img src={image} alt={name} className="h-full w-full object-cover" />
             ) : (
               <UserIcon className="h-4 w-4 text-gray-600" />

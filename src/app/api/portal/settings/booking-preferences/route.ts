@@ -43,7 +43,7 @@ export const GET = withTenantContext(async () => {
   })
 })
 
-export const UpdateSchema = z.object({
+const UpdateSchema = z.object({
   emailConfirmation: z.boolean().optional(),
   emailReminder: z.boolean().optional(),
   emailReschedule: z.boolean().optional(),

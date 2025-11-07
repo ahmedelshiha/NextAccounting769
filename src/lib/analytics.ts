@@ -11,6 +11,13 @@ export type AnalyticsEvent =
   | 'compliance_viewed'
   | 'alert_dismissed'
   | 'security_center_viewed'
+  | 'users.view_saved'
+  | 'users.search'
+  | 'users.bulk_apply'
+  | 'users.redirect_legacy'
+  | 'users.create_user'
+  | 'users.edit_user'
+  | 'users.delete_user'
 
 export const EVENTS: Record<AnalyticsEvent, AnalyticsEvent> = {
   ab_test_assigned: 'ab_test_assigned',
@@ -25,6 +32,13 @@ export const EVENTS: Record<AnalyticsEvent, AnalyticsEvent> = {
   compliance_viewed: 'compliance_viewed',
   alert_dismissed: 'alert_dismissed',
   security_center_viewed: 'security_center_viewed',
+  'users.view_saved': 'users.view_saved',
+  'users.search': 'users.search',
+  'users.bulk_apply': 'users.bulk_apply',
+  'users.redirect_legacy': 'users.redirect_legacy',
+  'users.create_user': 'users.create_user',
+  'users.edit_user': 'users.edit_user',
+  'users.delete_user': 'users.delete_user',
 }
 
 export const trackConversion = (eventName: string, data?: Record<string, any>) => {

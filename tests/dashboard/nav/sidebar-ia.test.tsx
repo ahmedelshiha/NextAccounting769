@@ -7,15 +7,20 @@ import { AdminContextProvider } from '@/components/admin/providers/AdminContext'
 import { navGroups } from '@/components/dashboard/nav.config'
 
 vi.mock('next-auth/react', () => ({
-  useSession: () => ({ data: { user: { role: 'ADMIN', permissions: [] } }, status: 'authenticated' })
+  useSession: () => ({ data: { user: { role: 'ADMIN' } }, status: 'authenticated' })
 }))
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin'
 }))
 
+vi.mock('@/lib/permissions', () => ({
+  hasPermission: () => true,
+  checkPermissions: () => true,
+}))
+
 describe('Sidebar IA', () => {
-  it('renders nav links for all groups when collapsed', async () => {
+  it('renders nav links for all groups with admin permissions', async () => {
     const { container } = render(
       <AdminContextProvider>
         <Sidebar />

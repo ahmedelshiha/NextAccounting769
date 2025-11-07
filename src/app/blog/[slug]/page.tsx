@@ -2,14 +2,11 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import prisma from '@/lib/prisma'
 
-interface Props {
-  params: {
-    slug: string
-  }
-}
+// Next may pass Promise-like params; accept any and resolve safely
 
-export default async function PostPage({ params }: Props) {
-  const { slug } = await params
+export default async function PostPage({ params }: any) {
+  const resolved = (await Promise.resolve(params)) as { slug?: string }
+  const slug = String(resolved?.slug || '')
 
   // Fetch post directly from the database on the server to avoid making internal HTTP requests
   const post = await prisma.post.findUnique({
@@ -65,8 +62,9 @@ export default async function PostPage({ params }: Props) {
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: Props) {
-  const { slug } = await params
+export async function generateMetadata({ params }: any) {
+  const resolved = (await Promise.resolve(params)) as { slug?: string }
+  const slug = String(resolved?.slug || '')
   const post = await prisma.post.findUnique({ where: { slug } })
   if (!post) return {}
 

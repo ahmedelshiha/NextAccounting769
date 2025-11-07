@@ -8,7 +8,7 @@ interface Row { id: number; name: string }
 
 function withI18n(children: React.ReactElement) {
   return (
-    <TranslationContext.Provider value={{ locale: 'en', translations: { 'dashboard.selectedCount': '{{count}} selected', 'dashboard.actions': 'Actions', 'dashboard.noData': 'No records found' }, setLocale: () => {} }}>
+    <TranslationContext.Provider value={{ locale: 'en', translations: { 'dashboard.selectedCount': '{{count}} selected', 'dashboard.actions': 'Actions', 'dashboard.noData': 'No records found' }, setLocale: () => {}, currentGender: undefined, setGender: () => {} }}>
       {children}
     </TranslationContext.Provider>
   )
@@ -27,8 +27,8 @@ describe('AdvancedDataTable a11y focusability', () => {
     const { container, unmount } = render(ui)
     try {
       const sortBtn = container.querySelector('th button') as HTMLButtonElement
-      const prev = screen.getByRole('button', { name: /Previous page/i }) as HTMLButtonElement
-      const next = screen.getByRole('button', { name: /Next page/i }) as HTMLButtonElement
+      const prev = screen.getByRole('button', { name: /Previous/i }) as HTMLButtonElement
+      const next = screen.getByRole('button', { name: /Next/i }) as HTMLButtonElement
       expect(sortBtn).toBeTruthy()
       expect(prev).toBeTruthy()
       expect(next).toBeTruthy()

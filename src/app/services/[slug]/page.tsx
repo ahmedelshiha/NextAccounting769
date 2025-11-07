@@ -10,8 +10,8 @@ interface PageProps {
   params: { slug: string }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = params
+export async function generateMetadata({ params }: any): Promise<Metadata> {
+  const { slug } = (await Promise.resolve(params)) as { slug?: string }
   try {
     const service = await prisma.service.findFirst({ where: { slug }, select: { name: true, description: true } })
     if (!service) return { title: 'Service not found' }
@@ -25,8 +25,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function ServicePage({ params }: PageProps) {
-  const { slug } = params
+export default async function ServicePage({ params }: any) {
+  const { slug } = (await Promise.resolve(params)) as { slug?: string }
+  if (!slug) return notFound()
 
   try {
     const hasDb = !!process.env.NETLIFY_DATABASE_URL || !!process.env.DATABASE_URL

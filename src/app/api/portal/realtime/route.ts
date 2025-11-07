@@ -14,11 +14,12 @@ export const GET = withTenantContext(async (request: NextRequest) => {
   const userId = String(ctx.userId ?? 'anon')
   const tenantId = ctx.tenantId
 
-  // Best-effort health log for observability
-  try {
-    const { default: prisma } = await import('@/lib/prisma')
-    if (tenantId) {
-      await prisma.healthLog
+  // Best-effort health log for observability - non-blocking
+  if (tenantId) {
+    try {
+      const { default: prisma } = await import('@/lib/prisma')
+      // Fire and forget - don't await to avoid blocking stream response
+      prisma.healthLog
         .create({
           data: withTenant(
             { service: 'portal:realtime', status: 'CONNECTED', message: `user:${userId} events:${eventTypes.join(',')}` },
@@ -26,8 +27,8 @@ export const GET = withTenantContext(async (request: NextRequest) => {
           ),
         })
         .catch(() => null)
-    }
-  } catch {}
+    } catch {}
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -49,15 +50,15 @@ export const GET = withTenantContext(async (request: NextRequest) => {
         try {
           controller.close()
         } catch {}
-        // Log disconnect
-        try {
-          const { default: prisma } = await import('@/lib/prisma')
-          if (tenantId) {
-            await prisma.healthLog
+        // Log disconnect - non-blocking
+        if (tenantId) {
+          try {
+            const { default: prisma } = await import('@/lib/prisma')
+            prisma.healthLog
               .create({ data: withTenant({ service: 'portal:realtime', status: 'DISCONNECTED', message: `user:${userId}` }, tenantId) })
               .catch(() => null)
-          }
-        } catch {}
+          } catch {}
+        }
       }
       request.signal.addEventListener('abort', onAbort)
     },

@@ -27,9 +27,9 @@ function mapCategoryToTag(slug: string): { label: string; tag: string | null } {
 
 import prisma from '@/lib/prisma'
 
-export default async function CategoryPage({ params }: Props) {
-  const { slug } = await params
-  const { label, tag } = mapCategoryToTag(slug)
+export default async function CategoryPage({ params }: any) {
+  const { slug } = (await Promise.resolve(params)) as { slug?: string }
+  const { label, tag } = mapCategoryToTag(slug ?? '')
 
   let posts: Array<{
     id: string

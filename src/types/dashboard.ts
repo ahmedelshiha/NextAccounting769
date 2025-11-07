@@ -63,6 +63,8 @@ export interface Column<T> {
 export interface RowAction<T> {
   label: string
   onClick: (row: T) => void
+  handler?: (row: T) => void
+  icon?: React.ReactNode
   variant?: 'default' | 'destructive'
   disabled?: boolean | ((row: T) => boolean)
 }

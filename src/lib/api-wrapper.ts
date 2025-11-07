@@ -3,6 +3,7 @@ import { tenantContext, TenantContext } from '@/lib/tenant-context'
 import { logger } from '@/lib/logger'
 import { verifyTenantCookie } from '@/lib/tenant-cookie'
 import { incrementMetric } from '@/lib/observability-helpers'
+import { hasRole } from '@/lib/permissions'
 
 /**
  * Safely read a cookie value from NextRequest or a request-like object.
@@ -98,15 +99,11 @@ export function withTenantContext(
           try {
             session = await naNext.getServerSession(request as any, (authMod as any).authOptions)
             sessionResolutionAttempted = true
-            // Debug: log session from next-auth/next
-            try { console.log('[api-wrapper] naNext.getServerSession ->', JSON.stringify(session)) } catch {}
           } catch (err) {
             try {
               session = await naNext.getServerSession((authMod as any).authOptions)
               sessionResolutionAttempted = true
-              try { console.log('[api-wrapper] naNext.getServerSession(fallback) ->', JSON.stringify(session)) } catch {}
             } catch(err2) {
-              try { console.log('[api-wrapper] naNext.getServerSession errors', String(err), String(err2)) } catch {}
             }
           }
         } else {
@@ -117,33 +114,27 @@ export function withTenantContext(
               try {
                 session = await na.getServerSession(request as any, (authMod as any).authOptions)
                 sessionResolutionAttempted = true
-                try { console.log('[api-wrapper] next-auth.getServerSession ->', JSON.stringify(session)) } catch {}
               } catch (err) {
                 try {
                   session = await na.getServerSession((authMod as any).authOptions)
                   sessionResolutionAttempted = true
-                  try { console.log('[api-wrapper] next-auth.getServerSession(fallback) ->', JSON.stringify(session)) } catch {}
                 } catch (err2) {
-                  try { console.log('[api-wrapper] next-auth.getServerSession errors', String(err), String(err2)) } catch {}
                 }
               }
             }
-          } catch(err) { try { console.log('[api-wrapper] import next-auth err', String(err)) } catch {} }
+          } catch(err) {}
         }
       } catch (e) {
         session = null
-        try { console.log('[api-wrapper] session resolution top-level error', String(e)) } catch {}
       }
 
       // Test-environment override: force a permissive session when running under vitest
       // BUT: only inject fallback if session resolution was never actually attempted (e.g., auth module not loaded)
       try {
-        try { console.log('[api-wrapper] NODE_ENV ->', String((process && process.env && process.env.NODE_ENV) || 'undefined')) } catch {}
         const isTestEnv = (typeof process !== 'undefined' && process.env && ((process.env.NODE_ENV === 'test') || process.env.PRISMA_MOCK === 'true' || process.env.VITEST === 'true')) || (typeof (globalThis as any) !== 'undefined' && (typeof (globalThis as any).vi !== 'undefined' || typeof (globalThis as any).__vitest !== 'undefined'))
         // Only inject fallback if we never even attempted to resolve a session (not if it explicitly returned null)
         if ((!session || !session.user) && isTestEnv && !sessionResolutionAttempted) {
           session = { user: { id: 'test-user', role: 'ADMIN', tenantId: 'test-tenant', tenantRole: 'OWNER', email: 'test@example.com', name: 'Test User' } } as any
-          try { console.log('[api-wrapper] injected test fallback session ->', JSON.stringify(session)) } catch {}
         }
       } catch (err) {}
 
@@ -218,7 +209,7 @@ export function withTenantContext(
         )
       }
 
-      if (requireTenantAdmin && !['OWNER', 'ADMIN'].includes(user.tenantRole)) {
+      if (requireTenantAdmin && !hasRole(user.tenantRole, ['OWNER', 'ADMIN'])) {
         return attachRequestId(
           NextResponse.json(
             { error: 'Forbidden', message: 'Tenant admin access required' },
@@ -227,7 +218,7 @@ export function withTenantContext(
         )
       }
 
-      if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+      if (allowedRoles.length > 0 && !hasRole(user.role, allowedRoles)) {
         return attachRequestId(
           NextResponse.json(
             { error: 'Forbidden', message: 'Insufficient permissions' },
@@ -299,7 +290,7 @@ export function withTenantContext(
         userEmail: (user.email as string | undefined) ?? null,
         role: user.role ?? null,
         tenantRole: user.tenantRole ?? null,
-        isSuperAdmin: user.role === 'SUPER_ADMIN',
+        isSuperAdmin: (function(){ try{ return String(user.role).toUpperCase() === 'SUPER_ADMIN' }catch{return false}})(),
         requestId,
         timestamp: new Date(),
       }

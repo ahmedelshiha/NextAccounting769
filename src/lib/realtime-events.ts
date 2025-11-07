@@ -13,7 +13,13 @@ export const ADMIN_REALTIME_EVENTS = [
   'booking-deleted',
   'system_alert',
   'heartbeat',
-  'ready'
+  'ready',
+  'user-created',
+  'user-updated',
+  'user-deleted',
+  'role-updated',
+  'permission-changed',
+  'user-management-settings-updated'
 ] as const
 
 export type AdminRealtimeEventType = typeof ADMIN_REALTIME_EVENTS[number] | 'all'
@@ -53,6 +59,35 @@ export type SystemAlertPayload = {
 
 export type HeartbeatPayload = { at: string }
 
+export type UserEventPayload = {
+  userId: string | number
+  action?: 'created' | 'updated' | 'deleted'
+  userEmail?: string
+  userName?: string
+  userRole?: string
+  changedFields?: string[]
+}
+
+export type RoleEventPayload = {
+  roleId: string | number
+  roleName?: string
+  action?: 'created' | 'updated' | 'deleted'
+  permissions?: string[]
+}
+
+export type PermissionEventPayload = {
+  permissionId: string | number
+  action?: 'created' | 'updated' | 'deleted'
+  affectedRoles?: string[]
+  permissionName?: string
+}
+
+export type UserManagementSettingsPayload = {
+  settingKey: string
+  action?: 'updated' | 'deleted'
+  value?: any
+}
+
 // Discriminated union for strongly typed admin realtime event messages
 export type AdminRealtimeEventMessage =
   | { type: 'service-request-updated'; data: ServiceRequestUpdatedPayload; timestamp: string; userId?: string }
@@ -61,6 +96,10 @@ export type AdminRealtimeEventMessage =
   | { type: 'booking-updated' | 'booking-created' | 'booking-deleted'; data: BookingEventPayload; timestamp: string; userId?: string }
   | { type: 'system_alert'; data: SystemAlertPayload; timestamp: string; userId?: string }
   | { type: 'heartbeat' | 'ready'; data: HeartbeatPayload | Record<string, never>; timestamp: string; userId?: string }
+  | { type: 'user-created' | 'user-updated' | 'user-deleted'; data: UserEventPayload; timestamp: string; userId?: string }
+  | { type: 'role-updated'; data: RoleEventPayload; timestamp: string; userId?: string }
+  | { type: 'permission-changed'; data: PermissionEventPayload; timestamp: string; userId?: string }
+  | { type: 'user-management-settings-updated'; data: UserManagementSettingsPayload; timestamp: string; userId?: string }
 
 // Type guard helper
 export function isAdminRealtimeEventMessage(input: any): input is AdminRealtimeEventMessage {

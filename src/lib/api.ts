@@ -3,7 +3,7 @@ export async function apiFetch(path: RequestInfo | string, options?: RequestInit
   const debug = typeof process !== 'undefined' && process.env && (process.env.NEXT_PUBLIC_DEBUG_FETCH === '1')
 
   const envTimeout = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_FETCH_TIMEOUT) ? Number(process.env.NEXT_PUBLIC_FETCH_TIMEOUT) : undefined
-  const defaultTimeout = typeof window === 'undefined' ? 0 : (Number.isFinite(envTimeout as number) && (envTimeout as number) > 0 ? (envTimeout as number) : 45000)
+  const defaultTimeout = typeof window === 'undefined' ? 0 : (Number.isFinite(envTimeout as number) && (envTimeout as number) > 0 ? (envTimeout as number) : 120000)
   const timeoutMs = (options && (options as any).timeout) || defaultTimeout
 
   const isNetworkError = (err: unknown) => {
@@ -32,17 +32,10 @@ export async function apiFetch(path: RequestInfo | string, options?: RequestInit
 
     let timeout: ReturnType<typeof setTimeout> | null = null
     if (timeoutMs && !(options && (options as any).signal)) {
-      // Provide a reason when aborting so error messages include context (avoids "signal is aborted without reason").
-      // Use DOMException where available so the abort reason has the 'AbortError' name and is compatible with fetch implementations.
       timeout = setTimeout(() => {
-        // Abort the request on timeout. Provide a reason where supported to produce a better error message.
+        // Abort the request on timeout. Provide a reason string for better error context.
         try {
-          const ReasonCtor = (typeof (globalThis as any).DOMException !== 'undefined') ? (globalThis as any).DOMException : undefined
-          if (ReasonCtor) {
-            try { controller.abort(new ReasonCtor('Request timed out', 'AbortError')) } catch { controller.abort() }
-          } else {
-            try { controller.abort() } catch {}
-          }
+          controller.abort(`Request timed out after ${timeoutMs}ms`)
         } catch {
           try { controller.abort() } catch {}
         }
@@ -103,12 +96,16 @@ export async function apiFetch(path: RequestInfo | string, options?: RequestInit
     }
 
     // If we exhausted retries or encountered non-network error, return a safe Response instead of throwing
+    const errorMsg = lastErr instanceof Error ? lastErr.message : String(lastErr)
+    const isTimeout = errorMsg.includes('timed out') || errorMsg.includes('AbortError')
+
     if (debug) {
-      try { console.error('apiFetch final error, returning 503 response', lastErr) } catch {}
+      try { console.error('apiFetch final error, returning 503 response', { error: errorMsg, timeout: isTimeout }) } catch {}
     }
 
     try {
-      const body = typeof lastErr === 'string' ? lastErr : JSON.stringify({ error: 'Network error', detail: String(lastErr) })
+      const detail = isTimeout ? `Request exceeded ${timeoutMs}ms timeout. Server may be slow or unreachable.` : errorMsg
+      const body = JSON.stringify({ error: 'Service Unavailable', detail })
       return new Response(body, { status: 503, statusText: 'Service Unavailable', headers: { 'Content-Type': 'application/json' } })
     } catch (e) {
       // Fallback: rethrow if Response construction fails

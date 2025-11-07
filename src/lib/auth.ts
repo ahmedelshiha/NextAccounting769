@@ -106,13 +106,68 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        const user = await prisma.user.findUnique({ where: userByTenantEmail(tenantId, String(credentials.email as string).toLowerCase()) })
+        const emailKey = String(credentials.email as string).toLowerCase()
+
+        // Strategy 1: Tenant-scoped lookup (primary path for all users)
+        let user = await prisma.user.findUnique({
+          where: userByTenantEmail(tenantId, emailKey)
+        })
+
+        // Strategy 2: Cross-tenant SUPER_ADMIN lookup
+        // If the tenant-scoped lookup fails, check if this is a SUPER_ADMIN user
+        // attempting to access from a different tenant context
+        if (!user) {
+          try {
+            user = await prisma.user.findFirst({
+              where: {
+                email: emailKey,
+                role: 'SUPER_ADMIN'
+              },
+              // Performance: limit to 1 result since email should be unique per SUPER_ADMIN
+              take: 1
+            })
+
+            // Audit cross-tenant superadmin access for security monitoring
+            if (user) {
+              await logAudit({
+                action: 'auth.superadmin.cross_tenant_access',
+                actorId: user.id,
+                targetId: user.id,
+                details: {
+                  requestedTenantId: tenantId,
+                  userHomeTenantId: (user as any).tenantId,
+                  email: emailKey
+                }
+              }).catch(() => {})
+            }
+          } catch (err) {
+            // Log cross-tenant lookup failures for debugging
+            await logAudit({
+              action: 'auth.superadmin.cross_tenant_lookup_error',
+              actorId: null,
+              targetId: null,
+              details: {
+                tenantId,
+                email: emailKey,
+                error: String(err)
+              }
+            }).catch(() => {})
+          }
+        }
+
+        // If still no user found, fail authentication
         if (!user || !user.password) {
-          // Audit failed attempt without user enumeration
-          logAudit({ action: 'auth.login.failed', actorId: null, targetId: null, details: { tenantId, email: String(credentials.email || '').toLowerCase() } }).catch(() => {})
+          // Audit failed attempt without revealing whether user exists (prevent enumeration)
+          logAudit({
+            action: 'auth.login.failed',
+            actorId: null,
+            targetId: null,
+            details: { tenantId, email: emailKey }
+          }).catch(() => {})
           return null
         }
 
+        // Continue with existing password verification
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
         if (!isPasswordValid) {
           logAudit({ action: 'auth.login.failed', actorId: user.id, targetId: user.id, details: { tenantId } }).catch(() => {})
@@ -167,7 +222,28 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Fetch tenant memberships for the user to populate available tenants
-        const tenantMemberships = await prisma.tenantMembership.findMany({ where: { userId: user.id }, include: { tenant: true } }).catch(() => [])
+        let tenantMemberships = await prisma.tenantMembership.findMany({ where: { userId: user.id }, include: { tenant: true } }).catch(() => [])
+
+        // If this is a SUPER_ADMIN and no tenant membership exists, create one using the user's tenantId (or resolved tenantId)
+        try {
+          const roleNormalized = String(user.role || '').toUpperCase()
+          if (roleNormalized === 'SUPER_ADMIN' && (!tenantMemberships || tenantMemberships.length === 0)) {
+            const membershipTenantId = (user as any).tenantId || tenantId
+            if (membershipTenantId) {
+              await prisma.tenantMembership.upsert({
+                where: { userId_tenantId: { userId: user.id, tenantId: membershipTenantId } },
+                update: { role: 'SUPER_ADMIN' as any, isDefault: true },
+                create: { userId: user.id, tenantId: membershipTenantId, role: 'SUPER_ADMIN' as any, isDefault: true },
+              }).catch(() => {})
+
+              // Refresh memberships after ensuring the row exists
+              tenantMemberships = await prisma.tenantMembership.findMany({ where: { userId: user.id }, include: { tenant: true } }).catch(() => [])
+            }
+          }
+        } catch (err) {
+          // Don't block login for membership sync failures, but log audit entry
+          try { await logAudit({ action: 'auth.superadmin.membership.sync.failed', actorId: user.id, targetId: user.id, details: { error: String(err) } }) } catch {}
+        }
 
         // Determine active tenant membership (the one used for login)
         const activeMembership = tenantMemberships.find(m => m.tenantId === tenantId) || tenantMemberships[0] || null

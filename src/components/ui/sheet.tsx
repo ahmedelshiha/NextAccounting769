@@ -49,4 +49,40 @@ function SheetContent({ className, children, ...props }: React.ComponentProps<ty
   )
 }
 
-export { Sheet, SheetTrigger, SheetPortal, SheetOverlay, SheetContent }
+function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("flex flex-col space-y-2 text-center sm:text-left", className)}
+      {...props}
+    />
+  )
+}
+
+function SheetFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
+      {...props}
+    />
+  )
+}
+
+function SheetTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h2
+      className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+      {...props}
+    />
+  )
+}
+
+function SheetDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+export { Sheet, SheetTrigger, SheetPortal, SheetOverlay, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription }

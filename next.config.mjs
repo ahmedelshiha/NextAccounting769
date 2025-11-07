@@ -14,7 +14,23 @@ const nextConfig = {
   
   
   // External packages for server components
-  serverExternalPackages: ['@sentry/nextjs'],
+  serverExternalPackages: ['@sentry/nextjs', 'ioredis'],
+  // Prevent bundling node built-ins into client bundles (stubs for Turbopack/webpack)
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve = config.resolve || {}
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+        child_process: false,
+        crypto: false,
+      }
+    }
+    return config
+  },
   
   // Experimental features for better performance
   experimental: {
@@ -75,6 +91,6 @@ const sentryPluginOptions = {
   disableClientWebpackPlugin: disableSourcemapsOnNetlify,
 }
 
-const configWithSentry = process.env.NODE_ENV === 'production' ? withSentryConfig(nextConfig, sentryPluginOptions) : nextConfig
+const configWithSentry = (process.env.NODE_ENV === 'production' && !!process.env.SENTRY_AUTH_TOKEN) ? withSentryConfig(nextConfig, sentryPluginOptions) : nextConfig
 
 export default configWithSentry

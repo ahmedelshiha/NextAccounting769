@@ -216,6 +216,30 @@ class EnhancedRealtimeService extends EventEmitter {
     this.dispatch({ type: 'availability-updated', data: payload, timestamp: new Date().toISOString() })
   }
 
+  emitUserCreated(userId: string | number, data: any = {}) {
+    this.dispatch({ type: 'user-created', data: { userId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitUserUpdated(userId: string | number, data: any = {}) {
+    this.dispatch({ type: 'user-updated', data: { userId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitUserDeleted(userId: string | number, data: any = {}) {
+    this.dispatch({ type: 'user-deleted', data: { userId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitRoleUpdated(roleId: string | number, data: any = {}) {
+    this.dispatch({ type: 'role-updated', data: { roleId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitPermissionChanged(permissionId: string | number, data: any = {}) {
+    this.dispatch({ type: 'permission-changed', data: { permissionId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitUserManagementSettingsUpdated(settingKey: string, data: any = {}) {
+    this.dispatch({ type: 'user-management-settings-updated', data: { settingKey, ...data }, timestamp: new Date().toISOString() })
+  }
+
   cleanup(connectionId: string) {
     const conn = this.connections.get(connectionId)
     if (conn) {

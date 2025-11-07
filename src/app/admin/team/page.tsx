@@ -1,21 +1,23 @@
-"use client"
-import StandardPage from '@/components/dashboard/templates/StandardPage'
-import TeamManagement from '@/components/admin/team-management'
-import PermissionGate from '@/components/PermissionGate'
-import { PERMISSIONS } from '@/lib/permissions'
-import TeamWorkloadChart from '@/components/admin/service-requests/team-workload-chart'
+'use client'
 
-export default function AdminTeamPage() {
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { trackEvent } from '@/lib/analytics'
+
+export default function TeamRedirectPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    trackEvent('users.redirect_legacy', { from: '/admin/team', to: '/admin/users' })
+    router.replace('/admin/users?tab=dashboard&role=TEAM_MEMBER')
+  }, [router])
+
   return (
-    <PermissionGate permission={[PERMISSIONS.TEAM_VIEW]} fallback={<div className="p-6">You do not have access to Team Management.</div>}>
-      <StandardPage title="Team Management" subtitle="Manage staff members, availability, and assignments">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-3">
-            <TeamWorkloadChart />
-          </div>
-        </div>
-        <TeamManagement hideHeader />
-      </StandardPage>
-    </PermissionGate>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Redirecting...</h1>
+        <p className="text-gray-600">Taking you to the User Directory</p>
+      </div>
+    </div>
   )
 }

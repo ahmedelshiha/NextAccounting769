@@ -150,46 +150,48 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
           Skip to main content
         </a>
 
-      {/* Admin Sidebar - Fixed positioning with responsive behavior */}
-      <AdminSidebar
-        isCollapsed={sidebarCollapsed}
-        isMobile={responsive.isMobile}
-        onClose={handleMobileSidebarClose}
-        onOpenMenuCustomization={() => setIsMenuModalOpen(true)}
-      />
-
-      {/* Main Content Area */}
-      <div className={`min-h-full flex flex-col transition-all duration-300 ${getContentClasses()}`}>
-        {/* Admin Header */}
-        <AdminHeader
-          onMenuToggle={handleSidebarToggle}
-          isMobileMenuOpen={false}
+        {/* Admin Sidebar - Fixed positioning with responsive behavior */}
+        <AdminSidebar
+          isCollapsed={sidebarCollapsed}
+          isMobile={responsive.isMobile}
+          onClose={handleMobileSidebarClose}
+          onOpenMenuCustomization={() => setIsMenuModalOpen(true)}
         />
 
-        {/* Scrollable Content */}
-        <main
-          id="admin-main-content"
-          tabIndex={-1}
-          className="flex-1 overflow-y-auto px-6 py-4 focus:outline-none"
-          role="main"
-          aria-label="Admin dashboard content"
-        >
-          <div className="max-w-7xl mx-auto">
-            {/* Main Content */}
-            {children}
-          </div>
-        </main>
+        {/* Main Content Area */}
+        <div className={`min-h-full flex flex-col transition-all duration-300 ${getContentClasses()}`}>
+          {/* Admin Header */}
+          <AdminHeader
+            onMenuToggle={handleSidebarToggle}
+            isMobileMenuOpen={false}
+          />
 
-        {/* Admin Footer */}
-        <AdminFooter />
+          {/* Scrollable Content */}
+          <main
+            id="admin-main-content"
+            tabIndex={-1}
+            className="flex-1 overflow-y-auto px-6 py-4 focus:outline-none"
+            role="main"
+            aria-label="Admin dashboard content"
+          >
+            <div className="max-w-7xl mx-auto">
+              {/* Main Content */}
+              {children}
+            </div>
+          </main>
+
+          {/* Admin Footer */}
+          <AdminFooter />
+        </div>
+
+        {/* Menu Customization Modal - Fixed positioning overlay */}
+        {isMenuModalOpen && (
+          <MenuCustomizationModal
+            isOpen={isMenuModalOpen}
+            onClose={() => setIsMenuModalOpen(false)}
+          />
+        )}
       </div>
-
-      {/* Menu Customization Modal */}
-      <MenuCustomizationModal
-        isOpen={isMenuModalOpen}
-        onClose={() => setIsMenuModalOpen(false)}
-      />
-    </div>
     </AdminErrorBoundary>
   )
 }

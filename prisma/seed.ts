@@ -12,10 +12,11 @@ function genPasswordFromEnv(envName: string) {
 }
 
 async function main() {
-  console.log('🌱 Starting seed...')
+  console.log('🌱 Starting enhanced seed...')
 
   const SEED_FAIL_FAST = process.env.SEED_FAIL_FAST === 'true'
 
+  // Create primary tenant
   const defaultTenant = await prisma.tenant.upsert({
     where: { slug: 'primary' },
     update: {
@@ -29,6 +30,164 @@ async function main() {
       description: 'Default seeded tenant for the accounting firm demo environment',
     },
   })
+
+  console.log('✅ Tenant created')
+
+  // Seed languages registry (new feature)
+  const languages = [
+    {
+      code: 'en',
+      name: 'English',
+      nativeName: 'English',
+      direction: 'ltr',
+      flag: '🇺🇸',
+      bcp47Locale: 'en-US',
+      enabled: true,
+    },
+    {
+      code: 'ar',
+      name: 'Arabic',
+      nativeName: 'العربية',
+      direction: 'rtl',
+      flag: '🇸🇦',
+      bcp47Locale: 'ar-SA',
+      enabled: true,
+    },
+    {
+      code: 'hi',
+      name: 'Hindi',
+      nativeName: 'हिन्दी',
+      direction: 'ltr',
+      flag: '🇮🇳',
+      bcp47Locale: 'hi-IN',
+      enabled: true,
+    },
+  ]
+
+  for (const lang of languages) {
+    await prisma.language.upsert({
+      where: { code: lang.code },
+      update: {
+        name: lang.name,
+        nativeName: lang.nativeName,
+        direction: lang.direction,
+        bcp47Locale: lang.bcp47Locale,
+        enabled: lang.enabled,
+      },
+      create: lang,
+    })
+  }
+
+  console.log('✅ Languages created')
+
+  // Seed organizational localization settings (new feature)
+  await prisma.organizationLocalizationSettings.upsert({
+    where: { tenantId: defaultTenant.id },
+    update: {
+      defaultLanguage: 'en',
+      fallbackLanguage: 'en',
+      showLanguageSwitcher: true,
+      persistLanguagePreference: true,
+      autoDetectBrowserLanguage: true,
+      allowUserLanguageOverride: true,
+      enableRtlSupport: true,
+      missingTranslationBehavior: 'show-fallback',
+    },
+    create: {
+      tenantId: defaultTenant.id,
+      defaultLanguage: 'en',
+      fallbackLanguage: 'en',
+      showLanguageSwitcher: true,
+      persistLanguagePreference: true,
+      autoDetectBrowserLanguage: true,
+      allowUserLanguageOverride: true,
+      enableRtlSupport: true,
+      missingTranslationBehavior: 'show-fallback',
+    },
+  })
+
+  console.log('✅ Organization localization settings created')
+
+  // Seed regional formats (new feature)
+  const regionalFormats = [
+    {
+      tenantId: defaultTenant.id,
+      languageCode: 'en',
+      dateFormat: 'MM/DD/YYYY',
+      timeFormat: 'HH:mm:ss',
+      currencyCode: 'USD',
+      currencySymbol: '$',
+      numberFormat: '#,##0.00',
+      decimalSeparator: '.',
+      thousandsSeparator: ',',
+    },
+    {
+      tenantId: defaultTenant.id,
+      languageCode: 'ar',
+      dateFormat: 'DD/MM/YYYY',
+      timeFormat: 'HH:mm:ss',
+      currencyCode: 'SAR',
+      currencySymbol: '﷼',
+      numberFormat: '#,##0.00',
+      decimalSeparator: '٫',
+      thousandsSeparator: '٬',
+    },
+    {
+      tenantId: defaultTenant.id,
+      languageCode: 'hi',
+      dateFormat: 'DD/MM/YYYY',
+      timeFormat: 'HH:mm:ss',
+      currencyCode: 'INR',
+      currencySymbol: '₹',
+      numberFormat: '#,##,##0.00',
+      decimalSeparator: '.',
+      thousandsSeparator: ',',
+    },
+  ]
+
+  for (const format of regionalFormats) {
+    await prisma.regionalFormat.upsert({
+      where: {
+        tenantId_languageCode: {
+          tenantId: format.tenantId,
+          languageCode: format.languageCode,
+        },
+      },
+      update: format,
+      create: format,
+    })
+  }
+
+  console.log('✅ Regional formats created')
+
+  // Seed crowdin integration (new feature)
+  await prisma.crowdinIntegration.upsert({
+    where: { tenantId: defaultTenant.id },
+    update: {
+      projectId: 'demo-accounting-project',
+      apiTokenMasked: '****demo-token',
+      autoSyncDaily: true,
+      syncOnDeploy: false,
+      createPrs: true,
+      testConnectionOk: true,
+      lastSyncStatus: 'success',
+      lastSyncAt: new Date(),
+    },
+    create: {
+      tenantId: defaultTenant.id,
+      projectId: 'demo-accounting-project',
+      apiTokenMasked: '****demo-token',
+      apiTokenEncrypted: 'demo-encrypted-token',
+      autoSyncDaily: true,
+      syncOnDeploy: false,
+      createPrs: true,
+      testConnectionOk: true,
+      lastSyncStatus: 'success',
+      lastSyncAt: new Date(),
+    },
+  })
+
+  console.log('✅ Crowdin integration created')
 
   // Ensure tenant SecuritySettings with superAdmin defaults
   try {
@@ -62,13 +221,13 @@ async function main() {
     console.warn('Skipping SecuritySettings seed (may run only after migrations):', (e as any)?.message)
   }
 
-  // Purge deprecated demo users and related bookings
+  // Purge deprecated demo users
   await prisma.booking.deleteMany({ where: { clientEmail: 'sarah@example.com' } })
   await prisma.user.deleteMany({ where: { email: 'sarah@example.com' } })
   await prisma.booking.deleteMany({ where: { clientEmail: 'john@example.com' } })
   await prisma.user.deleteMany({ where: { email: 'john@example.com' } })
 
-  // Passwords: prefer environment variables, otherwise generate secure random values and log them
+  // Passwords
   const adminPlain = genPasswordFromEnv('SEED_ADMIN_PASSWORD')
   const staffPlain = genPasswordFromEnv('SEED_STAFF_PASSWORD')
   const clientPlain = genPasswordFromEnv('SEED_CLIENT_PASSWORD')
@@ -81,7 +240,7 @@ async function main() {
   const leadPassword = await bcrypt.hash(leadPlain, 12)
   const superadminPassword = await bcrypt.hash(superadminPlain, 12)
 
-  // Create users inside a transaction to ensure consistency
+  // Create users
   const [admin, staff, client1, client2, lead, superadmin] = await prisma.$transaction(async (tx) => {
     const a = await tx.user.upsert({
       where: { tenantId_email: { tenantId: defaultTenant.id, email: 'admin@accountingfirm.com' } },
@@ -170,7 +329,7 @@ async function main() {
 
   console.log('✅ Users created (including SUPER_ADMIN)')
 
-  // Create or ensure Team Members linked to staff/lead users
+  // Create team members
   let tmStaff = await prisma.teamMember.findFirst({ where: { userId: staff.id } })
   if (!tmStaff) {
     tmStaff = await prisma.teamMember.create({
@@ -181,7 +340,7 @@ async function main() {
         title: 'Accountant',
         role: 'TEAM_MEMBER' as any,
         department: 'Operations',
-        specialties: ['Bookkeeping','Payroll'],
+        specialties: ['Bookkeeping', 'Payroll'],
         hourlyRate: 75,
         isAvailable: true,
         timeZone: 'UTC',
@@ -202,7 +361,7 @@ async function main() {
         title: 'Team Lead',
         role: 'TEAM_LEAD' as any,
         department: 'Advisory',
-        specialties: ['Tax','CFO'],
+        specialties: ['Tax', 'CFO'],
         hourlyRate: 120,
         isAvailable: true,
         timeZone: 'UTC',
@@ -232,9 +391,9 @@ Our experienced bookkeepers use the latest accounting software and follow indust
         'Expense categorization',
         'QuickBooks setup and maintenance',
         'Monthly reporting and analysis',
-        'Tax preparation support'
+        'Tax preparation support',
       ],
-      price: 299.00,
+      price: 299.0,
       duration: 60,
       category: 'Bookkeeping',
       featured: true,
@@ -255,9 +414,9 @@ We handle both individual and business tax returns, providing year-round tax pla
         'IRS representation',
         'Multi-state tax filing',
         'Tax amendment services',
-        'Year-round tax consultation'
+        'Year-round tax consultation',
       ],
-      price: 450.00,
+      price: 450.0,
       duration: 90,
       category: 'Tax',
       featured: true,
@@ -278,9 +437,9 @@ Our payroll services include compliance with federal, state, and local regulatio
         'Time tracking integration',
         'Benefits administration',
         'Compliance monitoring',
-        'Employee self-service portal'
+        'Employee self-service portal',
       ],
-      price: 199.00,
+      price: 199.0,
       duration: 45,
       category: 'Payroll',
       featured: false,
@@ -301,9 +460,9 @@ We work closely with business owners and management teams to develop financial s
         'Financial analysis and reporting',
         'Investment and funding guidance',
         'Risk assessment and management',
-        'Board presentation support'
+        'Board presentation support',
       ],
-      price: 750.00,
+      price: 750.0,
       duration: 120,
       category: 'Advisory',
       featured: true,
@@ -324,9 +483,9 @@ Our consultation sessions are designed to provide you with actionable insights a
         'Growth strategy consultation',
         'Cost reduction analysis',
         'System implementation support',
-        'Custom financial solutions'
+        'Custom financial solutions',
       ],
-      price: 150.00,
+      price: 150.0,
       duration: 60,
       category: 'Consultation',
       featured: false,
@@ -343,7 +502,7 @@ Our consultation sessions are designed to provide you with actionable insights a
 
   console.log('✅ Services created')
 
-  // Seed sample service requests for demo clients
+  // Seed service requests and bookings
   const svcBookkeeping = await prisma.service.findFirst({ where: { slug: 'bookkeeping' }, select: { id: true, name: true } })
   const svcTax = await prisma.service.findFirst({ where: { slug: 'tax-preparation' }, select: { id: true, name: true } })
   if (svcBookkeeping && svcTax) {
@@ -385,7 +544,6 @@ Our consultation sessions are designed to provide you with actionable insights a
     })
     console.log('✅ Sample service requests created')
 
-    // Assign service requests and create linked demo bookings
     try {
       await prisma.serviceRequest.update({ where: { id: 'sr_demo_1' }, data: { assignedTeamMemberId: tmStaff.id, assignedBy: admin.id, assignedAt: new Date() } })
       await prisma.serviceRequest.update({ where: { id: 'sr_demo_2' }, data: { assignedTeamMemberId: tmLead.id, assignedBy: admin.id, assignedAt: new Date() } })
@@ -393,7 +551,9 @@ Our consultation sessions are designed to provide you with actionable insights a
       const sr2 = await prisma.serviceRequest.findUnique({ where: { id: 'sr_demo_2' } })
 
       if (svcBookkeeping && sr1) {
-        const start1 = new Date(); start1.setDate(start1.getDate() + 3); start1.setHours(10,0,0,0)
+        const start1 = new Date()
+        start1.setDate(start1.getDate() + 3)
+        start1.setHours(10, 0, 0, 0)
         const svc1 = await prisma.service.findUnique({ where: { id: svcBookkeeping.id }, select: { duration: true } })
         await prisma.booking.upsert({
           where: { id: 'bk_demo_1' },
@@ -416,7 +576,9 @@ Our consultation sessions are designed to provide you with actionable insights a
       }
 
       if (svcTax && sr2) {
-        const start2 = new Date(); start2.setDate(start2.getDate() + 5); start2.setHours(14,0,0,0)
+        const start2 = new Date()
+        start2.setDate(start2.getDate() + 5)
+        start2.setHours(14, 0, 0, 0)
         const svc2 = await prisma.service.findUnique({ where: { id: svcTax.id }, select: { duration: true } })
         await prisma.booking.upsert({
           where: { id: 'bk_demo_2' },
@@ -587,7 +749,7 @@ Effective cash flow management requires ongoing attention and planning. Regular 
 
   console.log('✅ Blog posts created')
 
-  // Create default task templates
+  // Create task templates
   const templates = [
     {
       id: 'tmpl_client_onboarding',
@@ -598,13 +760,8 @@ Effective cash flow management requires ongoing attention and planning. Regular 
       defaultPriority: 'MEDIUM',
       defaultCategory: 'client',
       estimatedHours: 4,
-      checklistItems: [
-        'Collect KYC documents',
-        'Set up client in CRM',
-        'Configure billing & invoicing',
-        'Schedule kickoff call'
-      ],
-      requiredSkills: ['Compliance','CRM'],
+      checklistItems: ['Collect KYC documents', 'Set up client in CRM', 'Configure billing & invoicing', 'Schedule kickoff call'],
+      requiredSkills: ['Compliance', 'CRM'],
       defaultAssigneeRole: 'TEAM_MEMBER',
     },
     {
@@ -616,14 +773,8 @@ Effective cash flow management requires ongoing attention and planning. Regular 
       defaultPriority: 'HIGH',
       defaultCategory: 'compliance',
       estimatedHours: 3,
-      checklistItems: [
-        'Collect invoices',
-        'Reconcile transactions',
-        'Prepare VAT report',
-        'Submit return',
-        'Archive documentation'
-      ],
-      requiredSkills: ['VAT','Bookkeeping'],
+      checklistItems: ['Collect invoices', 'Reconcile transactions', 'Prepare VAT report', 'Submit return', 'Archive documentation'],
+      requiredSkills: ['VAT', 'Bookkeeping'],
       defaultAssigneeRole: 'TEAM_MEMBER',
     },
     {
@@ -635,15 +786,10 @@ Effective cash flow management requires ongoing attention and planning. Regular 
       defaultPriority: 'MEDIUM',
       defaultCategory: 'finance',
       estimatedHours: 8,
-      checklistItems: [
-        'Plan audit scope',
-        'Sample transactions',
-        'Draft findings',
-        'Review with client'
-      ],
-      requiredSkills: ['Audit','Risk Assessment'],
+      checklistItems: ['Plan audit scope', 'Sample transactions', 'Draft findings', 'Review with client'],
+      requiredSkills: ['Audit', 'Risk Assessment'],
       defaultAssigneeRole: 'TEAM_LEAD',
-    }
+    },
   ]
 
   for (const t of templates) {
@@ -726,12 +872,15 @@ Effective cash flow management requires ongoing attention and planning. Regular 
 
   console.log('✅ Newsletter subscribers created')
 
-  // Seed default currencies
+  // Seed currencies
   const currencies = [
     { code: 'USD', name: 'US Dollar', symbol: '$', decimals: 2, active: true, isDefault: true },
-    { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', decimals: 2, active: false, isDefault: false },
-    { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', decimals: 2, active: false, isDefault: false },
+    { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', decimals: 2, active: true, isDefault: false },
+    { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', decimals: 2, active: true, isDefault: false },
     { code: 'EGP', name: 'Egyptian Pound', symbol: 'E£', decimals: 2, active: false, isDefault: false },
+    { code: 'INR', name: 'Indian Rupee', symbol: '₹', decimals: 2, active: true, isDefault: false },
+    { code: 'GBP', name: 'British Pound', symbol: '£', decimals: 2, active: true, isDefault: false },
+    { code: 'EUR', name: 'Euro', symbol: '€', decimals: 2, active: true, isDefault: false },
   ]
 
   for (const cur of currencies) {
@@ -749,168 +898,508 @@ Effective cash flow management requires ongoing attention and planning. Regular 
     })
   }
 
-  // Insert a baseline USD->USD exchange rate
-  await prisma.exchangeRate.upsert({
-    where: { id: 1 },
-    update: { rate: 1.0, source: 'seed', fetchedAt: new Date(), ttlSeconds: 86400 },
-    create: { base: 'USD', target: 'USD', rate: 1.0, source: 'seed', ttlSeconds: 86400 },
-  })
+  // Insert baseline exchange rates
+  const exchangeRates = [
+    { base: 'USD', target: 'USD', rate: 1.0 },
+    { base: 'USD', target: 'AED', rate: 3.67 },
+    { base: 'USD', target: 'SAR', rate: 3.75 },
+    { base: 'USD', target: 'EGP', rate: 30.5 },
+    { base: 'USD', target: 'INR', rate: 83.12 },
+    { base: 'USD', target: 'GBP', rate: 0.79 },
+    { base: 'USD', target: 'EUR', rate: 0.92 },
+  ]
 
-  console.log('✅ Currencies & baseline exchange rates created')
+  for (const rate of exchangeRates) {
+    const existing = await prisma.exchangeRate.findFirst({
+      where: { base: rate.base, target: rate.target },
+    })
 
-  // Create sample tasks with compliance requirements
+    if (existing) {
+      await prisma.exchangeRate.update({
+        where: { id: existing.id },
+        data: { rate: rate.rate, source: 'seed', fetchedAt: new Date(), ttlSeconds: 86400 },
+      })
+    } else {
+      await prisma.exchangeRate.create({
+        data: { base: rate.base, target: rate.target, rate: rate.rate, source: 'seed', ttlSeconds: 86400 },
+      })
+    }
+  }
+
+  console.log('✅ Currencies & exchange rates created')
+
+  // Seed sample tasks with compliance requirements
   let __canSeedTasks = false
   try {
     const __rows = await prisma.$queryRaw`SELECT column_name FROM information_schema.columns WHERE table_name='Task' AND column_name='tenantId'`
     __canSeedTasks = Array.isArray(__rows) && (__rows as any).length > 0
   } catch {}
+
   if (__canSeedTasks) {
-  const now = new Date()
-  const past = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10) // 10 days ago
-  const future = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7) // in 7 days
-  const completedPast = new Date(past.getTime() + 1000 * 60 * 60 * 24 * 2) // completed 2 days after created
+    const now = new Date()
+    const past = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10)
+    const future = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7)
+    const completedPast = new Date(past.getTime() + 1000 * 60 * 60 * 24 * 2)
 
-  const t1 = await prisma.task.upsert({
-    where: { id: 'task_c1' },
-    update: {
-      tenant: { connect: { id: defaultTenant.id } },
-      title: 'File Quarterly Compliance Report',
-      description: 'Prepare and file the quarterly compliance report for client X',
-      dueAt: past,
-      priority: 'HIGH',
-      status: 'OPEN',
-      complianceRequired: true,
-      complianceDeadline: past,
-    },
-    create: {
-      id: 'task_c1',
-      tenant: { connect: { id: defaultTenant.id } },
-      title: 'File Quarterly Compliance Report',
-      description: 'Prepare and file the quarterly compliance report for client X',
-      dueAt: past,
-      priority: 'HIGH',
-      status: 'OPEN',
-      complianceRequired: true,
-      complianceDeadline: past,
-    },
-  })
+    const t1 = await prisma.task.upsert({
+      where: { id: 'task_c1' },
+      update: {
+        tenant: { connect: { id: defaultTenant.id } },
+        title: 'File Quarterly Compliance Report',
+        description: 'Prepare and file the quarterly compliance report for client X',
+        dueAt: past,
+        priority: 'HIGH',
+        status: 'OPEN',
+        complianceRequired: true,
+        complianceDeadline: past,
+      },
+      create: {
+        id: 'task_c1',
+        tenant: { connect: { id: defaultTenant.id } },
+        title: 'File Quarterly Compliance Report',
+        description: 'Prepare and file the quarterly compliance report for client X',
+        dueAt: past,
+        priority: 'HIGH',
+        status: 'OPEN',
+        complianceRequired: true,
+        complianceDeadline: past,
+      },
+    })
 
-  const t2 = await prisma.task.upsert({
-    where: { id: 'task_c2' },
-    update: {
-      tenant: { connect: { id: defaultTenant.id } },
-      title: 'Submit AML Documentation',
-      description: 'Collect and submit AML documents for onboarding',
-      dueAt: future,
-      priority: 'MEDIUM',
-      status: 'IN_PROGRESS',
-      complianceRequired: true,
-      complianceDeadline: future,
-    },
-    create: {
-      id: 'task_c2',
-      tenant: { connect: { id: defaultTenant.id } },
-      title: 'Submit AML Documentation',
-      description: 'Collect and submit AML documents for onboarding',
-      dueAt: future,
-      priority: 'MEDIUM',
-      status: 'IN_PROGRESS',
-      complianceRequired: true,
-      complianceDeadline: future,
-    },
-  })
+    const t2 = await prisma.task.upsert({
+      where: { id: 'task_c2' },
+      update: {
+        tenant: { connect: { id: defaultTenant.id } },
+        title: 'Submit AML Documentation',
+        description: 'Collect and submit AML documents for onboarding',
+        dueAt: future,
+        priority: 'MEDIUM',
+        status: 'IN_PROGRESS',
+        complianceRequired: true,
+        complianceDeadline: future,
+      },
+      create: {
+        id: 'task_c2',
+        tenant: { connect: { id: defaultTenant.id } },
+        title: 'Submit AML Documentation',
+        description: 'Collect and submit AML documents for onboarding',
+        dueAt: future,
+        priority: 'MEDIUM',
+        status: 'IN_PROGRESS',
+        complianceRequired: true,
+        complianceDeadline: future,
+      },
+    })
 
-  const t3 = await prisma.task.upsert({
-    where: { id: 'task_c3' },
-    update: {
-      tenant: { connect: { id: defaultTenant.id } },
-      title: 'Annual Tax Compliance Review',
-      description: 'Review annual tax compliance and close items',
-      dueAt: future,
-      priority: 'MEDIUM',
-      status: 'OPEN',
-      complianceRequired: false,
-    },
-    create: {
-      id: 'task_c3',
-      tenant: { connect: { id: defaultTenant.id } },
-      title: 'Annual Tax Compliance Review',
-      description: 'Review annual tax compliance and close items',
-      dueAt: future,
-      priority: 'MEDIUM',
-      status: 'OPEN',
-      complianceRequired: false,
-    },
-  })
+    const t3 = await prisma.task.upsert({
+      where: { id: 'task_c3' },
+      update: {
+        tenant: { connect: { id: defaultTenant.id } },
+        title: 'Annual Tax Compliance Review',
+        description: 'Review annual tax compliance and close items',
+        dueAt: future,
+        priority: 'MEDIUM',
+        status: 'OPEN',
+        complianceRequired: false,
+      },
+      create: {
+        id: 'task_c3',
+        tenant: { connect: { id: defaultTenant.id } },
+        title: 'Annual Tax Compliance Review',
+        description: 'Review annual tax compliance and close items',
+        dueAt: future,
+        priority: 'MEDIUM',
+        status: 'OPEN',
+        complianceRequired: false,
+      },
+    })
 
-  // Create ComplianceRecords for tasks
-  await prisma.complianceRecord.upsert({
-    where: { id: 'cr_1' },
-    update: {
-      tenant: { connect: { id: defaultTenant.id } },
-      task: { connect: { id: t1.id } },
-      type: 'REPORTING',
-      status: 'COMPLETED',
-      dueAt: past,
-      completedAt: completedPast,
-      riskScore: 3,
-      notes: 'Filed successfully',
-    },
-    create: {
-      id: 'cr_1',
-      tenant: { connect: { id: defaultTenant.id } },
-      task: { connect: { id: t1.id } },
-      type: 'REPORTING',
-      status: 'COMPLETED',
-      dueAt: past,
-      completedAt: completedPast,
-      riskScore: 3,
-      notes: 'Filed successfully',
-    },
-  })
+    // Create compliance records
+    await prisma.complianceRecord.upsert({
+      where: { id: 'cr_1' },
+      update: {
+        tenant: { connect: { id: defaultTenant.id } },
+        task: { connect: { id: t1.id } },
+        type: 'REPORTING',
+        status: 'COMPLETED',
+        dueAt: past,
+        completedAt: completedPast,
+        riskScore: 3,
+        notes: 'Filed successfully',
+      },
+      create: {
+        id: 'cr_1',
+        tenant: { connect: { id: defaultTenant.id } },
+        task: { connect: { id: t1.id } },
+        type: 'REPORTING',
+        status: 'COMPLETED',
+        dueAt: past,
+        completedAt: completedPast,
+        riskScore: 3,
+        notes: 'Filed successfully',
+      },
+    })
 
-  await prisma.complianceRecord.upsert({
-    where: { id: 'cr_2' },
-    update: {
-      tenant: { connect: { id: defaultTenant.id } },
-      task: { connect: { id: t2.id } },
-      type: 'KYC',
-      status: 'PENDING',
-      dueAt: future,
-      completedAt: null,
-      riskScore: 5,
-      notes: 'Waiting for client documents',
-    },
-    create: {
-      id: 'cr_2',
-      tenant: { connect: { id: defaultTenant.id } },
-      task: { connect: { id: t2.id } },
-      type: 'KYC',
-      status: 'PENDING',
-      dueAt: future,
-      completedAt: null,
-      riskScore: 5,
-      notes: 'Waiting for client documents',
-    },
-  })
+    await prisma.complianceRecord.upsert({
+      where: { id: 'cr_2' },
+      update: {
+        tenant: { connect: { id: defaultTenant.id } },
+        task: { connect: { id: t2.id } },
+        type: 'KYC',
+        status: 'PENDING',
+        dueAt: future,
+        completedAt: null,
+        riskScore: 5,
+        notes: 'Waiting for client documents',
+      },
+      create: {
+        id: 'cr_2',
+        tenant: { connect: { id: defaultTenant.id } },
+        task: { connect: { id: t2.id } },
+        type: 'KYC',
+        status: 'PENDING',
+        dueAt: future,
+        completedAt: null,
+        riskScore: 5,
+        notes: 'Waiting for client documents',
+      },
+    })
 
-  // Assign tasks to users and link to service requests
-  try {
-    await prisma.task.update({ where: { id: t1.id }, data: { assigneeId: staff.id } })
-    await prisma.task.update({ where: { id: t2.id }, data: { assigneeId: staff.id } })
-    await prisma.task.update({ where: { id: t3.id }, data: { assigneeId: admin.id } })
+    // Assign tasks to users
+    try {
+      await prisma.task.update({ where: { id: t1.id }, data: { assigneeId: staff.id } })
+      await prisma.task.update({ where: { id: t2.id }, data: { assigneeId: staff.id } })
+      await prisma.task.update({ where: { id: t3.id }, data: { assigneeId: admin.id } })
 
-    await prisma.requestTask.upsert({ where: { unique_request_task: { serviceRequestId: 'sr_demo_1', taskId: t1.id } }, update: {}, create: { serviceRequestId: 'sr_demo_1', taskId: t1.id } })
-    await prisma.requestTask.upsert({ where: { unique_request_task: { serviceRequestId: 'sr_demo_1', taskId: t2.id } }, update: {}, create: { serviceRequestId: 'sr_demo_1', taskId: t2.id } })
-    await prisma.requestTask.upsert({ where: { unique_request_task: { serviceRequestId: 'sr_demo_2', taskId: t3.id } }, update: {}, create: { serviceRequestId: 'sr_demo_2', taskId: t3.id } })
-  } catch {}
+      await prisma.requestTask.upsert({
+        where: { unique_request_task: { serviceRequestId: 'sr_demo_1', taskId: t1.id } },
+        update: {},
+        create: { serviceRequestId: 'sr_demo_1', taskId: t1.id },
+      })
+      await prisma.requestTask.upsert({
+        where: { unique_request_task: { serviceRequestId: 'sr_demo_1', taskId: t2.id } },
+        update: {},
+        create: { serviceRequestId: 'sr_demo_1', taskId: t2.id },
+      })
+      await prisma.requestTask.upsert({
+        where: { unique_request_task: { serviceRequestId: 'sr_demo_2', taskId: t3.id } },
+        update: {},
+        create: { serviceRequestId: 'sr_demo_2', taskId: t3.id },
+      })
+    } catch (e) {
+      console.warn('Skipping task assignments due to error:', (e as any)?.message)
+    }
 
-  console.log('✅ Sample tasks and compliance records created')
+    console.log('✅ Sample tasks and compliance records created')
   } else {
     console.warn('Skipping Task/Compliance seed: DB schema missing Task.tenantId')
   }
 
-  console.log('🎉 Seed completed successfully!')
+  // Seed translation keys (new feature)
+  const translationKeys = [
+    { key: 'dashboard.new_metric', namespace: 'dashboard' },
+    { key: 'dashboard.revenue', namespace: 'dashboard' },
+    { key: 'settings.privacy_notice', namespace: 'settings' },
+    { key: 'settings.notifications', namespace: 'settings' },
+    { key: 'payment.confirmation', namespace: 'payment' },
+    { key: 'payment.invoice_sent', namespace: 'payment' },
+    { key: 'booking.confirmed', namespace: 'booking' },
+    { key: 'booking.reminder', namespace: 'booking' },
+    { key: 'email.welcome', namespace: 'email' },
+    { key: 'email.reset_password', namespace: 'email' },
+  ]
+
+  for (const tk of translationKeys) {
+    await prisma.translationKey.upsert({
+      where: { tenantId_key: { tenantId: defaultTenant.id, key: tk.key } },
+      update: {},
+      create: {
+        tenantId: defaultTenant.id,
+        key: tk.key,
+        namespace: tk.namespace,
+        enTranslated: true,
+        arTranslated: Math.random() > 0.3,
+        hiTranslated: Math.random() > 0.3,
+      },
+    })
+  }
+
+  console.log('✅ Translation keys created')
+
+  // Seed translation metrics (new feature)
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - 7)
+
+  for (let i = 0; i < 7; i++) {
+    const metricsDate = new Date(startDate)
+    metricsDate.setDate(metricsDate.getDate() + i)
+    metricsDate.setHours(0, 0, 0, 0)
+
+    await prisma.translationMetrics.upsert({
+      where: { tenantId_date: { tenantId: defaultTenant.id, date: metricsDate } },
+      update: {},
+      create: {
+        tenantId: defaultTenant.id,
+        date: metricsDate,
+        enTotal: 10,
+        enTranslated: 10,
+        arTotal: 10,
+        arTranslated: 7,
+        hiTotal: 10,
+        hiTranslated: 8,
+        totalUniqueKeys: 10,
+        usersWithEnglish: 80,
+        usersWithArabic: 10,
+        usersWithHindi: 10,
+        enCoveragePct: 100,
+        arCoveragePct: 70,
+        hiCoveragePct: 80,
+      },
+    })
+  }
+
+  console.log('✅ Translation metrics created')
+
+  // Seed health logs (new feature)
+  const healthServices = ['DATABASE', 'EMAIL', 'AUTH', 'API', 'PAYMENTS', 'CROWDIN']
+  const now = new Date()
+
+  for (let hours = 0; hours < 24; hours += 6) {
+    for (const service of healthServices) {
+      const checkedAt = new Date(now)
+      checkedAt.setHours(checkedAt.getHours() - hours)
+
+      await prisma.healthLog.create({
+        data: {
+          tenantId: defaultTenant.id,
+          service,
+          status: Math.random() > 0.1 ? 'healthy' : 'degraded',
+          message: Math.random() > 0.1 ? 'OK' : 'Slow response times',
+          checkedAt,
+        },
+      })
+    }
+  }
+
+  console.log('✅ Health logs created')
+
+  // Seed audit logs (new feature)
+  const auditActions = [
+    { action: 'user.role_changed', resource: 'users', details: { oldRole: 'TEAM_MEMBER', newRole: 'TEAM_LEAD' } },
+    { action: 'settings.updated', resource: 'settings', details: { category: 'booking_settings' } },
+    { action: 'service.created', resource: 'services', details: { serviceName: 'Bookkeeping Services' } },
+    { action: 'permission.granted', resource: 'permissions', details: { permission: 'INVOICES_VIEW' } },
+    { action: 'invoice.generated', resource: 'invoices', details: { invoiceId: 'INV-001' } },
+    { action: 'report.exported', resource: 'reports', details: { format: 'PDF' } },
+    { action: 'integration.connected', resource: 'integrations', details: { integration: 'crowdin' } },
+    { action: 'backup.created', resource: 'system', details: { timestamp: new Date().toISOString() } },
+  ]
+
+  for (let i = 0; i < 8; i++) {
+    const auditData = auditActions[i % auditActions.length]
+    const createdAt = new Date(now)
+    createdAt.setHours(createdAt.getHours() - i)
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId: defaultTenant.id,
+        userId: i % 2 === 0 ? admin.id : superadmin.id,
+        action: auditData.action,
+        resource: auditData.resource,
+        metadata: auditData.details,
+        ipAddress: '127.0.0.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt,
+      },
+    })
+  }
+
+  console.log('✅ Audit logs created')
+
+  // Seed sample invoices (new feature)
+  const invoiceStatuses = ['DRAFT', 'SENT', 'UNPAID', 'PAID']
+
+  for (let i = 0; i < 5; i++) {
+    const invoiceCreatedAt = new Date(now)
+    invoiceCreatedAt.setDate(invoiceCreatedAt.getDate() - i * 5)
+
+    const invoiceNumber = `INV-${1000 + i}`
+
+    // Check if invoice already exists
+    const existingInvoice = await prisma.invoice.findUnique({
+      where: { number: invoiceNumber },
+    })
+
+    if (existingInvoice) {
+      continue
+    }
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        tenantId: defaultTenant.id,
+        clientId: i % 2 === 0 ? client1.id : client2.id,
+        number: invoiceNumber,
+        status: invoiceStatuses[i % invoiceStatuses.length] as any,
+        currency: 'USD',
+        totalCents: (500 + i * 100) * 100,
+        createdAt: invoiceCreatedAt,
+        paidAt: i === 0 ? invoiceCreatedAt : undefined,
+      },
+    })
+
+    // Add invoice items
+    await prisma.invoiceItem.create({
+      data: {
+        invoiceId: invoice.id,
+        description: 'Professional Services',
+        quantity: 1,
+        unitPriceCents: invoice.totalCents,
+        totalCents: invoice.totalCents,
+      },
+    })
+  }
+
+  console.log('✅ Sample invoices created')
+
+  // Seed sample expenses (new feature)
+  const expenseCategories = ['Office Supplies', 'Travel', 'Software', 'Training', 'Equipment']
+  const expenseStatuses = ['PENDING', 'APPROVED', 'REJECTED']
+
+  for (let i = 0; i < 8; i++) {
+    const expenseDate = new Date(now)
+    expenseDate.setDate(expenseDate.getDate() - i)
+
+    await prisma.expense.create({
+      data: {
+        tenantId: defaultTenant.id,
+        userId: i % 2 === 0 ? staff.id : admin.id,
+        vendor: `Vendor ${i + 1}`,
+        category: expenseCategories[i % expenseCategories.length],
+        status: expenseStatuses[i % expenseStatuses.length],
+        amountCents: (50 + i * 25) * 100,
+        currency: 'USD',
+        date: expenseDate,
+      },
+    })
+  }
+
+  console.log('✅ Sample expenses created')
+
+  // Seed custom roles (new feature)
+  const customRoles = [
+    {
+      tenantId: defaultTenant.id,
+      name: 'Support Agent',
+      description: 'Can view and manage support tickets',
+      color: '#3B82F6',
+      icon: 'headphones',
+      permissions: ['tickets.view', 'tickets.respond', 'clients.view'],
+      isActive: true,
+      createdBy: admin.id,
+    },
+    {
+      tenantId: defaultTenant.id,
+      name: 'Billing Manager',
+      description: 'Manage invoices and payments',
+      color: '#10B981',
+      icon: 'credit-card',
+      permissions: ['invoices.view', 'invoices.edit', 'payments.view', 'payments.process'],
+      isActive: true,
+      createdBy: admin.id,
+    },
+    {
+      tenantId: defaultTenant.id,
+      name: 'Content Manager',
+      description: 'Manage blog posts and publications',
+      color: '#F59E0B',
+      icon: 'file-text',
+      permissions: ['posts.view', 'posts.create', 'posts.edit', 'posts.publish'],
+      isActive: true,
+      createdBy: admin.id,
+    },
+  ]
+
+  for (const role of customRoles) {
+    await prisma.customRole.upsert({
+      where: { tenantId_name: { tenantId: role.tenantId, name: role.name } },
+      update: role,
+      create: role,
+    })
+  }
+
+  console.log('✅ Custom roles created')
+
+  // Seed organization settings
+  await prisma.organizationSettings.upsert({
+    where: { tenantId: defaultTenant.id },
+    update: {
+      name: 'Primary Accounting Firm',
+      industry: 'Accounting & Finance',
+      contactEmail: 'admin@accountingfirm.com',
+      contactPhone: '+1-555-0100',
+      defaultTimezone: 'UTC',
+      defaultCurrency: 'USD',
+      defaultLocale: 'en',
+    },
+    create: {
+      tenantId: defaultTenant.id,
+      name: 'Primary Accounting Firm',
+      industry: 'Accounting & Finance',
+      contactEmail: 'admin@accountingfirm.com',
+      contactPhone: '+1-555-0100',
+      defaultTimezone: 'UTC',
+      defaultCurrency: 'USD',
+      defaultLocale: 'en',
+    },
+  })
+
+  console.log('✅ Organization settings created')
+
+  // Seed communication settings
+  await prisma.communicationSettings.upsert({
+    where: { tenantId: defaultTenant.id },
+    update: {
+      email: { enabled: true, from: 'noreply@accountingfirm.com' },
+      sms: { enabled: false },
+      chat: { enabled: true },
+      notifications: { enabled: true },
+      newsletters: { enabled: true },
+      reminders: { enabled: true },
+    },
+    create: {
+      tenantId: defaultTenant.id,
+      email: { enabled: true, from: 'noreply@accountingfirm.com' },
+      sms: { enabled: false },
+      chat: { enabled: true },
+      notifications: { enabled: true },
+      newsletters: { enabled: true },
+      reminders: { enabled: true },
+    },
+  })
+
+  console.log('✅ Communication settings created')
+
+  // Seed cron telemetry settings
+  await prisma.cronTelemetrySettings.upsert({
+    where: { tenantId: defaultTenant.id },
+    update: {
+      performance: { slowQueryThreshold: 500, sampleRate: 0.2 },
+      reliability: { maxRetries: 3, backoffMultiplier: 2 },
+      monitoring: { alerting: true, dashboardEnabled: true },
+      scheduling: { timezone: 'UTC', batchSize: 100 },
+    },
+    create: {
+      tenantId: defaultTenant.id,
+      performance: { slowQueryThreshold: 500, sampleRate: 0.2 },
+      reliability: { maxRetries: 3, backoffMultiplier: 2 },
+      monitoring: { alerting: true, dashboardEnabled: true },
+      scheduling: { timezone: 'UTC', batchSize: 100 },
+    },
+  })
+
+  console.log('✅ Cron telemetry settings created')
+
+  console.log('🎉 Enhanced seed completed successfully!')
   console.log('\n📋 Test Accounts:')
   console.log(`SUPER_ADMIN: superadmin@accountingfirm.com / ${superadminPlain}`)
   console.log(`Admin: admin@accountingfirm.com / ${adminPlain}`)
@@ -920,7 +1409,6 @@ Effective cash flow management requires ongoing attention and planning. Regular 
   console.log(`Lead: lead@accountingfirm.com / ${leadPlain}`)
 }
 
-// Exported function for smoke tests
 export async function runSeed() {
   return main()
 }

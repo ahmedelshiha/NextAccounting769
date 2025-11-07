@@ -5,6 +5,7 @@ import { withTenantContext } from '@/lib/api-wrapper'
 import { tenantContext } from '@/lib/tenant-context'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import { getTenantFromRequest, tenantFilter, isMultiTenancyEnabled } from '@/lib/tenant'
+import { hasRole } from '@/lib/permissions'
 
 // GET /api/posts - Get blog posts
 export const GET = withTenantContext(async (request: NextRequest) => {
@@ -24,7 +25,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
 
     // Determine role from tenant context when available
     const role = tenantContext.getContextOrNull()?.role ?? null
-    if (!role || !['ADMIN', 'STAFF'].includes(role)) {
+    if (!role || !hasRole(role, ['ADMIN', 'STAFF'])) {
       where.published = true
     } else if (published !== null) {
       where.published = published === 'true'
@@ -63,7 +64,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
 export const POST = withTenantContext(async (request: NextRequest) => {
   try {
     const ctx = requireTenantContext()
-    if (!['ADMIN', 'STAFF'].includes(String(ctx.role || ''))) {
+    if (!hasRole(String(ctx.role || ''), ['ADMIN', 'STAFF'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

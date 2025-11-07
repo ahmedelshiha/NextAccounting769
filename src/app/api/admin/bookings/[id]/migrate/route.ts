@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
+import { hasRole } from '@/lib/permissions'
 
 export const POST = withTenantContext(async (_request: NextRequest, context: { params: Promise<{ id: string }> }) => {
   try {
@@ -9,7 +10,7 @@ export const POST = withTenantContext(async (_request: NextRequest, context: { p
     const ctx = requireTenantContext()
 
     const allowed = ['ADMIN', 'TEAM_LEAD', 'TEAM_MEMBER', 'STAFF']
-    if (!ctx.role || !allowed.includes(ctx.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!ctx.role || !hasRole(ctx.role, allowed)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     // Ensure booking exists and belongs to tenant (via client relation until tenantId is on Booking)
     const booking = await prisma.booking.findFirst({ where: { id, ...(ctx.tenantId && ctx.tenantId !== 'undefined' ? { client: { tenantId: String(ctx.tenantId) } } : {}) } as any })

@@ -91,17 +91,19 @@ export function validateIcon(icon: IconType | React.ReactNode, context: string =
     return { isValid: true, errors, warnings }
   }
 
-  // Likely a React component object (not element) — discourage
+  // React component objects (e.g., forwardRef/memo wrappers) expose $$typeof — accept them as valid
   if (typeof icon === 'object' && icon && '$$typeof' in icon) {
-    errors.push(`${context}: React component object detected - use component reference instead of JSX element`)
-    console.error(`🚨 ${context}: React component object passed as icon:`, {
-      iconType: typeof icon,
-      iconKeys: Object.keys(icon as any),
-      hasRender: 'render' in (icon as any),
-      hasDisplayName: 'displayName' in (icon as any),
-      suggestion: 'Pass the component reference (e.g., Plus) instead of JSX element (e.g., <Plus />)'
-    })
-    return { isValid: false, errors, warnings }
+    // Don't treat these as fatal errors — many icon libraries (lucide, heroicons) export
+    // forwardRef-wrapped components which appear as objects. Log a debug message only.
+    try {
+      console.debug(`${context}: React component object detected (accepted):`, {
+        iconType: typeof icon,
+        iconKeys: Object.keys(icon as any),
+        hasRender: 'render' in (icon as any),
+        hasDisplayName: 'displayName' in (icon as any),
+      })
+    } catch(e) {}
+    return { isValid: true, errors, warnings }
   }
 
   // Primitive hints

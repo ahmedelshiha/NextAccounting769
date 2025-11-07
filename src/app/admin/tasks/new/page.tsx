@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X, Calendar, Users, AlertTriangle, FileText, Tag, Link2 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
+import { hasRole } from '@/lib/permissions'
 
 // Types matching the provided UI
 interface UserItem {
@@ -337,7 +338,7 @@ function useAssignees() {
             const usersJson = await resUsers.json().catch(() => ({}))
             const users = Array.isArray(usersJson) ? usersJson : (usersJson?.users || [])
             mapped = users
-              .filter((u: any) => ['ADMIN','STAFF'].includes(String(u.role || '').toUpperCase()))
+              .filter((u: any) => hasRole(String(u.role || '').toUpperCase(), ['ADMIN', 'STAFF']))
               .map((u: any) => ({ id: u.id, name: u.name || u.email || 'User', email: u.email || '', role: u.role || 'STAFF' }))
           } catch { /* ignore */ }
         }

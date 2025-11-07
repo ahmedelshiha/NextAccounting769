@@ -180,7 +180,7 @@ function EditableFieldComponent({
     )
   }
 
-  const display = value ? (masked ? "••••••••" : value) : placeholder || ""
+  const display = value ? (masked ? '•'.repeat(value.length) : value) : placeholder || ""
 
   return (
     <button

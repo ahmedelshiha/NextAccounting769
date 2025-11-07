@@ -505,10 +505,10 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
   useEffect(() => {
     const loadMembers = async () => {
       try {
-        // Load core team members
-        const res = await fetch('/api/admin/team-members', { cache: 'no-store' })
-        const data = await res.json().catch(() => ({}))
-        const members = Array.isArray(data.teamMembers) ? data.teamMembers : []
+        // Load core team members via service
+        const { TeamMemberService } = await import('@/services/team-member.service')
+        const svc = new TeamMemberService()
+        const members = await svc.list()
 
         // Load availability metrics (availabilityPercentage per member)
         const availabilityById: Record<string, number> = {}
@@ -585,17 +585,15 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
   const handleSave = async (data: Partial<TeamMember>) => {
     setLoading(true)
     try {
+      const { TeamMemberService } = await import('@/services/team-member.service')
+      const svc = new TeamMemberService()
       if (editingMember) {
-        const res = await fetch(`/api/admin/team-members/${editingMember.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-        if (!res.ok) throw new Error('Failed to update')
-        const json = await res.json()
-        const updated = json.teamMember as TeamMember
+        const updated = await svc.update(editingMember.id, data as any)
+        if (!updated) throw new Error('Failed to update')
         setTeamMembers((prev) => prev.map((m) => (m.id === editingMember.id ? updated : m)))
       } else {
-        const res = await fetch('/api/admin/team-members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-        if (!res.ok) throw new Error('Failed to create')
-        const json = await res.json()
-        const created = json.teamMember as TeamMember
+        const created = await svc.create(data as any)
+        if (!created) throw new Error('Failed to create')
         setTeamMembers((prev) => [...prev, created])
       }
       setShowForm(false)
@@ -611,8 +609,10 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
     if (!confirm('Are you sure you want to remove this team member?')) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/team-members/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete')
+      const { TeamMemberService } = await import('@/services/team-member.service')
+      const svc = new TeamMemberService()
+      const ok = await svc.remove(id)
+      if (!ok) throw new Error('Failed to delete')
       setTeamMembers((prev) => prev.filter((m) => m.id !== id))
     } catch {
       alert('Failed to remove team member')
@@ -623,8 +623,10 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
 
   const handleToggleStatus = async (member: TeamMember) => {
     const newStatus = member.status === 'active' ? 'inactive' : 'active'
-    const res = await fetch(`/api/admin/team-members/${member.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, isAvailable: newStatus === 'active' }) })
-    if (res.ok) {
+    const { TeamMemberService } = await import('@/services/team-member.service')
+    const svc = new TeamMemberService()
+    const updated = await svc.toggleStatus(member.id, newStatus)
+    if (updated) {
       setTeamMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: newStatus, isAvailable: newStatus === 'active' } : m)))
     }
   }

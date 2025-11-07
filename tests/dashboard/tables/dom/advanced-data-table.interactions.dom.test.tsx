@@ -1,14 +1,14 @@
 import React from 'react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import AdvancedDataTable from '@/components/dashboard/tables/AdvancedDataTable'
 import { TranslationContext } from '@/lib/i18n'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 interface Row { id: number; name: string }
 
 function withI18n(children: React.ReactElement) {
   return (
-    <TranslationContext.Provider value={{ locale: 'en', translations: { 'dashboard.selectedCount': '{{count}} selected', 'dashboard.actions': 'Actions', 'dashboard.noData': 'No records found' }, setLocale: () => {} }}>
+    <TranslationContext.Provider value={{ locale: 'en', translations: { 'dashboard.selectedCount': '{{count}} selected', 'dashboard.actions': 'Actions', 'dashboard.noData': 'No records found' }, setLocale: () => {}, currentGender: undefined, setGender: () => {} }}>
       {children}
     </TranslationContext.Provider>
   )
@@ -35,7 +35,12 @@ describe('AdvancedDataTable interactions', () => {
 
       fireEvent.click(master)
 
-      const summary = Array.from(container.querySelectorAll('div')).find(d => /selected/i.test(d.textContent || ''))
+      await waitFor(() => {
+        const summary = Array.from(container.querySelectorAll('div')).find(d => /3 selected/i.test(d.textContent || ''))
+        expect(summary).toBeTruthy()
+      }, { timeout: 2000 })
+
+      const summary = Array.from(container.querySelectorAll('div')).find(d => /3 selected/i.test(d.textContent || ''))
       expect(summary && (summary.textContent || '')).toContain('3 selected')
       expect(changes.length).toBeGreaterThan(0)
       expect(changes[changes.length - 1].length).toBe(3)

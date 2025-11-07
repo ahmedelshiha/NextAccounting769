@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useClientNotifications } from '@/hooks/useClientNotifications'
+import { hasRole } from '@/lib/permissions'
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -71,7 +72,7 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const user = session?.user as any
-  const isAdminUser = ['ADMIN','TEAM_LEAD','TEAM_MEMBER'].includes((user?.role as string) || '')
+  const isAdminUser = hasRole((user?.role as string) || '', ['ADMIN','TEAM_LEAD','TEAM_MEMBER'])
 
   // prefer centralized settings when provider present
   const ctx = useOrgSettings()
@@ -191,7 +192,7 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
                             Settings
                           </Link>
                         </DropdownMenuItem>
-                        {['ADMIN','TEAM_LEAD','TEAM_MEMBER'].includes((session?.user?.role as string) || '') && (
+                        {hasRole(((session?.user?.role as string) || ''), ['ADMIN', 'TEAM_LEAD', 'TEAM_MEMBER']) && (
                           <>
                             <DropdownMenuItem asChild>
                               <Link href="/admin" className="flex items-center">
@@ -303,7 +304,7 @@ export function Navigation({ orgName = 'Accounting Firm', orgLogoUrl }: { orgNam
                         >
                           Settings
                         </Link>
-                        {['ADMIN','TEAM_LEAD','TEAM_MEMBER'].includes((session?.user?.role as string) || '') && (
+                        {hasRole(((session?.user?.role as string) || ''), ['ADMIN', 'TEAM_LEAD', 'TEAM_MEMBER']) && (
                           <>
                             <Link
                               href="/admin"

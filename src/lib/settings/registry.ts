@@ -125,6 +125,14 @@ export const SETTINGS_REGISTRY: SettingsCategory[] = [
     icon: Globe,
     tabs: [],
     permission: PERMISSIONS.LANGUAGES_VIEW,
+  },
+  {
+    key: 'userManagement',
+    label: 'User Management Settings',
+    route: '/admin/settings/user-management',
+    icon: Users,
+    tabs: [],
+    permission: PERMISSIONS.USERS_MANAGE,
   }
 ]
 

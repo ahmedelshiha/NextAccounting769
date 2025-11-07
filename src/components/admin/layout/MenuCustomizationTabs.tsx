@@ -53,7 +53,7 @@ export function MenuCustomizationTabs({
   onTabChange,
 }: MenuCustomizationTabsProps) {
   return (
-    <div className="border-b border-gray-200 bg-gray-50">
+    <div className="border-b border-gray-200 bg-white">
       <div className="flex overflow-x-auto">
         {TABS.map((tab) => {
           const Icon = tab.icon
@@ -67,8 +67,8 @@ export function MenuCustomizationTabs({
                 flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
                 ${
                   isSelected
-                    ? 'border-blue-500 text-blue-600 bg-white'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 bg-gray-50'
+                    ? 'border-blue-600 text-blue-600 bg-white'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 bg-white'
                 }
               `}
               aria-selected={isSelected}

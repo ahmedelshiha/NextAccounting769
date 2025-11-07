@@ -46,8 +46,9 @@ function formatTime(d: Date) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
-export default async function PortalBookingDetail({ params }: Props) {
-  const { id } = params
+export default async function PortalBookingDetail({ params }: any) {
+  const { id } = (await Promise.resolve(params)) as { id?: string }
+  if (!id) return notFound()
 
   // Fetch through API route to avoid direct Prisma access from pages
   const booking = await fetchBooking(id)

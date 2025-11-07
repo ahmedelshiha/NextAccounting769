@@ -9,6 +9,7 @@
 import { Metadata } from 'next'
 import { authOptions, getSessionOrBypass } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { hasPermission, PERMISSIONS } from '@/lib/permissions'
 import AdminAnalyticsPageClient from '@/components/admin/analytics/AdminAnalyticsPageClient'
 
 export const metadata: Metadata = {
@@ -27,7 +28,7 @@ export default async function AdminAnalyticsPage() {
     redirect('/portal')
   }
 
-  if (!['ADMIN', 'TEAM_LEAD'].includes(role || '')) {
+  if (!hasPermission(role, PERMISSIONS.ANALYTICS_VIEW)) {
     redirect('/admin')
   }
 
