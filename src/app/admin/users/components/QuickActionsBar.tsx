@@ -39,7 +39,7 @@ export function QuickActionsBar({
   isLoading = false
 }: QuickActionsBarProps) {
   return (
-    <div className="sticky top-0 z-40 bg-blue-600 text-white shadow-md">
+    <div className="sticky top-0 z-40 bg-blue-500 text-white shadow-md">
       <div className="flex items-center justify-between px-6 py-4">
         {/* Left: Admin Title */}
         <h1 className="text-xl font-semibold text-white">Admin</h1>
@@ -49,7 +49,7 @@ export function QuickActionsBar({
           <Button
             onClick={onAddUser}
             disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700 text-white border border-white text-sm font-medium h-10 px-4"
+            className="bg-blue-500 hover:bg-blue-600 text-white border border-white text-sm font-medium h-10 px-4"
             title="Add new user"
             aria-label="Add new user"
           >
@@ -61,7 +61,7 @@ export function QuickActionsBar({
             onClick={onImport}
             disabled={isLoading}
             variant="outline"
-            className="border-white text-white hover:bg-blue-700 text-sm font-medium h-10 px-4"
+            className="border-white text-white hover:bg-blue-600 text-sm font-medium h-10 px-4"
             title="Import users"
             aria-label="Import users"
           >
@@ -73,7 +73,7 @@ export function QuickActionsBar({
             onClick={onExport}
             disabled={isLoading}
             variant="outline"
-            className="border-white text-white hover:bg-blue-700 text-sm font-medium h-10 px-4"
+            className="border-white text-white hover:bg-blue-600 text-sm font-medium h-10 px-4"
             title="Export user list"
             aria-label="Export user list"
           >
@@ -85,7 +85,7 @@ export function QuickActionsBar({
             onClick={onRefresh}
             disabled={isLoading}
             variant="ghost"
-            className="text-white hover:bg-blue-700 h-10 w-10 p-0"
+            className="text-white hover:bg-blue-600 h-10 w-10 p-0"
             title="Refresh data"
             aria-label="Refresh data"
           >
@@ -95,7 +95,7 @@ export function QuickActionsBar({
           <Button
             disabled={isLoading}
             variant="ghost"
-            className="text-white hover:bg-blue-700 h-10 w-10 p-0"
+            className="text-white hover:bg-blue-600 h-10 w-10 p-0"
             title="Audit trail"
             aria-label="Audit trail"
           >
