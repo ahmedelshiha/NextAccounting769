@@ -81,7 +81,7 @@ export default function InlineUserProfile({ onBack }: { onBack: () => void }) {
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="flex">
           {/* Sidebar (desktop) */}
-          <nav className="w-64 bg-slate-900 text-white border-r border-slate-800 overflow-y-auto hidden sm:block">
+          <nav className="w-64 bg-white border-r border-gray-200 overflow-y-auto hidden sm:block">
             <div className="p-4 space-y-2">
               {([
                 { id: 'overview', label: 'Overview' },
@@ -95,7 +95,7 @@ export default function InlineUserProfile({ onBack }: { onBack: () => void }) {
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${
                     activeTab === item.id
                       ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
                   <span>{item.label}</span>
