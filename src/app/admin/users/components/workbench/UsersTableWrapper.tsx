@@ -131,6 +131,31 @@ export default function UsersTableWrapper({
     }
   }, [])
 
+  // Mobile detection for responsive filter bar
+  const isMobile = useMediaQuery('(max-width: 767px)')
+
+  // Role and status options (moved outside JSX for reuse)
+  const roleOptions = useMemo(
+    () => [
+      { value: 'ADMIN', label: 'Admin' },
+      { value: 'TEAM_LEAD', label: 'Team Lead' },
+      { value: 'TEAM_MEMBER', label: 'Team Member' },
+      { value: 'STAFF', label: 'Staff' },
+      { value: 'CLIENT', label: 'Client' },
+      { value: 'VIEWER', label: 'Viewer' }
+    ],
+    []
+  )
+
+  const statusOptions = useMemo(
+    () => [
+      { value: 'ACTIVE', label: 'Active' },
+      { value: 'INACTIVE', label: 'Inactive' },
+      { value: 'SUSPENDED', label: 'Suspended' }
+    ],
+    []
+  )
+
   return (
     <>
       <div className="flex flex-col h-full w-full overflow-hidden">
@@ -141,41 +166,47 @@ export default function UsersTableWrapper({
           onSidebarToggle={() => console.log('Toggle sidebar')}
         />
 
-        <UserDirectoryFilterBarEnhanced
-          filters={filterState}
-          onFiltersChange={(newFilters) => {
-            updateFilter('search', newFilters.search)
-            updateFilter('roles', newFilters.roles || [])
-            updateFilter('statuses', newFilters.statuses || [])
-          }}
-          onToggleRole={toggleRole}
-          onToggleStatus={toggleStatus}
-          onClearRoles={clearRoles}
-          onClearStatuses={clearStatuses}
-          selectedCount={selectedUserIds.size}
-          totalCount={stats.totalCount}
-          filteredCount={stats.filteredCount}
-          filteredUsers={filteredUsers}
-          allUsers={context.users}
-          selectedUserIds={selectedUserIds}
-          onSelectAll={handleSelectAll}
-          onClearFilters={clearFilters}
-          roleOptions={[
-            { value: 'ADMIN', label: 'Admin' },
-            { value: 'TEAM_LEAD', label: 'Team Lead' },
-            { value: 'TEAM_MEMBER', label: 'Team Member' },
-            { value: 'STAFF', label: 'Staff' },
-            { value: 'CLIENT', label: 'Client' },
-            { value: 'VIEWER', label: 'Viewer' }
-          ]}
-          statusOptions={[
-            { value: 'ACTIVE', label: 'Active' },
-            { value: 'INACTIVE', label: 'Inactive' },
-            { value: 'SUSPENDED', label: 'Suspended' }
-          ]}
-          multiSelect={true}
-          showExport={true}
-        />
+        {isMobile ? (
+          <MobileFilterBar
+            filters={filterState}
+            onFiltersChange={(newFilters) => {
+              updateFilter('search', newFilters.search)
+              updateFilter('roles', newFilters.roles || [])
+              updateFilter('statuses', newFilters.statuses || [])
+            }}
+            roleOptions={roleOptions}
+            statusOptions={statusOptions}
+            onClearFilters={clearFilters}
+            filteredCount={stats.filteredCount}
+            totalCount={stats.totalCount}
+            showClearButton={true}
+          />
+        ) : (
+          <UserDirectoryFilterBarEnhanced
+            filters={filterState}
+            onFiltersChange={(newFilters) => {
+              updateFilter('search', newFilters.search)
+              updateFilter('roles', newFilters.roles || [])
+              updateFilter('statuses', newFilters.statuses || [])
+            }}
+            onToggleRole={toggleRole}
+            onToggleStatus={toggleStatus}
+            onClearRoles={clearRoles}
+            onClearStatuses={clearStatuses}
+            selectedCount={selectedUserIds.size}
+            totalCount={stats.totalCount}
+            filteredCount={stats.filteredCount}
+            filteredUsers={filteredUsers}
+            allUsers={context.users}
+            selectedUserIds={selectedUserIds}
+            onSelectAll={handleSelectAll}
+            onClearFilters={clearFilters}
+            roleOptions={roleOptions}
+            statusOptions={statusOptions}
+            multiSelect={true}
+            showExport={true}
+          />
+        )}
 
         <div className="flex-1 overflow-hidden min-h-0 w-full">
           <UsersTable
