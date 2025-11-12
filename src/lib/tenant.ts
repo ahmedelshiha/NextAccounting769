@@ -96,7 +96,7 @@ export function getTenantFromRequest(req: Request): string | null {
   }
 }
 
-export function tenantFilter(tenantId: string | null, field = 'tenantId'): Record<string, unknown> {
+export function tenantFilter(tenantId: string | null | undefined, field = 'tenantId'): Record<string, unknown> {
   if (!isMultiTenancyEnabled() || !tenantId) return {}
   return { [field]: tenantId }
 }

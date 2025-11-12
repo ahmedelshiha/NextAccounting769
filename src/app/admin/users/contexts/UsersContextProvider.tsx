@@ -1,65 +1,27 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react'
+import React, { createContext, useContext, useMemo, ReactNode } from 'react'
+import { UserDataContextProvider, useUserDataContext, UserStats, UserItem, HealthLog } from './UserDataContext'
+import { UserUIContextProvider, useUserUIContext } from './UserUIContext'
+import { UserFilterContextProvider, useUserFilterContext } from './UserFilterContext'
+import { useUserManagementRealtime } from '../hooks/useUserManagementRealtime'
 
-// Types
-export interface UserStats {
-  total: number
-  clients: number
-  staff: number
-  admins: number
-  newThisMonth: number
-  newLastMonth: number
-  growth: number
-  activeUsers: number
-  registrationTrends: Array<{ month: string; count: number }>
-  topUsers: Array<{
-    id: string
-    name: string | null
-    email: string
-    bookingsCount: number
-    createdAt: Date | string
-  }>
-  range?: { range?: string; newUsers?: number; growth?: number }
-}
-
-export interface UserItem {
-  id: string
-  name: string | null
-  email: string
-  role: 'ADMIN' | 'TEAM_MEMBER' | 'TEAM_LEAD' | 'STAFF' | 'CLIENT'
-  createdAt: string
-  lastLoginAt?: string
-  isActive?: boolean
-  phone?: string
-  company?: string
-  totalBookings?: number
-  totalRevenue?: number
-  avatar?: string
-  location?: string
-  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-  permissions?: string[]
-  notes?: string
-}
-
-export interface HealthLog {
-  id: string
-  checkedAt: string
-  message?: string | null
-}
-
-type TabType = 'overview' | 'details' | 'activity' | 'settings'
+type TabType = 'overview' | 'details' | 'permissions' | 'activity' | 'settings'
 type StatusAction = 'activate' | 'deactivate' | 'suspend'
 
-// Context Type
+/**
+ * Unified UsersContext Type
+ * Backward-compatible interface that combines all three contexts.
+ * This allows existing code to continue using useUsersContext() without changes.
+ */
 interface UsersContextType {
-  // Data
+  // Data State (from UserDataContext)
   users: UserItem[]
   stats: UserStats | null
   selectedUser: UserItem | null
   activity: HealthLog[]
 
-  // UI State
+  // Loading State
   isLoading: boolean
   usersLoading: boolean
   activityLoading: boolean
@@ -68,37 +30,34 @@ interface UsersContextType {
   updating: boolean
   permissionsSaving: boolean
 
-  // Errors
+  // Error State
   errorMsg: string | null
   activityError: string | null
 
-  // Filters
+  // Filter State (from UserFilterContext)
   search: string
   roleFilter: 'ALL' | 'ADMIN' | 'TEAM_LEAD' | 'TEAM_MEMBER' | 'STAFF' | 'CLIENT'
   statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
 
-  // Profile Dialog State
+  // Dialog State (from UserUIContext)
   profileOpen: boolean
   activeTab: TabType
   editMode: boolean
   editForm: Partial<UserItem>
-
-  // Status Change Dialog
   statusDialogOpen: boolean
   statusAction: { action: StatusAction; user: UserItem } | null
-
-  // Permission Modal
   permissionModalOpen: boolean
 
   // Computed
   filteredUsers: UserItem[]
 
-  // Actions
+  // Data Actions
   setUsers: (users: UserItem[]) => void
   setStats: (stats: UserStats | null) => void
   setSelectedUser: (user: UserItem | null) => void
   setActivity: (activity: HealthLog[]) => void
 
+  // Loading Actions
   setIsLoading: (value: boolean) => void
   setUsersLoading: (value: boolean) => void
   setActivityLoading: (value: boolean) => void
@@ -107,191 +66,175 @@ interface UsersContextType {
   setUpdating: (value: boolean) => void
   setPermissionsSaving: (value: boolean) => void
 
+  // Error Actions
   setErrorMsg: (msg: string | null) => void
   setActivityError: (msg: string | null) => void
 
+  // Filter Actions
   setSearch: (search: string) => void
   setRoleFilter: (filter: 'ALL' | 'ADMIN' | 'TEAM_LEAD' | 'TEAM_MEMBER' | 'STAFF' | 'CLIENT') => void
   setStatusFilter: (filter: 'ALL' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED') => void
 
+  // Dialog Actions
   setProfileOpen: (open: boolean) => void
   setActiveTab: (tab: TabType) => void
   setEditMode: (mode: boolean) => void
   setEditForm: (form: Partial<UserItem>) => void
-
   setStatusDialogOpen: (open: boolean) => void
   setStatusAction: (action: { action: StatusAction; user: UserItem } | null) => void
-
   setPermissionModalOpen: (open: boolean) => void
 
   // Helpers
   openUserProfile: (user: UserItem) => void
   closeUserProfile: () => void
+  refreshUsers: () => Promise<void>
 }
 
-// Create Context
+// Create unified context for backward compatibility
 const UsersContext = createContext<UsersContextType | undefined>(undefined)
 
-// Provider Component
-interface UsersContextProviderProps {
-  children: ReactNode
-}
+/**
+ * Inner component that accesses all three contexts and combines them
+ * This allows the provider to handle composition internally
+ */
+function UsersContextComposer({ children }: { children: ReactNode }) {
+  const dataContext = useUserDataContext()
+  const uiContext = useUserUIContext()
+  const filterContext = useUserFilterContext()
 
-export function UsersContextProvider({ children }: UsersContextProviderProps) {
-  // Data state
-  const [users, setUsers] = useState<UserItem[]>([])
-  const [stats, setStats] = useState<UserStats | null>(null)
-  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null)
-  const [activity, setActivity] = useState<HealthLog[]>([])
+  // Set up real-time user management synchronization
+  // Safe to call here since we're inside UserDataContextProvider
+  useUserManagementRealtime({
+    debounceMs: 500,
+    autoRefresh: true,
+    refreshUsers: dataContext.refreshUsers
+  })
 
-  // UI state
-  const [isLoading, setIsLoading] = useState(true)
-  const [usersLoading, setUsersLoading] = useState(true)
-  const [activityLoading, setActivityLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [updating, setUpdating] = useState(false)
-  const [permissionsSaving, setPermissionsSaving] = useState(false)
-
-  // Errors
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [activityError, setActivityError] = useState<string | null>(null)
-
-  // Filters
-  const [search, setSearch] = useState('')
-  type RoleFilter = 'ALL' | 'ADMIN' | 'TEAM_LEAD' | 'TEAM_MEMBER' | 'STAFF' | 'CLIENT'
-  type StatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
-
-  // Profile dialog state
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabType>('overview')
-  const [editMode, setEditMode] = useState(false)
-  const [editForm, setEditForm] = useState<Partial<UserItem>>({})
-
-  // Status change dialog
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false)
-  const [statusAction, setStatusAction] = useState<{ action: StatusAction; user: UserItem } | null>(null)
-
-  // Permission modal
-  const [permissionModalOpen, setPermissionModalOpen] = useState(false)
-
-  // Computed filtered users
+  // Compute filtered users from data and filter contexts
   const filteredUsers = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return users
-      .filter((u) => (roleFilter === 'ALL' ? true : u.role === roleFilter))
-      .filter((u) => (statusFilter === 'ALL' ? true : (u.status || 'ACTIVE') === statusFilter))
-      .filter((u) => !q || (u.name?.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.company?.toLowerCase().includes(q)))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }, [users, roleFilter, statusFilter, search])
+    return filterContext.getFilteredUsers(dataContext.users)
+  }, [dataContext.users, filterContext])
 
-  // Helper functions
-  const openUserProfile = useCallback((user: UserItem) => {
-    setSelectedUser(user)
-    setEditForm({
-      name: user.name || '',
-      email: user.email,
-      phone: user.phone || '',
-      company: user.company || '',
-      location: user.location || '',
-      notes: user.notes || ''
-    })
-    setEditMode(false)
-    setActiveTab('overview')
-    setProfileOpen(true)
-    setActivity([])
-    setActivityError(null)
-  }, [])
-
-  const closeUserProfile = useCallback(() => {
-    setProfileOpen(false)
-    setEditMode(false)
-    setActiveTab('overview')
-  }, [])
-
+  // Combine all contexts into unified interface
   const value: UsersContextType = {
-    // Data
-    users,
-    stats,
-    selectedUser,
-    activity,
+    // Data State
+    users: dataContext.users,
+    stats: dataContext.stats,
+    selectedUser: dataContext.selectedUser,
+    activity: dataContext.activity,
 
-    // UI State
-    isLoading,
-    usersLoading,
-    activityLoading,
-    refreshing,
-    exporting,
-    updating,
-    permissionsSaving,
+    // Loading State
+    isLoading: dataContext.isLoading,
+    usersLoading: dataContext.usersLoading,
+    activityLoading: dataContext.activityLoading,
+    refreshing: dataContext.refreshing,
+    exporting: dataContext.exporting,
+    updating: dataContext.updating,
+    permissionsSaving: uiContext.permissionsSaving,
 
-    // Errors
-    errorMsg,
-    activityError,
+    // Error State
+    errorMsg: dataContext.errorMsg,
+    activityError: dataContext.activityError,
 
-    // Filters
-    search,
-    roleFilter,
-    statusFilter,
+    // Filter State
+    search: filterContext.search,
+    roleFilter: filterContext.roleFilter,
+    statusFilter: filterContext.statusFilter,
 
-    // Profile Dialog State
-    profileOpen,
-    activeTab,
-    editMode,
-    editForm,
-
-    // Status Change Dialog
-    statusDialogOpen,
-    statusAction,
-
-    // Permission Modal
-    permissionModalOpen,
+    // Dialog State
+    profileOpen: uiContext.profileOpen,
+    activeTab: uiContext.activeTab,
+    editMode: uiContext.editMode,
+    editForm: uiContext.editForm,
+    statusDialogOpen: uiContext.statusDialogOpen,
+    statusAction: uiContext.statusAction,
+    permissionModalOpen: uiContext.permissionModalOpen,
 
     // Computed
     filteredUsers,
 
-    // Actions
-    setUsers,
-    setStats,
-    setSelectedUser,
-    setActivity,
+    // Data Actions
+    setUsers: dataContext.setUsers,
+    setStats: dataContext.setStats,
+    setSelectedUser: dataContext.setSelectedUser,
+    setActivity: dataContext.setActivity,
 
-    setIsLoading,
-    setUsersLoading,
-    setActivityLoading,
-    setRefreshing,
-    setExporting,
-    setUpdating,
-    setPermissionsSaving,
+    // Loading Actions
+    setIsLoading: dataContext.setIsLoading,
+    setUsersLoading: dataContext.setUsersLoading,
+    setActivityLoading: dataContext.setActivityLoading,
+    setRefreshing: dataContext.setRefreshing,
+    setExporting: dataContext.setExporting,
+    setUpdating: dataContext.setUpdating,
+    setPermissionsSaving: uiContext.setPermissionsSaving,
 
-    setErrorMsg,
-    setActivityError,
+    // Error Actions
+    setErrorMsg: dataContext.setErrorMsg,
+    setActivityError: dataContext.setActivityError,
 
-    setSearch,
-    setRoleFilter,
-    setStatusFilter,
+    // Filter Actions
+    setSearch: filterContext.setSearch,
+    setRoleFilter: filterContext.setRoleFilter,
+    setStatusFilter: filterContext.setStatusFilter,
 
-    setProfileOpen,
-    setActiveTab,
-    setEditMode,
-    setEditForm,
-
-    setStatusDialogOpen,
-    setStatusAction,
-
-    setPermissionModalOpen,
+    // Dialog Actions
+    setProfileOpen: uiContext.setProfileOpen,
+    setActiveTab: uiContext.setActiveTab,
+    setEditMode: uiContext.setEditMode,
+    setEditForm: uiContext.setEditForm,
+    setStatusDialogOpen: uiContext.setStatusDialogOpen,
+    setStatusAction: uiContext.setStatusAction,
+    setPermissionModalOpen: uiContext.setPermissionModalOpen,
 
     // Helpers
-    openUserProfile,
-    closeUserProfile
+    openUserProfile: uiContext.openUserProfile,
+    closeUserProfile: uiContext.closeUserProfile,
+    refreshUsers: dataContext.refreshUsers
   }
 
   return <UsersContext.Provider value={value}>{children}</UsersContext.Provider>
 }
 
-// Hook to use context
+/**
+ * Main Provider Component
+ * Wraps three focused context providers and composes them into a unified context
+ *
+ * Benefits of this architecture:
+ * - ✅ Backward compatible: useUsersContext() still works
+ * - ✅ Separation of concerns: Data, UI, and Filter logic separated
+ * - ✅ Performance: Components only re-render when relevant state changes
+ * - ✅ Maintainability: Each context is responsible for one domain
+ * - ✅ Testability: Each context can be tested independently
+ */
+interface UsersContextProviderProps {
+  children: ReactNode
+  initialUsers?: UserItem[]
+  initialStats?: UserStats | null
+}
+
+export function UsersContextProvider({
+  children,
+  initialUsers = [],
+  initialStats = null
+}: UsersContextProviderProps) {
+  return (
+    <UserDataContextProvider initialUsers={initialUsers} initialStats={initialStats}>
+      <UserUIContextProvider>
+        <UserFilterContextProvider>
+          <UsersContextComposer>{children}</UsersContextComposer>
+        </UserFilterContextProvider>
+      </UserUIContextProvider>
+    </UserDataContextProvider>
+  )
+}
+
+/**
+ * Backward-compatible hook for accessing unified context
+ * Use this for existing code. For new code, consider using specific hooks:
+ * - useUserDataContext() for data operations
+ * - useUserUIContext() for UI state
+ * - useUserFilterContext() for filtering
+ */
 export function useUsersContext() {
   const context = useContext(UsersContext)
   if (!context) {
@@ -299,3 +242,7 @@ export function useUsersContext() {
   }
   return context
 }
+
+// Re-export types and hooks for convenience
+export type { UserStats, UserItem, HealthLog }
+export { useUserDataContext, useUserUIContext, useUserFilterContext }

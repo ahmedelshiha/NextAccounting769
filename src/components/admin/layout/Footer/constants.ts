@@ -69,7 +69,7 @@ export const HEALTH_CHECK_CONFIG = {
  * Used in SystemStatus component and health responses
  */
 export const STATUS_MESSAGES = {
-  operational: {
+  healthy: {
     short: 'OK',
     full: 'All systems operational',
     description: 'System is running normally with all services healthy',
@@ -79,7 +79,7 @@ export const STATUS_MESSAGES = {
     full: 'Service degraded',
     description: 'Some services are experiencing high latency or reduced performance',
   },
-  outage: {
+  unavailable: {
     short: 'Down',
     full: 'Service unavailable',
     description: 'One or more critical services are offline or unreachable',

@@ -264,3 +264,61 @@
   direction: rtl;
   text-align: right;
 }
+
+/* Arabic font configuration */
+html[lang="ar"],
+html[lang="ar"] body {
+  font-family: var(--font-noto-sans-arabic), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  direction: rtl;
+  text-align: right;
+}
+
+/* RTL-specific spacing fixes */
+html[dir="rtl"] [class*="space-x"] > * {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html[dir="rtl"] .space-x-1 > * {
+  margin-right: 0.25rem;
+}
+html[dir="rtl"] .space-x-2 > * {
+  margin-right: 0.5rem;
+}
+html[dir="rtl"] .space-x-4 > * {
+  margin-right: 1rem;
+}
+
+/* Padding direction fixes for RTL */
+html[dir="rtl"] .pl-4 {
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+html[dir="rtl"] .pr-4 {
+  padding-right: 0;
+  padding-left: 1rem;
+}
+
+/* Icons and arrows flip in RTL */
+html[dir="rtl"] [role="button"] [class*="chevron-right"],
+html[dir="rtl"] [role="button"] [class*="arrow-right"],
+html[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Ensure Tailwind's space utilities work with RTL */
+@supports (margin-inline: 0) {
+  html[dir="rtl"] [class*="space-x"] > * {
+    margin-inline-end: var(--spacing);
+    margin-inline-start: 0;
+  }
+}
+
+/* Ensure text direction is consistent in RTL */
+html[dir="rtl"] p,
+html[dir="rtl"] span,
+html[dir="rtl"] div {
+  text-align: inherit;
+}

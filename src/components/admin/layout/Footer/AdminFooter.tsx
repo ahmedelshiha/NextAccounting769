@@ -2,21 +2,23 @@
 
 /**
  * AdminFooter Component
- * 
+ *
  * Root footer component for the admin dashboard with responsive layouts
  * (desktop/tablet/mobile). Integrates all footer sub-components and
  * system health monitoring.
- * 
+ *
  * @module @/components/admin/layout/Footer/AdminFooter
  */
 
 import { useResponsive } from '@/hooks/admin/useResponsive'
 import { useSystemHealth } from '@/hooks/admin/useSystemHealth'
+import { useHealthModal } from '@/hooks/admin/useHealthModal'
 import SystemStatus from './SystemStatus'
 import ProductInfo from './ProductInfo'
 import SupportLinks from './SupportLinks'
 import EnvironmentBadge from './EnvironmentBadge'
 import QuickLinks from './QuickLinks'
+import { HealthDetailModal } from './HealthDetailModal'
 import { FOOTER_BRANDING } from './constants'
 import type { AdminFooterProps, FooterLink } from './types'
 
@@ -30,6 +32,7 @@ function SimpleFooter({
   hideHealth,
   hideEnvironment,
   customLinks,
+  onHealthClick,
 }: {
   health: any
   isLoading: boolean
@@ -37,6 +40,7 @@ function SimpleFooter({
   hideHealth?: boolean
   hideEnvironment?: boolean
   customLinks?: FooterLink[]
+  onHealthClick?: () => void
 }) {
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -51,6 +55,7 @@ function SimpleFooter({
             loading={isLoading}
             error={error}
             compact
+            onClick={onHealthClick}
           />
         )}
         {!hideEnvironment && <EnvironmentBadge compact hideProduction />}
@@ -69,6 +74,7 @@ function MobileFooter({
   hideHealth,
   hideEnvironment,
   customLinks,
+  onHealthClick,
 }: {
   health: any
   isLoading: boolean
@@ -76,6 +82,7 @@ function MobileFooter({
   hideHealth?: boolean
   hideEnvironment?: boolean
   customLinks?: FooterLink[]
+  onHealthClick?: () => void
 }) {
   return (
     <div className="space-y-3">
@@ -87,6 +94,7 @@ function MobileFooter({
             loading={isLoading}
             error={error}
             compact
+            onClick={onHealthClick}
           />
         )}
         {!hideEnvironment && <EnvironmentBadge compact hideProduction />}
@@ -111,6 +119,7 @@ function TabletFooter({
   hideHealth,
   hideEnvironment,
   customLinks,
+  onHealthClick,
 }: {
   health: any
   isLoading: boolean
@@ -118,6 +127,7 @@ function TabletFooter({
   hideHealth?: boolean
   hideEnvironment?: boolean
   customLinks?: FooterLink[]
+  onHealthClick?: () => void
 }) {
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -136,6 +146,7 @@ function TabletFooter({
               loading={isLoading}
               error={error}
               compact
+              onClick={onHealthClick}
             />
           )}
           {!hideEnvironment && <EnvironmentBadge hideProduction />}
@@ -164,6 +175,7 @@ function DesktopFooter({
   hideHealth,
   hideEnvironment,
   customLinks,
+  onHealthClick,
 }: {
   health: any
   isLoading: boolean
@@ -171,6 +183,7 @@ function DesktopFooter({
   hideHealth?: boolean
   hideEnvironment?: boolean
   customLinks?: FooterLink[]
+  onHealthClick?: () => void
 }) {
   return (
     <div className="grid grid-cols-3 gap-8">
@@ -188,6 +201,7 @@ function DesktopFooter({
             loading={isLoading}
             error={error}
             compact={false}
+            onClick={onHealthClick}
           />
         )}
       </div>
@@ -213,7 +227,7 @@ function DesktopFooter({
 
 /**
  * AdminFooter Component
- * 
+ *
  * Main footer component with responsive layouts and system monitoring
  */
 export function AdminFooter({
@@ -226,32 +240,59 @@ export function AdminFooter({
   const responsive = useResponsive()
 
   // Get system health
-  const { health, error, isLoading } = useSystemHealth({
+  const { health, error, isLoading, mutate } = useSystemHealth({
     enabled: !hideHealth,
   })
+
+  // Modal state management
+  const healthModal = useHealthModal()
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    healthModal.setRefreshing(true)
+    try {
+      await mutate()
+    } finally {
+      healthModal.setRefreshing(false)
+    }
+  }
 
   // Select layout based on breakpoint (kept for internal components)
   const isMobile = responsive.isMobile
   const isTablet = responsive.isTablet
 
   return (
-    <footer
-      role="contentinfo"
-      aria-label="Admin footer"
-      className={`footer-container border-t border-border bg-card transition-all duration-300 p-4 text-sm ${className}`}
-    >
-      <div className="max-w-7xl mx-auto">
-        {/* Always use the compact/simple footer across all admin pages to match sidebar footer height */}
-        <SimpleFooter
-          health={health}
-          isLoading={isLoading}
-          error={error}
-          hideHealth={hideHealth}
-          hideEnvironment={hideEnvironment}
-          customLinks={customLinks}
-        />
-      </div>
-    </footer>
+    <>
+      <footer
+        role="contentinfo"
+        aria-label="Admin footer"
+        className={`footer-container border-t border-border bg-card transition-all duration-300 p-4 text-sm ${className}`}
+      >
+        <div className="max-w-7xl mx-auto">
+          {/* Always use the compact/simple footer across all admin pages to match sidebar footer height */}
+          <SimpleFooter
+            health={health}
+            isLoading={isLoading}
+            error={error}
+            hideHealth={hideHealth}
+            hideEnvironment={hideEnvironment}
+            customLinks={customLinks}
+            onHealthClick={hideHealth ? undefined : healthModal.openModal}
+          />
+        </div>
+      </footer>
+
+      {/* Health Detail Modal */}
+      <HealthDetailModal
+        isOpen={healthModal.isOpen}
+        onOpenChange={healthModal.setIsOpen}
+        health={health}
+        isLoading={isLoading}
+        error={error}
+        onRefresh={handleRefresh}
+        isRefreshing={healthModal.isRefreshing}
+      />
+    </>
   )
 }
 

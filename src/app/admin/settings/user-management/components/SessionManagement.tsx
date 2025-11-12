@@ -217,7 +217,7 @@ export function SessionManagement({
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
               <Label htmlFor="allow-extend">Allow Session Extension</Label>
               <Switch
                 id="allow-extend"
@@ -259,7 +259,7 @@ export function SessionManagement({
         <CardContent className="space-y-4">
           <div className="space-y-3">
             {ROLES.map((role) => (
-              <div key={role} className="flex items-center gap-3 p-2 border rounded">
+              <div key={role} className="flex flex-wrap items-center gap-3 p-2 border rounded">
                 <span className="text-sm font-medium flex-1">{ROLE_LABELS[role]}</span>
                 <Input
                   type="number"
@@ -269,14 +269,14 @@ export function SessionManagement({
                   }
                   disabled={isSaving}
                   min={1}
-                  className="w-24"
+                  className="w-full sm:w-24"
                 />
                 <span className="text-xs text-gray-500 w-16">sessions</span>
               </div>
             ))}
           </div>
 
-          <div className="flex items-center justify-between p-3 border rounded">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
             <Label htmlFor="multi-device">Allow Multiple Devices</Label>
             <Switch
               id="multi-device"
@@ -295,7 +295,7 @@ export function SessionManagement({
             />
           </div>
 
-          <div className="flex items-center justify-between p-3 border rounded">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
             <Label htmlFor="kick-oldest">Kick Oldest Session When Limit Reached</Label>
             <Switch
               id="kick-oldest"

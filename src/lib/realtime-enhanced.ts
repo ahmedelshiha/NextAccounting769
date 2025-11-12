@@ -48,7 +48,17 @@ class PostgresPubSub implements PubSubAdapter { public name = 'postgres'
   private async ensureInit() {
     if (this.initialized) return
     if (!this.initPromise) {
-      this.initPromise = this.init().finally(() => { this.initialized = true })
+      // Add timeout to prevent hanging indefinitely
+      this.initPromise = Promise.race([
+        this.init().finally(() => { this.initialized = true }),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('Realtime PG adapter initialization timeout')), 5000)
+        )
+      ]).catch((e) => {
+        this.initialized = true
+        console.error('Realtime PG adapter init failed:', e)
+        // Don't rethrow - let fallback in-memory adapter be used
+      })
     }
     return this.initPromise
   }
@@ -56,7 +66,13 @@ class PostgresPubSub implements PubSubAdapter { public name = 'postgres'
     try {
       const pg = await import('pg')
       const { Client, Pool } = pg as any
-      this.pool = new Pool({ connectionString: this.url })
+      // Create pool with shorter connection timeout
+      this.pool = new Pool({
+        connectionString: this.url,
+        connectionTimeoutMillis: 3000,
+        idleTimeoutMillis: 30000,
+        max: 2
+      })
       await this.startListener(Client)
     } catch (e) {
       // Surface once at runtime when actually used
@@ -66,12 +82,30 @@ class PostgresPubSub implements PubSubAdapter { public name = 'postgres'
   }
   private async startListener(ClientCtor: any) {
     if (!this.url) return
-    const client = new ClientCtor({ connectionString: this.url })
+    const client = new ClientCtor({ connectionString: this.url, connectionTimeoutMillis: 3000 })
     this.listenClient = client
     client.on('error', () => this.scheduleReconnect(ClientCtor))
     client.on('end', () => this.scheduleReconnect(ClientCtor))
-    await client.connect()
-    await client.query(`LISTEN ${this.channel}`)
+
+    // Add timeout to connection and LISTEN setup
+    try {
+      await Promise.race([
+        client.connect(),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('Connection timeout')), 3000)
+        )
+      ])
+      await Promise.race([
+        client.query(`LISTEN ${this.channel}`),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('LISTEN timeout')), 2000)
+        )
+      ])
+    } catch (e) {
+      try { await client.end() } catch {}
+      throw e
+    }
+
     client.on('notification', (msg: any) => {
       if (!msg?.payload) return
       try {
@@ -214,6 +248,30 @@ class EnhancedRealtimeService extends EventEmitter {
   emitAvailabilityUpdate(serviceId: string | number, data: any = {}) {
     const payload = { serviceId, ...data }
     this.dispatch({ type: 'availability-updated', data: payload, timestamp: new Date().toISOString() })
+  }
+
+  emitUserCreated(userId: string | number, data: any = {}) {
+    this.dispatch({ type: 'user-created', data: { userId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitUserUpdated(userId: string | number, data: any = {}) {
+    this.dispatch({ type: 'user-updated', data: { userId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitUserDeleted(userId: string | number, data: any = {}) {
+    this.dispatch({ type: 'user-deleted', data: { userId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitRoleUpdated(roleId: string | number, data: any = {}) {
+    this.dispatch({ type: 'role-updated', data: { roleId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitPermissionChanged(permissionId: string | number, data: any = {}) {
+    this.dispatch({ type: 'permission-changed', data: { permissionId, ...data }, timestamp: new Date().toISOString() })
+  }
+
+  emitUserManagementSettingsUpdated(settingKey: string, data: any = {}) {
+    this.dispatch({ type: 'user-management-settings-updated', data: { settingKey, ...data }, timestamp: new Date().toISOString() })
   }
 
   cleanup(connectionId: string) {

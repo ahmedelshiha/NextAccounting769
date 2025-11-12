@@ -1,0 +1,787 @@
+/**
+ * Mobile Filter Bar Styles - Phase 17 Mobile Optimizations
+ *
+ * Responsive design for screens <768px
+ * Touch-optimized sizing (44px minimum height)
+ * Smooth animations and transitions
+ * iOS/Android compatibility
+ */
+
+/* ============================================================================
+   MOBILE FILTER BAR - Main Container
+   ============================================================================ */
+
+.mobile-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* ============================================================================
+   FILTER BAR HEADER - Search + Toggle + Clear
+   ============================================================================ */
+
+.mobile-filter-header {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* Search Wrapper */
+.mobile-search-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0 0.5rem;
+}
+
+.mobile-search-icon {
+  color: #9ca3af;
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+}
+
+.mobile-search-input {
+  border: none !important;
+  background: transparent;
+  padding: 0.5rem 0;
+  font-size: 16px; /* Prevents iOS auto-zoom */
+  line-height: 1.5;
+  outline: none;
+  flex: 1;
+  min-height: 44px;
+}
+
+.mobile-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.mobile-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mobile-search-clear:active {
+  color: #111827;
+}
+
+/* Filter Toggle Button */
+.mobile-filter-toggle {
+  position: relative;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  transition: all 0.2s ease;
+}
+
+.mobile-filter-toggle:active {
+  background: #f3f4f6;
+}
+
+/* Active Filter Badge */
+.mobile-filter-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Clear Button */
+.mobile-clear-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   FILTER PANEL - Expandable filter options
+   ============================================================================ */
+
+.mobile-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid #e5e7eb;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Filter Section */
+.mobile-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-filter-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+  padding: 0;
+}
+
+/* Filter Options Container */
+.mobile-filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Filter Option (Checkbox + Label) */
+.mobile-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: background-color 0.2s ease;
+  min-height: 44px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mobile-filter-option:active {
+  background: #f3f4f6;
+}
+
+/* Checkbox styling */
+.mobile-filter-checkbox {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  min-width: 20px;
+  min-height: 20px;
+}
+
+/* Filter label text */
+.mobile-filter-label {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Filter count badge */
+.mobile-filter-count {
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 400;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   FILTER ACTIONS - Apply and Clear buttons
+   ============================================================================ */
+
+.mobile-filter-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.mobile-filter-button {
+  flex: 1;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.mobile-filter-clear-btn {
+  background: white;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.mobile-filter-clear-btn:active {
+  background: #f9fafb;
+}
+
+.mobile-filter-apply-btn {
+  background: #1f55d4;
+  color: white;
+  border: none;
+}
+
+.mobile-filter-apply-btn:active {
+  background: #1e40af;
+}
+
+/* ============================================================================
+   FILTER PILLS - Horizontal scrollable badges
+   ============================================================================ */
+
+.mobile-filter-pills {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  padding: 0.5rem 0;
+  /* Hide scrollbar on iOS */
+  scrollbar-width: none;
+}
+
+.mobile-filter-pills::-webkit-scrollbar {
+  display: none;
+}
+
+/* Filter Pill */
+.mobile-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  min-height: 32px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+/* Role filter pills */
+.mobile-filter-pill--role {
+  background: #dbeafe;
+  color: #0c4a6e;
+  border: 1px solid #7dd3fc;
+}
+
+/* Status filter pills */
+.mobile-filter-pill--status {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.mobile-pill-label {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 150px;
+}
+
+.mobile-pill-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.mobile-pill-remove:active {
+  opacity: 1;
+}
+
+/* ============================================================================
+   FILTER COUNTER
+   ============================================================================ */
+
+.mobile-filter-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0;
+  background: #f0f9ff;
+  border-radius: 0.375rem;
+  min-height: 36px;
+}
+
+.mobile-counter-text {
+  font-size: 13px;
+  color: #0c4a6e;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   TOUCH TARGET SIZING
+   ============================================================================ */
+
+@media (max-width: 767px) {
+  /* Ensure all interactive elements are at least 44x44px */
+  .mobile-filter-header input,
+  .mobile-filter-header button,
+  .mobile-filter-panel select,
+  .mobile-filter-panel input,
+  .mobile-filter-button,
+  .mobile-search-clear,
+  .mobile-filter-toggle,
+  .mobile-clear-button,
+  .mobile-pill-remove {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 16px; /* Prevents iOS auto-zoom on inputs */
+  }
+
+  .mobile-filter-option {
+    min-height: 48px;
+    padding: 0.75rem;
+  }
+
+  .mobile-filter-checkbox {
+    min-width: 24px;
+    min-height: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Improve scrolling performance */
+  .mobile-filter-pills {
+    padding: 0.75rem 0;
+  }
+
+  /* Better visibility of interactive elements */
+  .mobile-pill-remove {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /* Prevent iOS auto-zoom on focus */
+  input[type='text'],
+  input[type='search'],
+  input[type='email'],
+  input[type='number'],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE BEHAVIORS
+   ============================================================================ */
+
+/* Safe area support for notched devices */
+@supports (padding: max(0px)) {
+  .mobile-filter-bar {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  .mobile-filter-pills {
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-filter-bar,
+  .mobile-filter-panel,
+  .mobile-filter-option,
+  .mobile-filter-pill,
+  .mobile-filter-toggle {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================================
+   BOTTOM SHEET - Mobile modal presentation
+   ============================================================================ */
+
+.mobile-bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 40;
+  animation: fadeIn 0.3s ease-out;
+  backdrop-filter: blur(2px);
+}
+
+.mobile-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: white;
+  border-radius: 1rem 1rem 0 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: none;
+  /* Safe area support */
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-left: max(0, env(safe-area-inset-left));
+  padding-right: max(0, env(safe-area-inset-right));
+}
+
+.mobile-bottom-sheet::-webkit-scrollbar {
+  display: none;
+}
+
+/* Drag Handle Wrapper */
+.mobile-bottom-sheet-handle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.75rem;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mobile-bottom-sheet-handle-wrapper:active {
+  cursor: grabbing;
+}
+
+/* Drag Handle */
+.mobile-bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #d1d5db;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.mobile-bottom-sheet-handle-wrapper:active .mobile-bottom-sheet-handle {
+  background: #9ca3af;
+}
+
+/* Header */
+.mobile-bottom-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.mobile-bottom-sheet-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  padding: 0;
+}
+
+/* Content */
+.mobile-bottom-sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   QUICK FILTERS BOTTOM SHEET
+   ============================================================================ */
+
+.mobile-quick-filters-bottom-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mobile-quick-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.mobile-quick-filter-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  min-height: 80px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.mobile-quick-filter-item:active {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.mobile-quick-filter-item svg {
+  width: 24px;
+  height: 24px;
+  color: #1f55d4;
+}
+
+/* Recent Filters Section */
+.mobile-recent-filters-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-recent-filters-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+  padding: 0 0 0.5rem 0;
+}
+
+.mobile-recent-filter-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.mobile-recent-filter-button:active {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+/* Custom Filter Button */
+.mobile-custom-filter-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #1f55d4;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.mobile-custom-filter-button:active {
+  background: #1e40af;
+}
+
+/* Dark mode support (optional, can be enabled later) */
+@media (prefers-color-scheme: dark) {
+  .mobile-filter-bar {
+    background: #1f2937;
+    border-bottom-color: #374151;
+  }
+
+  .mobile-filter-header {
+    background: #1f2937;
+  }
+
+  .mobile-search-wrapper {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .mobile-search-input {
+    color: #f3f4f6;
+  }
+
+  .mobile-search-input::placeholder {
+    color: #9ca3af;
+  }
+
+  .mobile-filter-toggle,
+  .mobile-clear-button {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f3f4f6;
+  }
+
+  .mobile-filter-section-title {
+    color: #f3f4f6;
+  }
+
+  .mobile-filter-label {
+    color: #f3f4f6;
+  }
+
+  .mobile-filter-option {
+    color: #f3f4f6;
+  }
+
+  .mobile-filter-option:active {
+    background: #374151;
+  }
+
+  .mobile-filter-panel {
+    border-top-color: #374151;
+  }
+
+  .mobile-filter-actions {
+    border-top-color: #374151;
+  }
+
+  .mobile-filter-clear-btn {
+    background: #374151;
+    color: #f3f4f6;
+    border-color: #4b5563;
+  }
+
+  .mobile-filter-clear-btn:active {
+    background: #4b5563;
+  }
+
+  .mobile-filter-counter {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .mobile-bottom-sheet {
+    background: #1f2937;
+    border-top-color: #374151;
+  }
+
+  .mobile-bottom-sheet-header {
+    background: #1f2937;
+    border-bottom-color: #374151;
+    color: #f3f4f6;
+  }
+
+  .mobile-bottom-sheet-title {
+    color: #f3f4f6;
+  }
+
+  .mobile-bottom-sheet-content {
+    color: #f3f4f6;
+  }
+
+  .mobile-quick-filter-item {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f3f4f6;
+  }
+
+  .mobile-quick-filter-item:active {
+    background: #4b5563;
+    border-color: #6b7280;
+  }
+
+  .mobile-recent-filter-button {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f3f4f6;
+  }
+
+  .mobile-recent-filter-button:active {
+    background: #4b5563;
+    border-color: #6b7280;
+  }
+
+  .mobile-custom-filter-button {
+    background: #1f55d4;
+  }
+
+  .mobile-custom-filter-button:active {
+    background: #1e40af;
+  }
+}

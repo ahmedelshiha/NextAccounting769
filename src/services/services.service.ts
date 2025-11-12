@@ -597,12 +597,24 @@ export class ServicesService {
 
     const where: Prisma.ServiceWhereInput = tId ? ({ tenantId: tId } as any) : {};
     const prisma = await this.resolvePrisma();
+
+    // Add timeout wrapper for database queries
+    const queryTimeout = 10000; // 10 second timeout
+    const withTimeout = <T>(promise: Promise<T>, defaultValue: T): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error('Query timeout')), queryTimeout)
+        )
+      ]).catch(() => defaultValue);
+    };
+
     const [total, active, featured, catGroups, priceAgg] = await Promise.all([
-      prisma.service.count({ where }),
-      prisma.service.count({ where: { ...where, status: 'ACTIVE' as any } }),
-      prisma.service.count({ where: { ...where, featured: true, status: 'ACTIVE' as any } }),
-      prisma.service.groupBy({ by: ['category'], where: { ...where, status: 'ACTIVE' as any, category: { not: null } } as any }),
-      prisma.service.aggregate({ where: { ...where, status: 'ACTIVE' as any, price: { not: null } } as any, _avg: { price: true }, _sum: { price: true } }),
+      withTimeout(prisma.service.count({ where }), 0),
+      withTimeout(prisma.service.count({ where: { ...where, status: 'ACTIVE' as any } }), 0),
+      withTimeout(prisma.service.count({ where: { ...where, featured: true, status: 'ACTIVE' as any } }), 0),
+      withTimeout(prisma.service.groupBy({ by: ['category'], where: { ...where, status: 'ACTIVE' as any, category: { not: null } } as any }), []),
+      withTimeout(prisma.service.aggregate({ where: { ...where, status: 'ACTIVE' as any, price: { not: null } } as any, _avg: { price: true }, _sum: { price: true } }), { _avg: { price: null }, _sum: { price: null } }),
     ]);
 
     // Analytics window: last 6 months
@@ -614,21 +626,29 @@ export class ServicesService {
     const bookingWhere: Prisma.BookingWhereInput = {
       scheduledAt: { gte: start },
       status: { in: ['COMPLETED','CONFIRMED'] as any },
+      take: 1000, // Limit results to prevent overwhelming queries
       ...(tId ? ({ service: { tenantId: tId } } as any) : {}),
     };
 
     let bookings: Array<{ id: string; scheduledAt: any; serviceId: string; service?: { id: string; name: string; price: any } }> = []
     try {
       try {
-        bookings = await prisma.booking.findMany({ where: bookingWhere as any, include: { service: { select: { id: true, name: true, price: true } } } })
+        bookings = await withTimeout(
+          prisma.booking.findMany({ where: bookingWhere as any, include: { service: { select: { id: true, name: true, price: true } } }, take: 1000 }),
+          []
+        )
       } catch (_) {
-        bookings = await queryTenantRaw<any>`
-          SELECT b.id, b.scheduledAt, b.serviceId, s.id as "service.id", s.name as "service.name", s.price as "service.price"
-          FROM bookings b
-          LEFT JOIN services s ON s.id = b.serviceId
-          WHERE b.scheduledAt >= ${start}
-          ${tId ? `AND s."tenantId" = ${tId}` : ''}
-        `
+        bookings = await withTimeout(
+          queryTenantRaw<any>`
+            SELECT b.id, b.scheduledAt, b.serviceId, s.id as "service.id", s.name as "service.name", s.price as "service.price"
+            FROM bookings b
+            LEFT JOIN services s ON s.id = b.serviceId
+            WHERE b.scheduledAt >= ${start}
+            ${tId ? `AND s."tenantId" = ${tId}` : ''}
+            LIMIT 1000
+          `,
+          []
+        )
       }
     } catch (e) {
       bookings = []

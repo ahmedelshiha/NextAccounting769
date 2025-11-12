@@ -113,7 +113,7 @@ export function useUnifiedData<T = any>(opts: UnifiedDataOptions<T>) {
     if (!revalidateOnEvents) return
     return subscribeByTypes(events, () => { void mutate() })
 
-  }, [JSON.stringify(events), revalidateOnEvents, path])
+  }, [JSON.stringify(events), revalidateOnEvents, path, mutate, subscribeByTypes])
 
   return {
     data,

@@ -1,12 +1,13 @@
 'use client'
 
-import React, { memo, useCallback } from 'react'
+import React, { memo, useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Users, RefreshCw, Download, Loader2, Search } from 'lucide-react'
 import { usePermissions } from '@/lib/use-permissions'
 import { useUsersContext } from '../contexts/UsersContextProvider'
+import { useDebouncedSearch } from '../hooks/useDebouncedSearch'
 
 interface DashboardHeaderProps {
   onRefresh: () => Promise<void>
@@ -23,12 +24,18 @@ export const DashboardHeader = memo(function DashboardHeader({
 }: DashboardHeaderProps) {
   const perms = usePermissions()
   const { search, setSearch, roleFilter, setRoleFilter, statusFilter, setStatusFilter } = useUsersContext()
+  const [localSearch, setLocalSearch] = useState(search)
+
+  // ✅ Debounce search input (400ms) to reduce filtering operations
+  const debouncedSearch = useDebouncedSearch(localSearch, setSearch)
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearch(e.target.value)
+      const value = e.target.value
+      setLocalSearch(value)
+      debouncedSearch(value)
     },
-    [setSearch]
+    [debouncedSearch]
   )
 
   const handleRoleFilterChange = useCallback(
@@ -46,17 +53,17 @@ export const DashboardHeader = memo(function DashboardHeader({
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header with Title and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Users className="h-8 w-8 text-blue-600" />
-            User Management
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3 truncate">
+            <Users className="h-6 sm:h-8 w-6 sm:w-8 text-blue-600 flex-shrink-0" />
+            <span>User Management</span>
           </h1>
-          <p className="text-gray-600 mt-2">Manage users, roles, and monitor activity</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2 truncate">Manage users, roles, and monitor activity</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
           <Button
             variant="outline"
             onClick={onRefresh}
@@ -85,40 +92,45 @@ export const DashboardHeader = memo(function DashboardHeader({
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 min-w-0">
+      <div className="flex flex-col gap-3">
+        {/* Search Bar - Full width on mobile */}
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            value={search}
+            value={localSearch}
             onChange={handleSearchChange}
             placeholder="Search by name, email, or company"
-            className="pl-9"
+            className="w-full pl-9 text-sm"
           />
         </div>
-        <Select value={roleFilter} onValueChange={handleRoleFilterChange}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Roles</SelectItem>
-            <SelectItem value="ADMIN">Admin</SelectItem>
-            <SelectItem value="TEAM_LEAD">Team Lead</SelectItem>
-            <SelectItem value="TEAM_MEMBER">Team Member</SelectItem>
-            <SelectItem value="STAFF">Staff</SelectItem>
-            <SelectItem value="CLIENT">Client</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Status</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="INACTIVE">Inactive</SelectItem>
-            <SelectItem value="SUSPENDED">Suspended</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {/* Filter Selects - Stack on mobile, row on tablet+ */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Select value={roleFilter || 'ALL'} onValueChange={handleRoleFilterChange}>
+            <SelectTrigger className="w-full text-sm">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Roles</SelectItem>
+              <SelectItem value="ADMIN">Admin</SelectItem>
+              <SelectItem value="TEAM_LEAD">Team Lead</SelectItem>
+              <SelectItem value="TEAM_MEMBER">Team Member</SelectItem>
+              <SelectItem value="STAFF">Staff</SelectItem>
+              <SelectItem value="CLIENT">Client</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter || 'ALL'} onValueChange={handleStatusFilterChange}>
+            <SelectTrigger className="w-full text-sm">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Status</SelectItem>
+              <SelectItem value="ACTIVE">Active</SelectItem>
+              <SelectItem value="INACTIVE">Inactive</SelectItem>
+              <SelectItem value="SUSPENDED">Suspended</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   )

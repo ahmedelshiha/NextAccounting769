@@ -321,8 +321,8 @@ test.describe('Permission Modal - User Workflows', () => {
       // Navigate to button with keyboard
       await page.keyboard.press('Tab')
       // Focus should move
-      let focused = page.locator(':focus')
-      let focusCount = await focused.count()
+      const focused = page.locator(':focus')
+      const focusCount = await focused.count()
       expect(focusCount).toBeGreaterThan(0)
     })
 

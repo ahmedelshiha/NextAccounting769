@@ -216,7 +216,7 @@ export function InvitationSettings({
           </div>
 
           <div className="space-y-3 border-t pt-4">
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
               <Label htmlFor="require-email">Require Email</Label>
               <Switch
                 id="require-email"
@@ -226,7 +226,7 @@ export function InvitationSettings({
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
               <Label htmlFor="allow-multiple">Allow Multiple Invites for Same Email</Label>
               <Switch
                 id="allow-multiple"
@@ -236,7 +236,7 @@ export function InvitationSettings({
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 border rounded">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
               <Label htmlFor="notify-email">Send Notification Email</Label>
               <Switch
                 id="notify-email"
@@ -258,7 +258,7 @@ export function InvitationSettings({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-3 border rounded">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
             <Label htmlFor="enable-signup">Enable Public Sign-Up</Label>
             <Switch
               id="enable-signup"
@@ -301,7 +301,7 @@ export function InvitationSettings({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 border rounded">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
                 <Label htmlFor="require-approval">Require Admin Approval</Label>
                 <Switch
                   id="require-approval"
@@ -333,7 +333,7 @@ export function InvitationSettings({
       {/* Domain-Based Auto-Assignment */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <CardTitle>Domain-Based Auto-Assignment</CardTitle>
               <CardDescription>
@@ -367,7 +367,7 @@ export function InvitationSettings({
             ) : (
               <div className="space-y-2">
                 {config.domainAutoAssign.rules.map((rule, idx) => (
-                  <div key={idx} className="p-3 border rounded flex items-start justify-between">
+                  <div key={idx} className="p-3 border rounded flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <div className="flex-1">
                       <p className="font-semibold text-sm">@{rule.emailDomain}</p>
                       <p className="text-sm text-gray-600">

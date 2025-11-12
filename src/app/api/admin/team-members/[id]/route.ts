@@ -4,7 +4,7 @@ import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import { hasPermission, PERMISSIONS } from '@/lib/permissions'
 
-export const PUT = withTenantContext(async (request: Request, context: any) => {
+const updateTeamMember = async (request: Request, context: any) => {
   const ctx = requireTenantContext()
   const role = ctx.role ?? undefined
   if (!hasPermission(role, PERMISSIONS.TEAM_MANAGE)) {
@@ -15,15 +15,18 @@ export const PUT = withTenantContext(async (request: Request, context: any) => {
     const id = params.id
     const body = await request.json().catch(() => ({}))
     const updates: any = {}
-    const allowed = ['name', 'email', 'role', 'department', 'title', 'status', 'isAvailable', 'userId', 'workingHours', 'specialties']
+    const allowed = ['name', 'email', 'role', 'department', 'title', 'status', 'isAvailable', 'userId', 'workingHours', 'specialties', 'phone', 'certifications', 'availability', 'notes']
     for (const k of allowed) if (k in body) updates[k] = (body as any)[k]
     const updated = await prisma.teamMember.update({ where: { id }, data: updates as any })
-    return NextResponse.json({ teamMember: updated })
+    return NextResponse.json(updated)
   } catch (err) {
-    console.error('PUT /api/admin/team-members/[id] error', err)
+    console.error('Update /api/admin/team-members/[id] error', err)
     return NextResponse.json({ error: 'Failed to update' }, { status: 500 })
   }
-})
+}
+
+export const PUT = withTenantContext(updateTeamMember)
+export const PATCH = withTenantContext(updateTeamMember)
 
 export const DELETE = withTenantContext(async (request: Request, context: any) => {
   const ctx = requireTenantContext()

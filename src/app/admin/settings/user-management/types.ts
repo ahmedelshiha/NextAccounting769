@@ -276,6 +276,92 @@ export interface InvitationConfig {
   }
 }
 
+// ============== Client Entity Settings ==============
+
+export interface ClientEntitySettings {
+  registration: {
+    requireAccount?: boolean
+    emailVerification?: boolean
+    duplicateCheck?: 'none' | 'email' | 'email+phone'
+    collectAddress?: boolean
+  }
+  profiles: {
+    fields?: Array<{
+      key: string
+      label: string
+      type: 'text' | 'email' | 'phone' | 'date' | 'number'
+      required?: boolean
+      visibleInPortal?: boolean
+      editableByClient?: boolean
+    }>
+  }
+  communication: {
+    emailOptInDefault?: boolean
+    smsOptInDefault?: boolean
+    preferredChannel?: 'email' | 'sms' | 'none'
+    marketingOptInDefault?: boolean
+  }
+  segmentation: {
+    tags?: string[]
+    autoSegments?: Array<{
+      name: string
+      rule: string
+      active?: boolean
+    }>
+  }
+  loyalty: {
+    enabled?: boolean
+    pointsPerDollar?: number
+    tiers?: Array<{
+      tier: string
+      minPoints: number
+    }>
+  }
+  portal: {
+    allowDocumentUpload?: boolean
+    allowInvoiceView?: boolean
+    allowPaymentHistory?: boolean
+    language?: string
+    timezone?: string
+  }
+}
+
+// ============== Team Entity Settings ==============
+
+export interface TeamEntitySettings {
+  structure: {
+    orgUnits?: Array<{
+      id?: string
+      name: string
+      parentId?: string | null
+      leadUserId?: string | null
+    }>
+  }
+  availability: {
+    allowFlexibleHours?: boolean
+    minimumHoursNotice?: number
+    defaultWorkingHours?: {
+      timezone?: string
+    }
+  }
+  skills: {
+    skills?: Array<{
+      key: string
+      name: string
+      weight?: number
+    }>
+  }
+  workload: {
+    autoAssignStrategy?: 'ROUND_ROBIN' | 'LEAST_WORKLOAD' | 'SKILL_MATCH' | 'MANUAL'
+    maxConcurrentAssignments?: number
+    considerAvailability?: boolean
+  }
+  performance: {
+    enableMetrics?: boolean
+    metricsWindowDays?: number
+  }
+}
+
 // ============== Complete Settings Type ==============
 
 export interface UserManagementSettings {
@@ -286,6 +372,10 @@ export interface UserManagementSettings {
   rateLimits: RateLimitConfig
   sessions: SessionConfig
   invitations: InvitationConfig
+  entities?: {
+    clients?: ClientEntitySettings
+    teams?: TeamEntitySettings
+  }
   lastUpdatedAt: Date
   lastUpdatedBy: string
 }

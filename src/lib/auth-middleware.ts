@@ -1,50 +1,327 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 
 /**
- * requireAuth: Ensures a valid session exists and (optionally) the user has one of the allowed roles.
- * - On failure, returns a NextResponse with 401/403. Callers should `return resp` if a NextResponse is returned.
- * - On success, returns the session object.
+ * User context attached to request
  */
-export async function requireAuth(roles: string[] = []) {
-  if (String(process.env.AUTH_DISABLED || '').toLowerCase() === 'true') {
-    // Return a permissive mock session in disabled mode
-    return {
-      user: { id: 'public', role: 'ADMIN', name: 'Preview Admin', email: 'preview@local' }
-    } as any
-  }
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Optional enforcement: require admin accounts to have 2FA enabled/verified
-  // Toggle via env var ENFORCE_ORG_2FA=1 to enable; keeps default behavior unchanged.
-  try {
-    const enforce2fa = String(process.env.ENFORCE_ORG_2FA || '').toLowerCase() === '1' || String(process.env.ENFORCE_ORG_2FA || '').toLowerCase() === 'true'
-    const role = (session.user as any)?.role as string | undefined
-    if (enforce2fa && role && role.toUpperCase() === 'ADMIN') {
-      const userFlags = session.user as any
-      // check either twoFactorVerified or twoFactorEnabled or similar flags if present
-      const has2fa = Boolean(userFlags.twoFactorVerified || userFlags.twoFactorEnabled || userFlags.mfaEnabled)
-      if (!has2fa) {
-        return NextResponse.json({ error: 'Two-factor authentication required for admin access' }, { status: 403 })
-      }
-    }
-  } catch (e) {
-    // fail open
-  }
-
-  if (roles.length > 0) {
-    const role = (session.user as any)?.role as string | undefined
-    if (!role || !roles.includes(role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-  }
-  return session
+export interface AuthenticatedRequest extends NextRequest {
+  userId: string
+  tenantId: string
+  userRole: string
+  userEmail: string
 }
 
-export function isResponse(x: unknown): x is Response {
-  return typeof x === 'object' && x !== null && 'body' in (x as any) && 'headers' in (x as any) && 'ok' in (x as any)
+/**
+ * Middleware response type
+ */
+type MiddlewareHandler = (request: AuthenticatedRequest, context?: any) => Promise<NextResponse>
+
+/**
+ * Role type
+ */
+type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'TEAM_LEAD' | 'TEAM_MEMBER' | 'STAFF' | 'CLIENT'
+
+/**
+ * Wraps an API handler with admin authentication check
+ * 
+ * @param handler - The API route handler to wrap
+ * @param requiredRoles - Optional array of required roles (defaults to ['ADMIN', 'SUPER_ADMIN'])
+ * @returns Wrapped handler with authentication
+ * 
+ * @example
+ * export const POST = withAdminAuth(async (request) => {
+ *   // request has userId, tenantId, userRole, userEmail available
+ *   const data = await request.json()
+ *   // ... handle request
+ *   return NextResponse.json({ success: true })
+ * })
+ */
+export function withAdminAuth(
+  handler: MiddlewareHandler,
+  requiredRoles: UserRole[] = ['ADMIN', 'SUPER_ADMIN']
+) {
+  return async (request: NextRequest, context?: any) => {
+    try {
+      // Get session
+      const session = await getServerSession(authOptions)
+
+      if (!session?.user?.id) {
+        return NextResponse.json(
+          { error: 'Unauthorized: No session found' },
+          { status: 401 }
+        )
+      }
+
+      // Get user from database
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          tenantId: true,
+          role: true,
+          email: true,
+        },
+      })
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Unauthorized: User not found' },
+          { status: 401 }
+        )
+      }
+
+      // Check role authorization
+      if (!requiredRoles.includes(user.role as UserRole)) {
+        return NextResponse.json(
+          {
+            error: `Forbidden: Requires one of ${requiredRoles.join(', ')} role`,
+            requiredRoles,
+            userRole: user.role,
+          },
+          { status: 403 }
+        )
+      }
+
+      // Attach user context to request
+      const authenticatedRequest = request as AuthenticatedRequest
+      authenticatedRequest.userId = user.id
+      authenticatedRequest.tenantId = user.tenantId
+      authenticatedRequest.userRole = user.role
+      authenticatedRequest.userEmail = user.email
+
+      // Call the actual handler
+      return await handler(authenticatedRequest, context)
+    } catch (error) {
+      console.error('Auth middleware error:', error)
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
+    }
+  }
+}
+
+/**
+ * Wraps an API handler with permission-based authentication check
+ * 
+ * @param handler - The API route handler to wrap
+ * @param requiredPermissions - Array of required permissions
+ * @returns Wrapped handler with authentication and permission check
+ */
+export function withPermissionAuth(
+  handler: MiddlewareHandler,
+  requiredPermissions: string[] = []
+) {
+  return async (request: NextRequest, context?: any) => {
+    try {
+      // Get session
+      const session = await getServerSession(authOptions)
+
+      if (!session?.user?.id) {
+        return NextResponse.json(
+          { error: 'Unauthorized: No session found' },
+          { status: 401 }
+        )
+      }
+
+      // Get user from database with permissions
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          tenantId: true,
+          role: true,
+          email: true,
+          userPermissions: {
+            select: {
+              permission: true,
+            },
+          },
+        },
+      })
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Unauthorized: User not found' },
+          { status: 401 }
+        )
+      }
+
+      // Check permissions if required
+      if (requiredPermissions.length > 0) {
+        const userPermissions = user.userPermissions.map(p => p.permission)
+        const hasRequiredPermission = requiredPermissions.some(p => 
+          userPermissions.includes(p) || user.role === 'SUPER_ADMIN'
+        )
+
+        if (!hasRequiredPermission) {
+          return NextResponse.json(
+            {
+              error: 'Forbidden: Missing required permissions',
+              requiredPermissions,
+            },
+            { status: 403 }
+          )
+        }
+      }
+
+      // Attach user context to request
+      const authenticatedRequest = request as AuthenticatedRequest
+      authenticatedRequest.userId = user.id
+      authenticatedRequest.tenantId = user.tenantId
+      authenticatedRequest.userRole = user.role
+      authenticatedRequest.userEmail = user.email
+
+      // Call the actual handler
+      return await handler(authenticatedRequest, context)
+    } catch (error) {
+      console.error('Permission auth middleware error:', error)
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
+    }
+  }
+}
+
+/**
+ * Wraps an API handler with tenant isolation check
+ * Ensures user can only access their own tenant's data
+ * 
+ * @param handler - The API route handler to wrap
+ * @param requiredRoles - Optional array of required roles
+ * @returns Wrapped handler with tenant isolation
+ */
+export function withTenantAuth(
+  handler: MiddlewareHandler,
+  requiredRoles: UserRole[] = []
+) {
+  return async (request: NextRequest, context?: any) => {
+    try {
+      // Get session
+      const session = await getServerSession(authOptions)
+
+      if (!session?.user?.id) {
+        return NextResponse.json(
+          { error: 'Unauthorized: No session found' },
+          { status: 401 }
+        )
+      }
+
+      // Get tenant ID from request
+      const tenantIdHeader = request.headers.get('x-tenant-id')
+      const url = new URL(request.url)
+      const tenantIdQuery = url.searchParams.get('tenantId')
+      const requestedTenantId = tenantIdHeader || tenantIdQuery
+
+      if (!requestedTenantId) {
+        return NextResponse.json(
+          { error: 'Bad request: Tenant ID required' },
+          { status: 400 }
+        )
+      }
+
+      // Get user from database
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          tenantId: true,
+          role: true,
+          email: true,
+        },
+      })
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Unauthorized: User not found' },
+          { status: 401 }
+        )
+      }
+
+      // Check tenant isolation (except for SUPER_ADMIN)
+      if (user.role !== 'SUPER_ADMIN' && user.tenantId !== requestedTenantId) {
+        return NextResponse.json(
+          { error: 'Forbidden: Cannot access other tenant data' },
+          { status: 403 }
+        )
+      }
+
+      // Check role authorization if specified
+      if (requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRole)) {
+        return NextResponse.json(
+          {
+            error: `Forbidden: Requires one of ${requiredRoles.join(', ')} role`,
+            requiredRoles,
+            userRole: user.role,
+          },
+          { status: 403 }
+        )
+      }
+
+      // Attach user context to request
+      const authenticatedRequest = request as AuthenticatedRequest
+      authenticatedRequest.userId = user.id
+      authenticatedRequest.tenantId = user.tenantId
+      authenticatedRequest.userRole = user.role
+      authenticatedRequest.userEmail = user.email
+
+      // Call the actual handler
+      return await handler(authenticatedRequest, context)
+    } catch (error) {
+      console.error('Tenant auth middleware error:', error)
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
+    }
+  }
+}
+
+/**
+ * Wraps an API handler with public access (no auth required)
+ * Useful for public APIs that may optionally have user context
+ * 
+ * @param handler - The API route handler to wrap
+ * @returns Wrapped handler
+ */
+export function withPublicAuth(handler: MiddlewareHandler) {
+  return async (request: NextRequest, context?: any) => {
+    try {
+      // Try to get session, but don't fail if not found
+      const session = await getServerSession(authOptions)
+
+      if (session?.user?.id) {
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: {
+            id: true,
+            tenantId: true,
+            role: true,
+            email: true,
+          },
+        })
+
+        if (user) {
+          // Attach user context if authenticated
+          const authenticatedRequest = request as AuthenticatedRequest
+          authenticatedRequest.userId = user.id
+          authenticatedRequest.tenantId = user.tenantId
+          authenticatedRequest.userRole = user.role
+          authenticatedRequest.userEmail = user.email
+        }
+      }
+
+      // Call handler regardless of auth status
+      return await handler(request as AuthenticatedRequest, context)
+    } catch (error) {
+      console.error('Public auth middleware error:', error)
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
+    }
+  }
 }

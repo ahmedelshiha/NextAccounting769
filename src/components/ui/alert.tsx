@@ -18,4 +18,8 @@ export function AlertDescription({ children, className }: { children: React.Reac
   return <div className={`text-sm ${className || ''}`}>{children}</div>
 }
 
+export function AlertTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <h4 className={`font-semibold ${className || ''}`}>{children}</h4>
+}
+
 export default Alert

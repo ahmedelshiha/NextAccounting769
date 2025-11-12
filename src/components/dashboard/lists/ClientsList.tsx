@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
 import FilterBar from '@/components/dashboard/FilterBar'
@@ -6,6 +6,10 @@ import AdvancedDataTable from '@/components/dashboard/tables/AdvancedDataTable'
 import type { Column, FilterConfig } from '@/types/dashboard'
 import { apiFetch } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n'
+import { hasRole } from '@/lib/permissions'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 interface UserRow {
   id: string | number
@@ -41,6 +45,10 @@ export default function ClientsList() {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<{ role?: string; status?: string; range?: string }>({})
   const [selectedIds, setSelectedIds] = useState<Array<string | number>>([])
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false)
+  const [selectedBulkRole, setSelectedBulkRole] = useState<string | null>(null)
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
+  const [selectedBulkStatus, setSelectedBulkStatus] = useState<string | null>(null)
 
   // Translate date range to dateFrom/dateTo
   const now = new Date()
@@ -97,23 +105,37 @@ export default function ClientsList() {
 
   const setRoleBulk = async () => {
     if (!selectedIds.length) return
-    const next = window.prompt(t('prompt.setRole'))?.toUpperCase()
-    if (!next || !['ADMIN','STAFF','CLIENT'].includes(next)) return
+    setSelectedBulkRole(null)
+    setIsRoleModalOpen(true)
+  }
+
+  const applyRoleBulk = async () => {
+    if (!selectedIds.length || !selectedBulkRole) return
+    const next = selectedBulkRole.toUpperCase()
+    if (!hasRole(next, ['ADMIN', 'STAFF', 'CLIENT'])) return
     for (const id of selectedIds) {
       await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: next }) })
     }
     setSelectedIds([])
+    setIsRoleModalOpen(false)
     await mutate()
   }
 
   const setStatusBulk = async () => {
     if (!selectedIds.length) return
-    const next = window.prompt(t('prompt.setStatus.users'))?.toUpperCase()
+    setSelectedBulkStatus(null)
+    setIsStatusModalOpen(true)
+  }
+
+  const applyStatusBulk = async () => {
+    if (!selectedIds.length || !selectedBulkStatus) return
+    const next = selectedBulkStatus.toUpperCase()
     if (!next || !['ACTIVE','INACTIVE','SUSPENDED'].includes(next)) return
     for (const id of selectedIds) {
       await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) })
     }
     setSelectedIds([])
+    setIsStatusModalOpen(false)
     await mutate()
   }
 
@@ -156,6 +178,62 @@ export default function ClientsList() {
           </div>
         </div>
       )}
+
+      {/* Role modal */}
+      <Dialog open={isRoleModalOpen} onOpenChange={setIsRoleModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('dashboard.setRole')}</DialogTitle>
+            <DialogDescription>{t('dashboard.setRoleConfirm', { count: selectedIds.length })}</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4">
+            <Select value={selectedBulkRole || undefined} onValueChange={(v) => setSelectedBulkRole(v || null)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('common.selectRole')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="STAFF">Staff</SelectItem>
+                <SelectItem value="CLIENT">Client</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRoleModalOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={applyRoleBulk} disabled={!selectedBulkRole}>{t('common.apply')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status modal */}
+      <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('dashboard.setStatus')}</DialogTitle>
+            <DialogDescription>{t('dashboard.setStatusConfirm', { count: selectedIds.length })}</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4">
+            <Select value={selectedBulkStatus || undefined} onValueChange={(v) => setSelectedBulkStatus(v || null)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('common.selectStatus')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={applyStatusBulk} disabled={!selectedBulkStatus}>{t('common.apply')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

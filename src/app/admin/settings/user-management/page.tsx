@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,7 +15,9 @@ import {
   UserPolicies,
   RateLimiting,
   SessionManagement,
-  InvitationSettings
+  InvitationSettings,
+  ClientEntitySettings,
+  TeamEntitySettings
 } from './components'
 
 /**
@@ -28,11 +31,22 @@ import {
  * - API rate limiting
  * - Session management
  * - Invitation and signup settings
+ * - Client entity settings
+ * - Team entity settings
  */
 
 export default function UserManagementSettingsPage() {
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('roles')
   const { settings, isLoading, isSaving, error, fetchSettings, updateSettings } = useUserManagementSettings()
+
+  // Initialize tab from URL query parameter
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
 
   if (error && !settings) {
     return (
@@ -71,36 +85,54 @@ export default function UserManagementSettingsPage() {
 
         {/* Settings Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 gap-2 mb-6 h-auto">
-            <TabsTrigger value="roles" className="flex items-center gap-1">
-              <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Roles</span>
-            </TabsTrigger>
-            <TabsTrigger value="permissions" className="flex items-center gap-1">
-              <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Templates</span>
-            </TabsTrigger>
-            <TabsTrigger value="onboarding" className="flex items-center gap-1">
-              <Workflow className="h-4 w-4" />
-              <span className="hidden sm:inline">Onboarding</span>
-            </TabsTrigger>
-            <TabsTrigger value="policies" className="flex items-center gap-1">
-              <AlertCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Policies</span>
-            </TabsTrigger>
-            <TabsTrigger value="rate-limits" className="flex items-center gap-1">
-              <Zap className="h-4 w-4" />
-              <span className="hidden sm:inline">Limits</span>
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">Sessions</span>
-            </TabsTrigger>
-            <TabsTrigger value="invitations" className="flex items-center gap-1">
-              <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Invites</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="mb-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">User System Settings</h3>
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 gap-2 h-auto">
+                <TabsTrigger value="roles" className="flex items-center gap-1">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Roles</span>
+                </TabsTrigger>
+                <TabsTrigger value="permissions" className="flex items-center gap-1">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Templates</span>
+                </TabsTrigger>
+                <TabsTrigger value="onboarding" className="flex items-center gap-1">
+                  <Workflow className="h-4 w-4" />
+                  <span className="hidden sm:inline">Onboarding</span>
+                </TabsTrigger>
+                <TabsTrigger value="policies" className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">Policies</span>
+                </TabsTrigger>
+                <TabsTrigger value="rate-limits" className="flex items-center gap-1">
+                  <Zap className="h-4 w-4" />
+                  <span className="hidden sm:inline">Limits</span>
+                </TabsTrigger>
+                <TabsTrigger value="sessions" className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sessions</span>
+                </TabsTrigger>
+                <TabsTrigger value="invitations" className="flex items-center gap-1">
+                  <Mail className="h-4 w-4" />
+                  <span className="hidden sm:inline">Invites</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Entity Settings</h3>
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3 gap-2 h-auto">
+                <TabsTrigger value="client-settings" className="flex items-center gap-1">
+                  <span>🏢</span>
+                  <span className="hidden sm:inline">Clients</span>
+                </TabsTrigger>
+                <TabsTrigger value="team-settings" className="flex items-center gap-1">
+                  <span>👥</span>
+                  <span className="hidden sm:inline">Teams</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
 
           {/* Role Management Tab */}
           <TabsContent value="roles">
@@ -198,6 +230,48 @@ export default function UserManagementSettingsPage() {
                 }}
               />
             )}
+          </TabsContent>
+
+          {/* Client Entity Settings Tab */}
+          <TabsContent value="client-settings">
+            <ClientEntitySettings
+              isLoading={isLoading}
+              isSaving={isSaving}
+              onUpdate={async (updates) => {
+                try {
+                  const response = await fetch('/api/admin/client-settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates),
+                  })
+                  if (!response.ok) throw new Error('Failed to update client settings')
+                } catch (error) {
+                  console.error('Error updating client settings:', error)
+                  throw error
+                }
+              }}
+            />
+          </TabsContent>
+
+          {/* Team Entity Settings Tab */}
+          <TabsContent value="team-settings">
+            <TeamEntitySettings
+              isLoading={isLoading}
+              isSaving={isSaving}
+              onUpdate={async (updates) => {
+                try {
+                  const response = await fetch('/api/admin/team-settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates),
+                  })
+                  if (!response.ok) throw new Error('Failed to update team settings')
+                } catch (error) {
+                  console.error('Error updating team settings:', error)
+                  throw error
+                }
+              }}
+            />
           </TabsContent>
         </Tabs>
 

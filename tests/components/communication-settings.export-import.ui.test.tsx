@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, waitFor, fireEvent } from '@testing-library/react'
+import { render, waitFor, fireEvent, screen } from '@testing-library/react'
+vi.mock('@/components/PermissionGate', () => ({ __esModule: true, default: ({ children }: any) => <>{children}</>, PermissionGate: ({ children }: any) => <>{children}</> }))
 import CommunicationSettingsPage from '@/app/admin/settings/communication/page'
 
 vi.mock('next-auth/next', () => ({ getServerSession: vi.fn(async () => ({ user: { id: 'admin1', role: 'ADMIN' } })) }))
@@ -8,6 +9,11 @@ vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 const originalFetch = global.fetch as any
 
 beforeEach(() => {
+  // Stub URL.createObjectURL for jsdom environment without clobbering URL constructor
+  ;(window as any).URL = (window as any).URL || (global as any).URL
+  ;(window as any).URL.createObjectURL = vi.fn(() => 'blob:mock')
+  ;(window as any).HTMLAnchorElement = (window as any).HTMLAnchorElement || (global as any).HTMLAnchorElement
+  if ((window as any).HTMLAnchorElement) { (window as any).HTMLAnchorElement.prototype.click = vi.fn() }
   global.fetch = vi.fn(async (url: any, opts: any) => {
     const u = String(url)
     if (u.endsWith('/api/admin/communication-settings') && (!opts || opts.method === 'GET')) {
@@ -43,20 +49,18 @@ describe('Communication Settings Export/Import UI', () => {
     fireEvent.click(getByText('Export') as any)
     await waitFor(() => expect((global.fetch as any).mock.calls.some((c: any[]) => String(c[0]).endsWith('/api/admin/communication-settings/export'))).toBe(true))
 
-    const importButtons = container.querySelectorAll('button')
-    const importButton = Array.from(importButtons).find(btn => btn.textContent === 'Import' && !btn.disabled)
-    fireEvent.click(importButton as any)
-    await waitFor(() => getByText('Import Communication Settings'))
+    const importButtons = Array.from(screen.getAllByText('Import'))
+    fireEvent.click(importButtons[0] as any)
+    await waitFor(() => screen.getByText('Import Communication Settings'))
 
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const file = new File([JSON.stringify({ settings: { email: {} } })], 'communication.json', { type: 'application/json' })
     const dt = { files: [file] } as any
     fireEvent.change(input, dt)
 
     // Find the confirm Import button (should be in the modal/dialog)
-    const confirmButtons = container.querySelectorAll('button')
-    const confirmImport = Array.from(confirmButtons).find(btn => btn.textContent === 'Import' && !btn.hasAttribute('disabled'))
-    fireEvent.click(confirmImport as any)
+    const confirmButtons = Array.from(screen.getAllByText('Import'))
+    fireEvent.click(confirmButtons[confirmButtons.length - 1] as any)
     await waitFor(() => expect((global.fetch as any).mock.calls.some((c: any[]) => String(c[0]).endsWith('/api/admin/communication-settings/import'))).toBe(true))
   })
 })

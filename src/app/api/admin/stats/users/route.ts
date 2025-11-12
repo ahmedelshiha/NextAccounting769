@@ -23,9 +23,9 @@ interface UserStatsResponse {
     name: string | null
     email: string
     bookingsCount: number
-    createdAt: Date
+    createdAt: Date | string
   }>
-  range: { range?: string; newUsers?: number; growth?: number }
+  range?: { range?: string; newUsers?: number; growth?: number }
 }
 
 export const GET = withTenantContext(async (request: NextRequest) => {
@@ -39,8 +39,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
     const { searchParams } = new URL(request.url)
     const tenantId = ctx.tenantId
     const rangeParam = (searchParams.get('range') || '').toLowerCase()
-    const days =
-      rangeParam === '7d' ? 7 : rangeParam === '30d' ? 30 : rangeParam === '90d' ? 90 : rangeParam === '1y' ? 365 : 0
+    const days = rangeParam === '7d' ? 7 : rangeParam === '30d' ? 30 : rangeParam === '90d' ? 90 : rangeParam === '1y' ? 365 : 0
 
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -48,8 +47,11 @@ export const GET = withTenantContext(async (request: NextRequest) => {
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
 
-    // Parallelize all database queries for better performance
-    const [allUsers, topClientsData, registrationByMonth, recentActiveUsersCount, rangedStats] = await Promise.all([
+    // Parallelize all database queries for better performance with timeout resilience
+    let timeoutId: NodeJS.Timeout | null = null
+    const queryCompleted = { value: false }
+
+    const statsPromise = Promise.all([
       // Get all users with role aggregation (single query)
       prisma.user.groupBy({
         by: ['role'],
@@ -108,7 +110,26 @@ export const GET = withTenantContext(async (request: NextRequest) => {
             })
           ])
         : Promise.resolve([0, 0])
-    ])
+    ]).then(([allUsers, topClientsData, registrationByMonth, recentActiveUsersCount, rangedStats]) => {
+      queryCompleted.value = true
+      if (timeoutId) clearTimeout(timeoutId)
+      return { allUsers, topClientsData, registrationByMonth, recentActiveUsersCount, rangedStats }
+    }).catch(err => {
+      queryCompleted.value = true
+      if (timeoutId) clearTimeout(timeoutId)
+      throw err
+    })
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        if (!queryCompleted.value) {
+          reject(new Error('Stats query timeout after 8 seconds'))
+        }
+      }, 8000)
+    })
+
+    const { allUsers, topClientsData, registrationByMonth, recentActiveUsersCount, rangedStats } =
+      await Promise.race([statsPromise, timeoutPromise])
 
     // Calculate aggregated role counts
     const roleCounts = allUsers.reduce(
@@ -183,7 +204,9 @@ export const GET = withTenantContext(async (request: NextRequest) => {
       range: ranged
     }
 
-    return NextResponse.json(response)
+    return NextResponse.json(response, {
+      headers: { 'Cache-Control': 'private, max-age=120' }
+    })
   } catch (error) {
     console.error('Error fetching user statistics:', error)
     const emptyResponse: UserStatsResponse = {

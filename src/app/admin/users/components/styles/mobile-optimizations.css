@@ -1,0 +1,81 @@
+/* Mobile optimization styles for users table and filters */
+
+@media (max-width: 767px) {
+  /* Optimize table for mobile */
+  .users-table {
+    font-size: 14px;
+  }
+
+  .users-table thead {
+    font-size: 12px;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 8px 4px;
+  }
+
+  /* Optimize filter bar for mobile */
+  .filter-bar {
+    padding: 12px 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-input {
+    min-height: 36px;
+  }
+
+  /* Optimize filter buttons */
+  .filter-button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  /* Optimize header for mobile */
+  .directory-header {
+    padding: 12px 8px;
+  }
+
+  /* Make dialogs full width on mobile */
+  .user-profile-dialog {
+    max-width: 100%;
+  }
+
+  /* Optimize spacing */
+  .mobile-filter-bar {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  /* Improve touch targets */
+  button {
+    min-height: 44px;
+  }
+
+  /* Optimize selection controls */
+  .selection-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small devices */
+  .users-table {
+    font-size: 12px;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 6px 2px;
+  }
+
+  .filter-button {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .directory-header {
+    padding: 8px;
+  }
+}

@@ -154,7 +154,7 @@ export function MenuCustomizationModal({ isOpen, onClose }: MenuCustomizationMod
   if (!isEnabledForCurrentUser || !isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="presentation" onClick={handleBackdropClick} aria-hidden="true">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleBackdropClick}>
       <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden flex flex-col max-h-[85vh]" role="dialog" aria-labelledby="menu-modal-title" aria-modal="true">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">

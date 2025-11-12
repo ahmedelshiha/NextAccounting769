@@ -40,9 +40,17 @@ import {
   EyeOff,
   FileText,
   Clock,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { useSession } from 'next-auth/react'
+import { toast } from 'sonner'
+import { globalEventEmitter } from '@/lib/event-emitter'
+import { AuditLoggingService, AuditActionType, AuditSeverity } from '@/services/audit-logging.service'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import PermissionTemplatesTab, { PermissionTemplate } from './PermissionTemplatesTab'
 import SmartSuggestionsPanel from './SmartSuggestionsPanel'
 import ImpactPreviewPanel from './ImpactPreviewPanel'
@@ -51,17 +59,29 @@ import ImpactPreviewPanel from './ImpactPreviewPanel'
  * Props for the UnifiedPermissionModal component
  */
 export interface UnifiedPermissionModalProps {
-  mode: 'user' | 'role' | 'bulk-users'
+  mode: 'user' | 'role' | 'bulk-users' | 'role-create' | 'role-edit'
   targetId: string | string[]
   currentRole?: string
   currentPermissions?: Permission[]
-  onSave: (changes: PermissionChangeSet) => Promise<void>
+  onSave: (changes: PermissionChangeSet | RoleFormData) => Promise<void>
   onClose: () => void
   showTemplates?: boolean
   showHistory?: boolean
   allowCustomPermissions?: boolean
   targetName?: string
   targetEmail?: string
+  /** For role creation/editing */
+  roleData?: RoleFormData
+}
+
+/**
+ * Role form data for role creation/editing
+ */
+export interface RoleFormData {
+  id?: string
+  name: string
+  description: string
+  permissions: Permission[]
 }
 
 /**
@@ -104,13 +124,23 @@ export default function UnifiedPermissionModal({
   allowCustomPermissions = true,
   targetName,
   targetEmail,
+  roleData,
 }: UnifiedPermissionModalProps) {
   // Responsive behavior: use sheet on mobile, dialog on desktop
   const isMobile = useMediaQuery('(max-width: 768px)')
-  
+  const { data: session } = useSession()
+
+  // Determine if this is a role creation/editing mode
+  const isRoleForm = mode === 'role-create' || mode === 'role-edit'
+
+  // Role form state
+  const [roleName, setRoleName] = useState(roleData?.name || '')
+  const [roleDescription, setRoleDescription] = useState(roleData?.description || '')
+
+  // Permission management state
   const [activeTab, setActiveTab] = useState<TabType>('role')
   const [selectedRole, setSelectedRole] = useState(currentRole)
-  const [selectedPermissions, setSelectedPermissions] = useState<Permission[]>(currentPermissions)
+  const [selectedPermissions, setSelectedPermissions] = useState<Permission[]>(roleData?.permissions || currentPermissions)
   const [searchQuery, setSearchQuery] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [changeHistory, setChangeHistory] = useState<PermissionChangeSet[]>([])
@@ -247,9 +277,105 @@ export default function UnifiedPermissionModal({
   }, [currentRole, currentPermissions])
 
   /**
+   * Validate role form
+   */
+  const validateRoleForm = (): boolean => {
+    if (!roleName.trim()) {
+      setSaveError('Role name is required')
+      return false
+    }
+    if (!roleDescription.trim()) {
+      setSaveError('Role description is required')
+      return false
+    }
+    if (selectedPermissions.length === 0) {
+      setSaveError('At least one permission must be assigned')
+      return false
+    }
+    return true
+  }
+
+  /**
    * Handle save
    */
   const handleSave = useCallback(async () => {
+    // Handle role creation/editing
+    if (isRoleForm) {
+      if (!validateRoleForm()) return
+
+      setIsSaving(true)
+      setSaveError(null)
+
+      try {
+        const roleFormData: RoleFormData = {
+          id: roleData?.id,
+          name: roleName,
+          description: roleDescription,
+          permissions: selectedPermissions,
+        }
+
+        // Log audit event
+        const userId = (session?.user as any)?.id || 'unknown'
+        const tenantId = (session?.user as any)?.tenantId || 'unknown'
+
+        if (mode === 'role-create') {
+          await AuditLoggingService.logAuditEvent({
+            action: AuditActionType.ROLE_CREATED,
+            severity: AuditSeverity.INFO,
+            userId,
+            tenantId,
+            targetResourceId: roleData?.id || 'new',
+            targetResourceType: 'ROLE',
+            description: `Created role: ${roleName}`,
+            changes: {
+              name: roleName,
+              description: roleDescription,
+              permissions: selectedPermissions,
+            },
+          })
+
+          globalEventEmitter.emit('role:created', {
+            name: roleName,
+            description: roleDescription,
+            permissions: selectedPermissions,
+            timestamp: Date.now(),
+          })
+        } else {
+          await AuditLoggingService.logAuditEvent({
+            action: AuditActionType.ROLE_UPDATED,
+            severity: AuditSeverity.INFO,
+            userId,
+            tenantId,
+            targetResourceId: roleData?.id,
+            targetResourceType: 'ROLE',
+            description: `Updated role: ${roleName}`,
+            changes: {
+              name: roleName,
+              description: roleDescription,
+              permissions: selectedPermissions,
+            },
+          })
+
+          globalEventEmitter.emit('role:updated', {
+            roleId: roleData?.id,
+            name: roleName,
+            description: roleDescription,
+            permissions: selectedPermissions,
+            timestamp: Date.now(),
+          })
+        }
+
+        await onSave(roleFormData)
+        onClose()
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : 'Failed to save role')
+      } finally {
+        setIsSaving(false)
+      }
+      return
+    }
+
+    // Handle permission assignment for users/roles
     if (!validation.isValid) {
       setSaveError('Please resolve validation errors before saving')
       return
@@ -261,7 +387,7 @@ export default function UnifiedPermissionModal({
     try {
       const changeSet: PermissionChangeSet = {
         targetIds: Array.isArray(targetId) ? targetId : [targetId],
-        roleChange: selectedRole !== currentRole 
+        roleChange: selectedRole !== currentRole
           ? { from: currentRole!, to: selectedRole! }
           : undefined,
         permissionChanges: changeCount > 0
@@ -279,7 +405,7 @@ export default function UnifiedPermissionModal({
     } finally {
       setIsSaving(false)
     }
-  }, [validation.isValid, targetId, selectedRole, currentRole, changeCount, changes.added, changes.removed, onSave, onClose])
+  }, [isRoleForm, validation.isValid, targetId, selectedRole, currentRole, changeCount, changes.added, changes.removed, onSave, onClose, roleName, roleDescription, selectedPermissions, roleData, mode, session])
 
   // Get display name
   const displayName = targetName || (Array.isArray(targetId) ? `${targetId.length} users` : targetId)
@@ -291,12 +417,18 @@ export default function UnifiedPermissionModal({
         'font-semibold',
         isMobile ? 'text-lg' : 'text-xl'
       )}>
-        {mode === 'bulk-users' 
-          ? `Manage Permissions for ${displayName}`
-          : `Manage Permissions: ${displayName}`
+        {isRoleForm
+          ? (mode === 'role-create' ? 'Create New Role' : 'Edit Role')
+          : mode === 'bulk-users'
+            ? `Manage Permissions for ${displayName}`
+            : `Manage Permissions: ${displayName}`
         }
       </h2>
-      {targetEmail && (
+      {isRoleForm ? (
+        <p className="text-xs text-gray-600 mt-1">
+          {mode === 'role-create' ? 'Create a new role with specific permissions' : 'Update role information and permissions'}
+        </p>
+      ) : targetEmail && (
         <p className="text-xs text-gray-600 mt-1">
           {targetEmail} • {currentRole || 'UNASSIGNED'}
         </p>
@@ -305,8 +437,8 @@ export default function UnifiedPermissionModal({
   )
 
   const tabsContent = (
-    <Tabs 
-      value={activeTab} 
+    <Tabs
+      value={activeTab}
       onValueChange={(value) => setActiveTab(value as TabType)}
       className={cn(
         'flex-1 overflow-hidden flex flex-col',
@@ -315,45 +447,78 @@ export default function UnifiedPermissionModal({
     >
       <TabsList className={cn(
         'grid rounded-none border-b h-auto bg-gray-50',
-        isMobile ? 'grid-cols-2 px-3' : 'grid-cols-4 px-6',
-        'w-full'
+        isMobile
+          ? (isRoleForm ? 'grid-cols-2' : 'grid-cols-2')
+          : (isRoleForm ? 'grid-cols-3' : 'grid-cols-4'),
+        'px-3 md:px-6 w-full'
       )}>
-        <TabsTrigger value="role" className="relative text-xs md:text-sm">
-          Role
-          {selectedRole !== currentRole && (
-            <Badge className="ml-1 md:ml-2 h-4 md:h-5 rounded px-1 text-xs" variant="secondary">
-              {changeCount}
-            </Badge>
-          )}
-        </TabsTrigger>
-        {allowCustomPermissions && (
-          <TabsTrigger value="custom" className="relative text-xs md:text-sm">
-            Perms
-            {changeCount > 0 && selectedRole === currentRole && (
-              <Badge className="ml-1 md:ml-2 h-4 md:h-5 rounded px-1 text-xs" variant="secondary">
-                {changeCount}
-              </Badge>
+        {isRoleForm ? (
+          <>
+            <TabsTrigger value="role" className="relative text-xs md:text-sm">
+              Details
+            </TabsTrigger>
+            <TabsTrigger value="custom" className="relative text-xs md:text-sm">
+              Permissions
+              {selectedPermissions.length > 0 && (
+                <Badge className="ml-1 md:ml-2 h-4 md:h-5 rounded px-1 text-xs" variant="secondary">
+                  {selectedPermissions.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            {!isMobile && (
+              <TabsTrigger value="templates" className="text-xs md:text-sm">Templates</TabsTrigger>
             )}
-          </TabsTrigger>
-        )}
-        {!isMobile && showTemplates && (
-          <TabsTrigger value="templates" className="text-xs md:text-sm">Templates</TabsTrigger>
-        )}
-        {!isMobile && showHistory && (
-          <TabsTrigger value="history" className="text-xs md:text-sm">History</TabsTrigger>
+          </>
+        ) : (
+          <>
+            <TabsTrigger value="role" className="relative text-xs md:text-sm">
+              Role
+              {selectedRole !== currentRole && (
+                <Badge className="ml-1 md:ml-2 h-4 md:h-5 rounded px-1 text-xs" variant="secondary">
+                  {changeCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            {allowCustomPermissions && (
+              <TabsTrigger value="custom" className="relative text-xs md:text-sm">
+                Perms
+                {changeCount > 0 && selectedRole === currentRole && (
+                  <Badge className="ml-1 md:ml-2 h-4 md:h-5 rounded px-1 text-xs" variant="secondary">
+                    {changeCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
+            {!isMobile && showTemplates && (
+              <TabsTrigger value="templates" className="text-xs md:text-sm">Templates</TabsTrigger>
+            )}
+            {!isMobile && showHistory && (
+              <TabsTrigger value="history" className="text-xs md:text-sm">History</TabsTrigger>
+            )}
+          </>
         )}
       </TabsList>
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         <TabsContent value="role" className="h-full p-0 data-[state=inactive]:hidden">
-          <RoleSelectionContent
-            selectedRole={selectedRole}
-            currentRole={currentRole}
-            onSelectRole={handleRoleChange}
-            changes={changes}
-            isMobile={isMobile}
-          />
+          {isRoleForm ? (
+            <RoleDetailsForm
+              roleName={roleName}
+              roleDescription={roleDescription}
+              onRoleNameChange={setRoleName}
+              onRoleDescriptionChange={setRoleDescription}
+              isMobile={isMobile}
+            />
+          ) : (
+            <RoleSelectionContent
+              selectedRole={selectedRole}
+              currentRole={currentRole}
+              onSelectRole={handleRoleChange}
+              changes={changes}
+              isMobile={isMobile}
+            />
+          )}
         </TabsContent>
 
         {allowCustomPermissions && (
@@ -448,7 +613,7 @@ export default function UnifiedPermissionModal({
       )}
 
       {/* Change Summary */}
-      {changeCount > 0 && (
+      {!isRoleForm && changeCount > 0 && (
         <div className="p-2 md:p-3 rounded-lg bg-blue-50 border border-blue-200">
           <p className="text-xs md:text-sm font-medium text-blue-900">
             {changeCount} permission{changeCount === 1 ? '' : 's'} will be changed
@@ -461,7 +626,7 @@ export default function UnifiedPermissionModal({
         'flex gap-2 pt-2',
         isMobile ? 'flex-col-reverse' : 'items-center justify-between'
       )}>
-        {!isMobile && (
+        {!isMobile && !isRoleForm && (
           <div className="flex gap-2">
             <Button
               variant="ghost"
@@ -499,14 +664,23 @@ export default function UnifiedPermissionModal({
           <Button
             variant="default"
             onClick={handleSave}
-            disabled={!validation.isValid || changeCount === 0 || isSaving}
+            disabled={isSaving || (isRoleForm ? false : (!validation.isValid || changeCount === 0))}
             className={cn(
               'gap-2',
               isMobile ? 'flex-1' : ''
             )}
           >
-            <Save className="h-4 w-4" />
-            {isMobile ? 'Save' : isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {isMobile ? 'Saving...' : `${mode === 'role-create' ? 'Creating...' : 'Updating...'}`}
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                {isMobile ? 'Save' : isRoleForm ? (mode === 'role-create' ? 'Create Role' : 'Update Role') : 'Save Changes'}
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -544,6 +718,61 @@ export default function UnifiedPermissionModal({
     </Dialog>
   )
 }
+
+/**
+ * Role Details Form Component (for role creation/editing)
+ */
+const RoleDetailsForm = memo(function RoleDetailsForm({
+  roleName,
+  roleDescription,
+  onRoleNameChange,
+  onRoleDescriptionChange,
+  isMobile,
+}: {
+  roleName: string
+  roleDescription: string
+  onRoleNameChange: (name: string) => void
+  onRoleDescriptionChange: (description: string) => void
+  isMobile: boolean
+}) {
+  return (
+    <div className="h-full overflow-y-auto p-4 md:p-6 bg-white">
+      <div className="space-y-4 md:space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="role-name" className="text-sm font-medium">Role Name *</Label>
+          <Input
+            id="role-name"
+            placeholder="e.g., Senior Accountant"
+            value={roleName}
+            onChange={(e) => onRoleNameChange(e.target.value)}
+            className="text-sm"
+          />
+          <p className="text-xs text-gray-500">This will be displayed to users when assigning roles</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="role-description" className="text-sm font-medium">Description *</Label>
+          <Textarea
+            id="role-description"
+            placeholder="Describe the purpose and responsibilities of this role"
+            value={roleDescription}
+            onChange={(e) => onRoleDescriptionChange(e.target.value)}
+            rows={4}
+            className="text-sm"
+          />
+          <p className="text-xs text-gray-500">Help administrators understand the purpose of this role</p>
+        </div>
+
+        <div className="p-3 md:p-4 rounded-lg bg-blue-50 border border-blue-200">
+          <p className="text-xs md:text-sm text-blue-900 font-medium mb-2">Next Step</p>
+          <p className="text-xs md:text-sm text-blue-800">
+            Switch to the &quot;Permissions&quot; tab to select which permissions this role should have.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+})
 
 /**
  * Role Selection Tab Content

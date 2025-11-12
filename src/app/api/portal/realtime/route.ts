@@ -14,20 +14,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
   const userId = String(ctx.userId ?? 'anon')
   const tenantId = ctx.tenantId
 
-  // Best-effort health log for observability
-  try {
-    const { default: prisma } = await import('@/lib/prisma')
-    if (tenantId) {
-      await prisma.healthLog
-        .create({
-          data: withTenant(
-            { service: 'portal:realtime', status: 'CONNECTED', message: `user:${userId} events:${eventTypes.join(',')}` },
-            tenantId
-          ),
-        })
-        .catch(() => null)
-    }
-  } catch {}
+
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -49,15 +36,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
         try {
           controller.close()
         } catch {}
-        // Log disconnect
-        try {
-          const { default: prisma } = await import('@/lib/prisma')
-          if (tenantId) {
-            await prisma.healthLog
-              .create({ data: withTenant({ service: 'portal:realtime', status: 'DISCONNECTED', message: `user:${userId}` }, tenantId) })
-              .catch(() => null)
-          }
-        } catch {}
+
       }
       request.signal.addEventListener('abort', onAbort)
     },

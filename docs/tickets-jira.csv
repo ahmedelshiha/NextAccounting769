@@ -1,0 +1,11 @@
+Summary,Issue Type,Description,Priority,Status,Labels,Epic Link,Components
+ENT-1: Entities & People management,Epic,"Core entity and people module with RBAC integration",High,To Do,epic;phase1,,
+TCK-1.1: Prisma migration — entities/registrations/economic_zones,Task,"Add tables + indexes; generate Prisma client; seed zones for UAE/KSA/EGY",High,In Progress,backend;db;phase1,ENT-1,Database
+TCK-1.2: Services layer for entities CRUD,Task,"Create src/services/entities with validation; unit tests",High,To Do,backend;service;phase1,ENT-1,API
+TCK-1.3: Admin UI for entities & people,Task,"Admin pages with guards; list/create/edit; reuse tables",Medium,To Do,frontend;admin;phase1,ENT-1,Frontend
+TCK-1.4: Invitations & 2FA,Task,"Invite flow, email templates, 2FA toggles in UserProfile",High,To Do,auth;security;phase1,ENT-1,Auth
+TCK-1.5: CSV bulk import,Task,"CSV upload + validate + background job + notifications",Medium,To Do,import;jobs;phase1,ENT-1,Backend
+ENT-1.1: Business Setup Wizard,Epic,"Modal wizard with tabs Existing/New/Individual; consent and idempotency",High,To Do,epic;wizard;phase1.1,ENT-1,Frontend
+ENT-1.2: Business Verification,Epic,"Async verification job + pending/success/error screens",High,To Do,epic;jobs;phase1.1B,ENT-1,Backend
+DASH-2: Unified Dashboard,Epic,"Mobile/desktop widgets parity; global search",High,To Do,epic;dashboard;phase2,,Frontend
+COMP-2.1: Upcoming Compliances,Epic,"Rules engine + list/detail + reminders",High,To Do,epic;compliance;phase2.1,,Backend

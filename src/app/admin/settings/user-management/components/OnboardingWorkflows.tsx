@@ -123,7 +123,7 @@ export function OnboardingWorkflows({
       {/* Welcome Email */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <Mail className="h-5 w-5" />
               <div>
@@ -167,7 +167,7 @@ export function OnboardingWorkflows({
       {/* Auto Assignment */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <Zap className="h-5 w-5" />
               <div>
@@ -205,7 +205,7 @@ export function OnboardingWorkflows({
       {/* Onboarding Checklist */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <CardTitle>Onboarding Checklist</CardTitle>
               <CardDescription>
@@ -224,7 +224,7 @@ export function OnboardingWorkflows({
             {config.checklist.items.length > 0 ? (
               <div className="space-y-2">
                 {config.checklist.items.map((item, idx) => (
-                  <div key={idx} className="p-3 border rounded flex items-start justify-between">
+                  <div key={idx} className="p-3 border rounded flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <div className="flex-1">
                       <p className="font-semibold text-sm">{item.title}</p>
                       {item.description && (
@@ -278,7 +278,7 @@ export function OnboardingWorkflows({
                 value: config.firstLogin.showTutorial
               }
             ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between p-2 border rounded">
+              <div key={item.label} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 border rounded">
                 <span className="text-sm font-medium">{item.label}</span>
                 <Badge variant={item.value ? 'default' : 'secondary'}>
                   {item.value ? 'Enabled' : 'Disabled'}

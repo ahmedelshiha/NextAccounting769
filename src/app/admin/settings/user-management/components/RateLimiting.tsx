@@ -311,7 +311,7 @@ export function RateLimiting({
           <CardTitle>Adaptive Throttling</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-3 border rounded">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded">
             <Label htmlFor="adaptive-throttling">Enable Adaptive Throttling During Peak Load</Label>
             <Switch
               id="adaptive-throttling"

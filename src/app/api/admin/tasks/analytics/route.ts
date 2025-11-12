@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { TaskStatus } from '@prisma/client'
 import { hasPermission, PERMISSIONS } from '@/lib/permissions'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
@@ -56,7 +57,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
     })
 
     const total = await prisma.task.count({ where: tenantFilter(tenantId) })
-    const completed = await prisma.task.count({ where: { ...(tenantFilter(tenantId) as any), status: 'DONE' as any } })
+    const completed = await prisma.task.count({ where: { ...tenantFilter(tenantId), status: TaskStatus.COMPLETED } })
 
     const byStatus = await prisma.task.groupBy({
       by: ['status'],
@@ -80,19 +81,19 @@ export const GET = withTenantContext(async (request: NextRequest) => {
       : 0
 
     const complianceTotal = await prisma.task.count({
-      where: { ...(tenantFilter(tenantId) as any), complianceRequired: true }
+      where: { ...tenantFilter(tenantId), complianceRequired: true }
     })
 
     const complianceCompleted = await prisma.complianceRecord.count({
       where: {
-        ...((tenantFilter(tenantId) as any)),
+        ...(tenantFilter(tenantId)),
         status: { equals: 'COMPLETED' }
       }
     })
 
     const completedRecords = await prisma.complianceRecord.findMany({
       where: {
-        ...(tenantFilter(tenantId) as any),
+        ...tenantFilter(tenantId),
         status: 'COMPLETED',
         completedAt: { not: null }
       },
@@ -109,12 +110,12 @@ export const GET = withTenantContext(async (request: NextRequest) => {
 
     const created = await prisma.task.findMany({
       select: { createdAt: true },
-      where: { ...(tenantFilter(tenantId) as any), createdAt: { gte: start } }
+      where: { ...tenantFilter(tenantId), createdAt: { gte: start } }
     })
 
     const dones = await prisma.task.findMany({
       select: { updatedAt: true },
-      where: { ...(tenantFilter(tenantId) as any), updatedAt: { gte: start }, status: 'DONE' as any }
+      where: { ...tenantFilter(tenantId), updatedAt: { gte: start }, status: TaskStatus.COMPLETED }
     })
 
     const dayKey = (d: Date) => d.toISOString().slice(0, 10)
@@ -128,7 +129,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
 
     const overdueCompliance = await prisma.task.count({
       where: {
-        ...(tenantFilter(tenantId) as any),
+        ...tenantFilter(tenantId),
         complianceRequired: true,
         complianceDeadline: { lt: now },
         NOT: { complianceRecords: { some: { status: 'COMPLETED' } } }

@@ -1,0 +1,202 @@
+/**
+ * AdminWorkBench Layout Styles
+ *
+ * Full-width responsive layout for the admin user management dashboard.
+ * Optimized for maximum horizontal space with KPI cards and user directory.
+ * Light theme color palette for production deployment.
+ *
+ * Color Palette:
+ * - Primary Blue Header: #1f55d4
+ * - White backgrounds: #ffffff
+ * - Light gray backgrounds: #f9fafb, #f3f4f6
+ * - Gray borders: #e5e7eb
+ * - Text primary: #111827
+ * - Text secondary: #6b7280
+ *
+ * Layout Structure:
+ * - Header: Sticky blue bar with quick actions
+ * - Main Content: Full-width flex layout
+ *   - KPI Cards: Responsive grid (5 columns desktop, 2 tablet, 1 mobile)
+ *   - Directory: User table with full remaining height
+ * - Footer: Sticky bulk actions panel (when users selected)
+ *
+ * Breakpoints:
+ * - Desktop (≥1400px): Full-width, 5-column KPI grid
+ * - Tablet (768px-1399px): Full-width, 2-column KPI grid, reduced padding
+ * - Mobile (<768px): Full-width, 1-column KPI grid, minimal padding
+ */
+
+/* ============================================================================
+   ROOT CONTAINER - Main Grid Layout
+   ============================================================================ */
+
+.admin-workbench-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ============================================================================
+   HEADER - Sticky Top
+   ============================================================================ */
+
+.admin-workbench-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: #1f55d4;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   MAIN CONTENT AREA - Flex Container (Full Width)
+   ============================================================================ */
+
+.admin-workbench-main {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   CONTENT - Main Area with KPI Cards + Directory
+   ============================================================================ */
+
+.admin-workbench-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   METRICS - KPI Cards Grid
+   ============================================================================ */
+
+.admin-workbench-metrics {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem;
+  flex-shrink: 0;
+  margin-bottom: 1rem;
+}
+
+/* ============================================================================
+   DIRECTORY - User List Section
+   ============================================================================ */
+
+.admin-workbench-directory {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Ensure table container takes full available space */
+.admin-workbench-directory > * {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================================
+   FOOTER - Sticky Bottom (Bulk Actions)
+   ============================================================================ */
+
+.admin-workbench-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   TABLET LAYOUT (768px - 1399px)
+   ============================================================================ */
+
+@media (max-width: 1399px) {
+  .admin-workbench-main {
+    padding: 1rem;
+  }
+
+  .admin-workbench-metrics {
+    padding: 1rem;
+  }
+}
+
+/* ============================================================================
+   MOBILE LAYOUT (<768px)
+   ============================================================================ */
+
+@media (max-width: 767px) {
+  .admin-workbench-container {
+    height: 100%;
+  }
+
+  .admin-workbench-main {
+    padding: 0.75rem;
+    flex-direction: column;
+  }
+
+  .admin-workbench-metrics {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* ============================================================================
+   SCROLLING & OVERFLOW BEHAVIOR
+   ============================================================================ */
+
+.admin-workbench-content {
+  /* Ensure proper scrolling context */
+  position: relative;
+}
+
+/* ============================================================================
+   LIGHT THEME COLORS (Always use light theme)
+   ============================================================================ */
+
+/* All components use light theme colors - no dark mode support for now */
+
+/* ============================================================================
+   ANIMATION & TRANSITIONS
+   ============================================================================ */
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-workbench-content,
+  .admin-workbench-metrics {
+    transition: none;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+.admin-workbench-container *:focus-visible {
+  outline: 2px solid #1f55d4;
+  outline-offset: 2px;
+}

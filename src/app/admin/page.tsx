@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { authOptions, getSessionOrBypass } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import AdminOverview from '@/components/admin/dashboard/AdminOverview'
+import { hasRole } from '@/lib/permissions'
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard Overview',
@@ -14,7 +15,7 @@ export default async function AdminOverviewPage() {
 
   const role = (session.user as any)?.role as string | undefined
   if (role === 'CLIENT') redirect('/portal')
-  if (!['ADMIN', 'TEAM_LEAD', 'SUPER_ADMIN', 'STAFF'].includes(role || '')) redirect('/admin/analytics')
+  if (!hasRole(role || '', ['ADMIN', 'TEAM_LEAD', 'SUPER_ADMIN', 'STAFF'])) redirect('/admin/analytics')
 
   // Hydrate initial KPI data server-side for faster first paint (do not throw on failures)
   let bookingsJson: any = null

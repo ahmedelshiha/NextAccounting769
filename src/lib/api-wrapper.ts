@@ -3,6 +3,7 @@ import { tenantContext, TenantContext } from '@/lib/tenant-context'
 import { logger } from '@/lib/logger'
 import { verifyTenantCookie } from '@/lib/tenant-cookie'
 import { incrementMetric } from '@/lib/observability-helpers'
+import { hasRole } from '@/lib/permissions'
 
 /**
  * Safely read a cookie value from NextRequest or a request-like object.
@@ -208,7 +209,7 @@ export function withTenantContext(
         )
       }
 
-      if (requireTenantAdmin && !['OWNER', 'ADMIN'].includes(user.tenantRole)) {
+      if (requireTenantAdmin && !hasRole(user.tenantRole, ['OWNER', 'ADMIN'])) {
         return attachRequestId(
           NextResponse.json(
             { error: 'Forbidden', message: 'Tenant admin access required' },
@@ -217,7 +218,7 @@ export function withTenantContext(
         )
       }
 
-      if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+      if (allowedRoles.length > 0 && !hasRole(user.role, allowedRoles)) {
         return attachRequestId(
           NextResponse.json(
             { error: 'Forbidden', message: 'Insufficient permissions' },
@@ -289,7 +290,7 @@ export function withTenantContext(
         userEmail: (user.email as string | undefined) ?? null,
         role: user.role ?? null,
         tenantRole: user.tenantRole ?? null,
-        isSuperAdmin: user.role === 'SUPER_ADMIN',
+        isSuperAdmin: (function(){ try{ return String(user.role).toUpperCase() === 'SUPER_ADMIN' }catch{return false}})(),
         requestId,
         timestamp: new Date(),
       }

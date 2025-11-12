@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toastFromResponse, toastError, toastSuccess } from '@/lib/toast-api'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 function formatDate(d: string) {
   try { return new Date(d).toLocaleString() } catch (e) { return d }
@@ -65,6 +66,16 @@ export default function CommentsPanel({ taskId }: { taskId: string }) {
     }
   }
 
+  const [isReplyOpen, setIsReplyOpen] = useState(false)
+  const [replyParent, setReplyParent] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+
+  const openReply = (parentId: string | null) => {
+    setReplyParent(parentId)
+    setReplyText('')
+    setIsReplyOpen(true)
+  }
+
   const renderThread = (parentId: string | null = null, level = 0) => {
     return comments.filter(c => (c.parentId || null) === parentId).map(c => (
       <div key={c.id} className={`mb-3 pl-${Math.min(level*4, 12)} border-l ${level===0? 'pl-0':''}`}>
@@ -77,17 +88,20 @@ export default function CommentsPanel({ taskId }: { taskId: string }) {
             ))}
           </div>
         )}
-        {/* Reply form (simple) */}
+        {/* Reply form (modal) */}
         <div className="mt-2 flex gap-2">
-          <button onClick={async () => {
-            const reply = prompt('Reply')
-            if (!reply) return
-            await postComment(c.id, reply)
-          }} className="text-xs text-blue-600">Reply</button>
+          <button onClick={() => openReply(c.id)} className="text-xs text-blue-600">Reply</button>
         </div>
         <div className="mt-3">{renderThread(c.id, level + 1)}</div>
       </div>
     ))
+  }
+
+  // Reply dialog
+  const submitReply = async () => {
+    if (!replyText?.trim()) return
+    await postComment(replyParent || undefined, replyText.trim())
+    setIsReplyOpen(false)
   }
 
   return (
@@ -105,6 +119,26 @@ export default function CommentsPanel({ taskId }: { taskId: string }) {
           <Button onClick={() => postComment(null)}>Post Comment</Button>
         </div>
       </div>
+
+      {/* Reply Dialog */}
+      <Dialog open={isReplyOpen} onOpenChange={setIsReplyOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reply</DialogTitle>
+            <DialogDescription>Write your reply</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4">
+            <Textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Your reply..." />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReplyOpen(false)}>Cancel</Button>
+            <Button onClick={submitReply} disabled={!replyText.trim()}>Send</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }

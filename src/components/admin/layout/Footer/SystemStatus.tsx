@@ -2,10 +2,11 @@
 
 /**
  * SystemStatus Component
- * 
+ *
  * Displays real-time system health status with animated indicators,
- * status messages, and timestamps. Includes both compact and full modes.
- * 
+ * status messages, and timestamps. Clickable to open detailed health modal.
+ * Includes both compact and full modes.
+ *
  * @module @/components/admin/layout/Footer/SystemStatus
  */
 
@@ -18,7 +19,7 @@ import { STATUS_MESSAGES } from './constants'
  * Color mapping for status indicators
  */
 const STATUS_COLORS = {
-  operational: {
+  healthy: {
     dot: 'bg-green-500',
     pulse: 'animate-pulse',
     badge: 'bg-green-100 text-green-800',
@@ -28,7 +29,7 @@ const STATUS_COLORS = {
     pulse: 'animate-pulse',
     badge: 'bg-yellow-100 text-yellow-800',
   },
-  outage: {
+  unavailable: {
     dot: 'bg-red-500',
     pulse: 'animate-pulse',
     badge: 'bg-red-100 text-red-800',
@@ -45,6 +46,7 @@ export function SystemStatus({
   loading = false,
   error = null,
   compact = false,
+  onClick,
 }: SystemStatusProps) {
   // Determine status and message
   const statusData = useMemo(() => {
@@ -89,30 +91,44 @@ export function SystemStatus({
       })
     : undefined
 
-  // Compact mode: small dot + abbreviated text
+  // Compact mode: small dot + abbreviated text (clickable)
   if (compact) {
     return (
-      <div className="flex items-center gap-2" role="status" aria-live="polite">
+      <button
+        onClick={onClick}
+        className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+        role="status"
+        aria-live="polite"
+        aria-label={`System status: ${statusData.short}. Click for details.`}
+        title="Click to view system health details"
+      >
         <div
           className={`h-2 w-2 rounded-full ${colors.dot} ${
-            statusData.status === 'operational' ? colors.pulse : ''
+            statusData.status === 'healthy' ? colors.pulse : ''
           }`}
           aria-hidden="true"
         />
         <span className="text-xs font-medium text-gray-600">
           {statusData.short}
         </span>
-      </div>
+      </button>
     )
   }
 
-  // Full mode: badge + message + timestamp
+  // Full mode: badge + message + timestamp (clickable)
   return (
-    <div className="flex flex-col gap-1" role="status" aria-live="polite">
+    <button
+      onClick={onClick}
+      className="flex flex-col gap-1 hover:opacity-80 transition-opacity text-left cursor-pointer w-full"
+      role="status"
+      aria-live="polite"
+      aria-label={`System status: ${statusData.short}. ${statusData.full}. Click for details.`}
+      title="Click to view system health details"
+    >
       <div className="flex items-center gap-2">
         <div
           className={`h-2.5 w-2.5 rounded-full ${colors.dot} ${
-            statusData.status === 'operational' ? colors.pulse : ''
+            statusData.status === 'healthy' ? colors.pulse : ''
           }`}
           aria-hidden="true"
         />
@@ -126,7 +142,7 @@ export function SystemStatus({
           Last checked: {timestamp}
         </p>
       )}
-    </div>
+    </button>
   )
 }
 

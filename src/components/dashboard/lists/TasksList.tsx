@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import FilterBar from '@/components/dashboard/FilterBar'
 import AdvancedDataTable from '@/components/dashboard/tables/AdvancedDataTable'
 import type { Column, FilterConfig } from '@/types/dashboard'
 import { apiFetch } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 interface TaskRow {
   id: string | number
@@ -40,6 +43,8 @@ export default function TasksList() {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<{ status?: string; assigneeId?: string; range?: string }>({})
   const [selectedIds, setSelectedIds] = useState<Array<string | number>>([])
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
+  const [selectedBulkStatus, setSelectedBulkStatus] = useState<string | null>(null)
 
   const now = new Date()
   const dateFrom = useMemo(() => {
@@ -119,10 +124,17 @@ export default function TasksList() {
 
   const setStatusBulk = async () => {
     if (!selectedIds.length) return
-    const next = window.prompt(t('prompt.setStatus.tasks'))?.toUpperCase()
-    if (!next || !['OPEN','IN_PROGRESS','BLOCKED','COMPLETED','CANCELLED'].includes(next)) return
+    setSelectedBulkStatus(null)
+    setIsStatusModalOpen(true)
+  }
+
+  const applyStatusBulk = async () => {
+    if (!selectedIds.length || !selectedBulkStatus) return
+    const next = selectedBulkStatus.toUpperCase()
+    if (!['OPEN','IN_PROGRESS','BLOCKED','COMPLETED','CANCELLED'].includes(next)) return
     await apiFetch('/api/admin/tasks/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'status', taskIds: selectedIds, status: next }) })
     setSelectedIds([])
+    setIsStatusModalOpen(false)
     await mutate()
   }
 
@@ -163,6 +175,37 @@ export default function TasksList() {
           </div>
         </div>
       )}
+
+      {/* Status modal */}
+      <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('dashboard.setStatus')}</DialogTitle>
+            <DialogDescription>{t('dashboard.setStatusConfirm', { count: selectedIds.length })}</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4">
+            <Select value={selectedBulkStatus || undefined} onValueChange={(v) => setSelectedBulkStatus(v || null)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('common.selectStatus')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OPEN">Open</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="BLOCKED">Blocked</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={applyStatusBulk} disabled={!selectedBulkStatus}>{t('common.apply')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }

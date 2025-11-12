@@ -11,8 +11,8 @@
  * Represents the health status of a single system component (database, Redis, API)
  */
 export interface HealthCheck {
-  /** Status of the check: 'operational' | 'degraded' | 'outage' | 'unknown' */
-  status: 'operational' | 'degraded' | 'outage' | 'unknown'
+  /** Status of the check: 'healthy' | 'degraded' | 'unavailable' | 'unknown' */
+  status: 'healthy' | 'degraded' | 'unavailable' | 'unknown'
 
   /** Response latency in milliseconds */
   latency: number
@@ -29,21 +29,23 @@ export interface HealthCheck {
  */
 export interface SystemHealth {
   /** Overall system status */
-  status: 'operational' | 'degraded' | 'outage' | 'unknown'
-  
+  status: 'healthy' | 'degraded' | 'unavailable' | 'unknown'
+
   /** Human-readable status message */
   message: string
-  
+
   /** Individual health checks for different system components */
   checks: {
     database: HealthCheck
     redis?: HealthCheck
     api: HealthCheck
+    email?: HealthCheck
+    auth?: HealthCheck
   }
-  
+
   /** ISO timestamp of when status was checked */
   timestamp: string
-  
+
   /** System uptime in seconds (if available) */
   uptime?: number
 }
@@ -94,15 +96,18 @@ export interface AdminFooterProps {
 export interface SystemStatusProps {
   /** System health data */
   health?: SystemHealth
-  
+
   /** Loading state indicator */
   loading?: boolean
-  
+
   /** Error object if health check failed */
   error?: Error | null
-  
+
   /** Compact display mode (icon + abbreviated text only) */
   compact?: boolean
+
+  /** Click handler to open health details modal */
+  onClick?: () => void
 }
 
 /**
@@ -166,18 +171,18 @@ export interface UseSystemHealthOptions {
 export interface UseSystemHealthReturn {
   /** Current system health data */
   health: SystemHealth
-  
+
   /** Error from health check request */
   error: Error | null
-  
+
   /** Loading state */
   isLoading: boolean
-  
+
   /** Manual refetch function */
   mutate: () => void
-  
+
   /** Current status string */
-  status: 'operational' | 'degraded' | 'outage' | 'unknown'
+  status: 'healthy' | 'degraded' | 'unavailable' | 'unknown'
   
   /** Human-readable status message */
   message: string
@@ -190,7 +195,7 @@ export interface UseSystemHealthReturn {
  * API response format for health check endpoint
  */
 export interface SystemHealthResponse {
-  status: 'operational' | 'degraded' | 'outage'
+  status: 'healthy' | 'degraded' | 'unavailable'
   message: string
   checks: {
     database: {
@@ -204,6 +209,16 @@ export interface SystemHealthResponse {
       error?: string
     }
     api: {
+      status: string
+      latency: number
+      error?: string
+    }
+    email?: {
+      status: string
+      latency: number
+      error?: string
+    }
+    auth?: {
       status: string
       latency: number
       error?: string

@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { UserManagementSettings } from '../types'
 import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
+import { globalEventEmitter } from '@/lib/event-emitter'
+import { AuditLoggingService, AuditActionType, AuditSeverity } from '@/services/audit-logging.service'
 
 interface UseUserManagementSettingsReturn {
   settings: UserManagementSettings | null
@@ -16,6 +19,7 @@ interface UseUserManagementSettingsReturn {
 }
 
 export function useUserManagementSettings(): UseUserManagementSettingsReturn {
+  const { data: session } = useSession()
   const [settings, setSettings] = useState<UserManagementSettings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -58,6 +62,25 @@ export function useUserManagementSettings(): UseUserManagementSettingsReturn {
       if (response.ok) {
         const data = await response.json() as UserManagementSettings
         setSettings(data)
+
+        // Log audit event
+        const userId = (session?.user as any)?.id || 'unknown'
+        const tenantId = (session?.user as any)?.tenantId || 'unknown'
+
+        await AuditLoggingService.logSettingsChange(
+          userId,
+          tenantId,
+          'user-management',
+          updates
+        )
+
+        // Emit event for real-time sync
+        globalEventEmitter.emit('settings:changed', {
+          section: 'user-management',
+          changes: updates,
+          timestamp: Date.now(),
+        })
+
         toast.success('Settings updated successfully')
       } else {
         throw new Error(`Failed to update settings: ${response.statusText}`)

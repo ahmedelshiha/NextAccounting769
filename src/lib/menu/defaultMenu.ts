@@ -58,24 +58,6 @@ export const ALL_MENU_ITEMS: { [key: string]: MenuItem } = {
     href: '/admin/availability',
     icon: 'Clock',
   },
-  'admin/clients': {
-    id: 'admin/clients',
-    name: 'Clients',
-    href: '/admin/clients',
-    icon: 'Users',
-  },
-  'admin/clients/profiles': {
-    id: 'admin/clients/profiles',
-    name: 'Client Profiles',
-    href: '/admin/clients/profiles',
-    icon: 'Users',
-  },
-  'admin/clients/invitations': {
-    id: 'admin/clients/invitations',
-    name: 'Invitations',
-    href: '/admin/clients/invitations',
-    icon: 'Mail',
-  },
   'admin/services': {
     id: 'admin/services',
     name: 'Services',
@@ -128,12 +110,6 @@ export const ALL_MENU_ITEMS: { [key: string]: MenuItem } = {
     href: '/admin/tasks',
     icon: 'CheckSquare',
   },
-  'admin/team': {
-    id: 'admin/team',
-    name: 'Team',
-    href: '/admin/team',
-    icon: 'Users',
-  },
   'admin/chat': {
     id: 'admin/chat',
     name: 'Chat',
@@ -159,18 +135,6 @@ export const ALL_MENU_ITEMS: { [key: string]: MenuItem } = {
     name: 'Users',
     href: '/admin/users',
     icon: 'Users',
-  },
-  'admin/roles': {
-    id: 'admin/roles',
-    name: 'Roles',
-    href: '/admin/roles',
-    icon: 'Shield',
-  },
-  'admin/permissions': {
-    id: 'admin/permissions',
-    name: 'Permissions',
-    href: '/admin/permissions',
-    icon: 'Lock',
   },
   'admin/security': {
     id: 'admin/security',
@@ -239,9 +203,6 @@ export const DEFAULT_MENU_SECTIONS: MenuSection[] = [
       ALL_MENU_ITEMS['admin/bookings'],
       ALL_MENU_ITEMS['admin/calendar'],
       ALL_MENU_ITEMS['admin/availability'],
-      ALL_MENU_ITEMS['admin/clients'],
-      ALL_MENU_ITEMS['admin/clients/profiles'],
-      ALL_MENU_ITEMS['admin/clients/invitations'],
       ALL_MENU_ITEMS['admin/services'],
       ALL_MENU_ITEMS['admin/service-requests'],
     ],
@@ -264,7 +225,6 @@ export const DEFAULT_MENU_SECTIONS: MenuSection[] = [
     order: 3,
     items: [
       ALL_MENU_ITEMS['admin/tasks'],
-      ALL_MENU_ITEMS['admin/team'],
       ALL_MENU_ITEMS['admin/chat'],
       ALL_MENU_ITEMS['admin/reminders'],
     ],
@@ -276,8 +236,6 @@ export const DEFAULT_MENU_SECTIONS: MenuSection[] = [
     items: [
       ALL_MENU_ITEMS['admin/settings'],
       ALL_MENU_ITEMS['admin/users'],
-      ALL_MENU_ITEMS['admin/roles'],
-      ALL_MENU_ITEMS['admin/permissions'],
       ALL_MENU_ITEMS['admin/security'],
       ALL_MENU_ITEMS['admin/integrations'],
       ALL_MENU_ITEMS['admin/uploads'],

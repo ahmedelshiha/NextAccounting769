@@ -2,12 +2,15 @@
 
 'use client'
 
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useBookings, type BookingsQuery } from '@/hooks/useBookings'
 import FilterBar from '@/components/dashboard/FilterBar'
 import AdvancedDataTable from '@/components/dashboard/tables/AdvancedDataTable'
 import type { Column, FilterConfig, RowAction } from '@/types/dashboard'
 import Link from 'next/link'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface SRItem {
   id: string
@@ -43,6 +46,8 @@ export default function BookingsList() {
     paymentStatus?: string
   }>({})
   const [selectedIds, setSelectedIds] = useState<Array<string | number>>([])
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [assigneeId, setAssigneeId] = useState<string | null>(null)
 
   const params: BookingsQuery = {
     scope: 'admin',
@@ -186,16 +191,21 @@ export default function BookingsList() {
 
   const assignSelected = async () => {
     if (!selectedIds.length) return
-    const teamMemberId = window.prompt('Enter team member ID to assign to:')
-    if (!teamMemberId) return
+    setAssigneeId(null)
+    setIsAssignModalOpen(true)
+  }
+
+  const applyAssignSelected = async () => {
+    if (!selectedIds.length || !assigneeId) return
     for (const id of selectedIds) {
       await fetch(`/api/admin/service-requests/${id}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamMemberId }),
+        body: JSON.stringify({ teamMemberId: assigneeId }),
       }).catch(() => {})
     }
     setSelectedIds([])
+    setIsAssignModalOpen(false)
     await refresh()
   }
 
@@ -237,6 +247,25 @@ export default function BookingsList() {
           </div>
         </div>
       )}
+
+      {/* Assign modal */}
+      <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign to team member</DialogTitle>
+            <DialogDescription>Enter the team member ID to assign selected bookings</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4">
+            <Input value={assigneeId ?? ''} onChange={(e) => setAssigneeId(e.target.value)} placeholder="Team member ID" />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignModalOpen(false)}>Cancel</Button>
+            <Button onClick={applyAssignSelected} disabled={!assigneeId}>Assign</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

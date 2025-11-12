@@ -10,6 +10,7 @@ import {
   isMenuCustomizationEnabled,
   isMenuCustomizationEnabledForUser,
 } from '@/lib/menu/featureFlag'
+import { hasRole } from '@/lib/permissions'
 
 export const useMenuCustomizationFeature = () => {
   const { data: session } = useSession()
@@ -24,7 +25,7 @@ export const useMenuCustomizationFeature = () => {
     if (userId) return isMenuCustomizationEnabledForUser(userId)
     // Fallback to role-based check for better UX during session loading
     const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'TEAM_LEAD', 'STAFF']
-    return Boolean(role && adminRoles.includes(role))
+    return Boolean(role && hasRole(role, adminRoles))
   })()
 
   return {

@@ -98,13 +98,13 @@ export function useSystemHealth(
       return data
     } catch (error) {
       clearTimeout(timeoutId)
-      
+
       // Return degraded state on error instead of throwing
       console.warn('[useSystemHealth] Health check failed:', error)
-      
+
       return {
         ...DEFAULT_HEALTH,
-        status: 'outage',
+        status: 'unavailable',
         message: 'Unable to check system status',
       }
     }
@@ -170,23 +170,23 @@ export function useSystemHealth(
 }
 
 /**
- * Hook for checking only if system is operational
- * Useful for simple yes/no operational checks
- * 
+ * Hook for checking only if system is healthy
+ * Useful for simple yes/no healthy checks
+ *
  * @param options Configuration options
- * @returns true if system is operational, false otherwise
+ * @returns true if system is healthy, false otherwise
  */
 export function useSystemOperational(
   options: Omit<UseSystemHealthOptions, 'onStatusChange'> = {}
 ): boolean {
   const { health } = useSystemHealth(options)
-  return health.status === 'operational'
+  return health.status === 'healthy'
 }
 
 /**
  * Hook for checking if system has any issues
- * Returns true if status is degraded or outage
- * 
+ * Returns true if status is degraded or unavailable
+ *
  * @param options Configuration options
  * @returns true if system has issues, false otherwise
  */
@@ -194,5 +194,5 @@ export function useSystemHasIssues(
   options: Omit<UseSystemHealthOptions, 'onStatusChange'> = {}
 ): boolean {
   const { health } = useSystemHealth(options)
-  return health.status === 'degraded' || health.status === 'outage'
+  return health.status === 'degraded' || health.status === 'unavailable'
 }

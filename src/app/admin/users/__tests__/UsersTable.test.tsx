@@ -1,10 +1,11 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, beforeEach, vi, expect } from 'vitest'
 import { UsersTable } from '../components/UsersTable'
 import { UserItem } from '../contexts/UsersContextProvider'
 
 // Mock usePermissions hook
-jest.mock('@/lib/use-permissions', () => ({
+vi.mock('@/lib/use-permissions', () => ({
   usePermissions: () => ({
     canManageUsers: true,
     canViewUsers: true
@@ -35,11 +36,11 @@ describe('UsersTable', () => {
     }
   ]
 
-  const mockOnViewProfile = jest.fn()
-  const mockOnRoleChange = jest.fn()
+  const mockOnViewProfile = vi.fn()
+  const mockOnRoleChange = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should render user list', () => {
@@ -120,7 +121,10 @@ describe('UsersTable', () => {
       />
     )
 
-    expect(screen.getByText(/Joined Jan/)).toBeInTheDocument()
+    // Check for first user's creation date
+    expect(screen.getByText(/Jan 1, 2025/)).toBeInTheDocument()
+    // Check for second user's creation date
+    expect(screen.getByText(/Jan 2, 2025/)).toBeInTheDocument()
   })
 
   it('should display user email correctly', () => {

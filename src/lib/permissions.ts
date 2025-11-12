@@ -56,6 +56,7 @@ export const PERMISSIONS = {
   INTEGRATION_HUB_EDIT: 'integration.settings.edit',
   INTEGRATION_HUB_TEST: 'integration.settings.test',
   INTEGRATION_HUB_SECRETS_WRITE: 'integration.settings.secrets.write',
+  INTEGRATIONS_MANAGE: 'integrations.manage',
 
   // Client Management settings
   CLIENT_SETTINGS_VIEW: 'client.settings.view',
@@ -98,6 +99,22 @@ export const PERMISSIONS = {
   // Language management
   LANGUAGES_VIEW: 'languages.view',
   LANGUAGES_MANAGE: 'languages.manage',
+
+  // Reports management
+  REPORTS_CREATE: 'reports.create',
+  REPORTS_READ: 'reports.read',
+  REPORTS_WRITE: 'reports.write',
+  REPORTS_DELETE: 'reports.delete',
+  REPORTS_GENERATE: 'reports.generate',
+
+  // Advanced exports
+  USERS_EXPORT: 'users.export',
+
+  // Entity Management (Portal)
+  ENTITIES_CREATE: 'entities.create',
+  ENTITIES_READ: 'entities.read',
+  ENTITIES_UPDATE: 'entities.update',
+  ENTITIES_DELETE: 'entities.delete',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -303,6 +320,15 @@ export const PERMISSION_METADATA: Record<Permission, PermissionMetadata> = {
     risk: RiskLevel.LOW,
     icon: 'User',
     tags: ['users', 'view', 'rbac'],
+  },
+  [PERMISSIONS.USERS_EXPORT]: {
+    key: PERMISSIONS.USERS_EXPORT,
+    label: 'Export Users',
+    description: 'Export user data to CSV, Excel, PDF, and other formats',
+    category: PermissionCategory.CONTENT,
+    risk: RiskLevel.LOW,
+    icon: 'Download',
+    tags: ['users', 'export', 'reports', 'data'],
   },
 
   // Analytics & Reporting
@@ -580,6 +606,16 @@ export const PERMISSION_METADATA: Record<Permission, PermissionMetadata> = {
     icon: 'Lock',
     tags: ['integration', 'secrets', 'security'],
   },
+  [PERMISSIONS.INTEGRATIONS_MANAGE]: {
+    key: PERMISSIONS.INTEGRATIONS_MANAGE,
+    label: 'Manage Integrations',
+    description: 'Full management of filter bar integrations (Slack, Teams, Zapier, Webhooks)',
+    category: PermissionCategory.SYSTEM,
+    risk: RiskLevel.HIGH,
+    dependencies: [PERMISSIONS.INTEGRATION_HUB_VIEW],
+    icon: 'Plug',
+    tags: ['integration', 'manage', 'slack', 'teams', 'zapier', 'webhook'],
+  },
 
   // Client Settings
   [PERMISSIONS.CLIENT_SETTINGS_VIEW]: {
@@ -848,6 +884,96 @@ export const PERMISSION_METADATA: Record<Permission, PermissionMetadata> = {
     icon: 'Globe',
     tags: ['languages', 'localization', 'manage'],
   },
+
+  // Reports Management
+  [PERMISSIONS.REPORTS_CREATE]: {
+    key: PERMISSIONS.REPORTS_CREATE,
+    label: 'Create Reports',
+    description: 'Create new custom reports',
+    category: PermissionCategory.ANALYTICS,
+    risk: RiskLevel.LOW,
+    icon: 'PlusSquare',
+    tags: ['reports', 'create', 'analytics'],
+  },
+  [PERMISSIONS.REPORTS_READ]: {
+    key: PERMISSIONS.REPORTS_READ,
+    label: 'View Reports',
+    description: 'View existing reports and report templates',
+    category: PermissionCategory.ANALYTICS,
+    risk: RiskLevel.LOW,
+    icon: 'Eye',
+    tags: ['reports', 'view', 'analytics'],
+  },
+  [PERMISSIONS.REPORTS_WRITE]: {
+    key: PERMISSIONS.REPORTS_WRITE,
+    label: 'Edit Reports',
+    description: 'Edit and modify existing reports',
+    category: PermissionCategory.ANALYTICS,
+    risk: RiskLevel.MEDIUM,
+    dependencies: [PERMISSIONS.REPORTS_READ],
+    icon: 'Edit',
+    tags: ['reports', 'edit', 'analytics'],
+  },
+  [PERMISSIONS.REPORTS_DELETE]: {
+    key: PERMISSIONS.REPORTS_DELETE,
+    label: 'Delete Reports',
+    description: 'Delete reports and report templates',
+    category: PermissionCategory.ANALYTICS,
+    risk: RiskLevel.HIGH,
+    dependencies: [PERMISSIONS.REPORTS_READ],
+    icon: 'Trash',
+    tags: ['reports', 'delete', 'analytics'],
+  },
+  [PERMISSIONS.REPORTS_GENERATE]: {
+    key: PERMISSIONS.REPORTS_GENERATE,
+    label: 'Generate Reports',
+    description: 'Generate and export reports in various formats',
+    category: PermissionCategory.ANALYTICS,
+    risk: RiskLevel.LOW,
+    dependencies: [PERMISSIONS.REPORTS_READ],
+    icon: 'Download',
+    tags: ['reports', 'generate', 'export', 'analytics'],
+  },
+
+  // Entity Management (Portal)
+  [PERMISSIONS.ENTITIES_CREATE]: {
+    key: PERMISSIONS.ENTITIES_CREATE,
+    label: 'Create Entities',
+    description: 'Create new business entities and tax registrations',
+    category: PermissionCategory.CONTENT,
+    risk: RiskLevel.MEDIUM,
+    icon: 'Plus',
+    tags: ['entities', 'create', 'business'],
+  },
+  [PERMISSIONS.ENTITIES_READ]: {
+    key: PERMISSIONS.ENTITIES_READ,
+    label: 'View Entities',
+    description: 'View entity information and registration details',
+    category: PermissionCategory.CONTENT,
+    risk: RiskLevel.LOW,
+    icon: 'Eye',
+    tags: ['entities', 'view', 'business'],
+  },
+  [PERMISSIONS.ENTITIES_UPDATE]: {
+    key: PERMISSIONS.ENTITIES_UPDATE,
+    label: 'Edit Entities',
+    description: 'Update entity information and settings',
+    category: PermissionCategory.CONTENT,
+    risk: RiskLevel.MEDIUM,
+    dependencies: [PERMISSIONS.ENTITIES_READ],
+    icon: 'Edit',
+    tags: ['entities', 'update', 'business'],
+  },
+  [PERMISSIONS.ENTITIES_DELETE]: {
+    key: PERMISSIONS.ENTITIES_DELETE,
+    label: 'Delete Entities',
+    description: 'Archive or delete business entities',
+    category: PermissionCategory.CONTENT,
+    risk: RiskLevel.HIGH,
+    dependencies: [PERMISSIONS.ENTITIES_READ],
+    icon: 'Trash',
+    tags: ['entities', 'delete', 'business'],
+  },
 }
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
@@ -924,6 +1050,10 @@ export function checkPermissions(userRole: string | undefined | null, required: 
 
 export function getRolePermissions(userRole: string | undefined | null): Permission[] {
   if (!userRole) return []
+  try {
+    const roleNormalized = String(userRole).toUpperCase()
+    if (roleNormalized === 'SUPER_ADMIN') return ROLE_PERMISSIONS['SUPER_ADMIN'] ?? []
+  } catch {}
   return ROLE_PERMISSIONS[userRole] ?? []
 }
 
@@ -935,5 +1065,9 @@ export function getRolePermissions(userRole: string | undefined | null): Permiss
  */
 export function hasRole(userRole: string | undefined | null, allowedRoles: readonly string[]): boolean {
   if (!userRole || !allowedRoles) return false
+  try {
+    const roleNormalized = String(userRole).toUpperCase()
+    if (roleNormalized === 'SUPER_ADMIN') return true
+  } catch {}
   return allowedRoles.includes(userRole)
 }

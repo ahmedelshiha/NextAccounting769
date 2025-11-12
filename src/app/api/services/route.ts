@@ -1,121 +1,282 @@
-import { NextRequest, NextResponse } from 'next/server'
-import type { Prisma } from '@prisma/client'
-import { withTenantContext } from '@/lib/api-wrapper'
-import { tenantContext } from '@/lib/tenant-context'
-import { requireTenantContext } from '@/lib/tenant-utils'
-import { getTenantFromRequest, tenantFilter, isMultiTenancyEnabled } from '@/lib/tenant'
+import { NextResponse, type NextRequest } from 'next/server';
+import { z } from 'zod';
+import { logger } from '@/lib/logger';
+import { withTenantContext } from '@/lib/api-wrapper';
+import { requireTenantContext } from '@/lib/tenant-utils';
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+const serviceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  category: z.string(),
+  countryScope: z.array(z.enum(['AE', 'SA', 'EG'])),
+  pricing: z.object({
+    amount: z.number(),
+    currency: z.string(),
+    unit: z.string(), // 'per_entity', 'per_year', 'fixed', etc.
+  }),
+  prerequisites: z.array(z.string()).optional(),
+  featureFlag: z.string().optional(),
+  sla: z.object({
+    turnaroundTime: z.string(),
+    responseTime: z.string(),
+  }).optional(),
+  icon: z.string().optional(),
+});
 
-// GET /api/services - Get all active services (public, tenant-aware)
-export const GET = withTenantContext(async (request: NextRequest) => {
-  try {
-    // Early fallback to avoid noisy errors when DB is not configured in dev
-    if (!process.env.NETLIFY_DATABASE_URL) {
-      const fallback = [
-        { id: '1', name: 'Bookkeeping', slug: 'bookkeeping', shortDesc: 'Monthly bookkeeping and reconciliations', price: 299, featured: true },
-        { id: '2', name: 'Tax Preparation', slug: 'tax-preparation', shortDesc: 'Personal and business tax filings', price: 450, featured: true },
-        { id: '3', name: 'Payroll Management', slug: 'payroll', shortDesc: 'Payroll processing and compliance', price: 199, featured: true },
-        { id: '4', name: 'CFO Advisory Services', slug: 'cfo-advisory', shortDesc: 'Strategic financial guidance', price: 1200, featured: true },
-      ]
-      return NextResponse.json(fallback)
-    }
+type Service = z.infer<typeof serviceSchema>;
 
-    const { searchParams } = new URL(request.url)
-    const featured = searchParams.get('featured')
-    const category = searchParams.get('category')
+// Mock services data (in production, this would come from database)
+const SERVICES: Service[] = [
+  {
+    id: 'vat-return-ae',
+    name: 'UAE VAT Return Filing',
+    description: 'Monthly or quarterly VAT return preparation and filing with the UAE FTA',
+    category: 'VAT Filing',
+    countryScope: ['AE'],
+    pricing: {
+      amount: 500,
+      currency: 'AED',
+      unit: 'per_return',
+    },
+    prerequisites: ['TRN Verification', 'VAT Registration'],
+    sla: {
+      turnaroundTime: '5 business days',
+      responseTime: '24 hours',
+    },
+    icon: '📋',
+  },
+  {
+    id: 'corporate-tax-ae',
+    name: 'UAE Corporate Tax Return',
+    description: 'Annual corporate income tax return for eligible entities in UAE',
+    category: 'Corporate Tax',
+    countryScope: ['AE'],
+    pricing: {
+      amount: 2500,
+      currency: 'AED',
+      unit: 'per_year',
+    },
+    prerequisites: ['Entity Setup', 'Financial Records'],
+    sla: {
+      turnaroundTime: '10 business days',
+      responseTime: '24 hours',
+    },
+    icon: '🏢',
+  },
+  {
+    id: 'zatca-vat-sa',
+    name: 'ZATCA VAT Filing (KSA)',
+    description: 'Monthly VAT return filing with ZATCA including e-invoice compliance',
+    category: 'VAT Filing',
+    countryScope: ['SA'],
+    pricing: {
+      amount: 800,
+      currency: 'SAR',
+      unit: 'per_return',
+    },
+    prerequisites: ['VAT Registration', 'E-Invoice Setup'],
+    sla: {
+      turnaroundTime: '3 business days',
+      responseTime: '12 hours',
+    },
+    icon: '📑',
+  },
+  {
+    id: 'zakat-return-sa',
+    name: 'Zakat Return Filing',
+    description: 'Annual zakat computation and filing for Saudi entities',
+    category: 'Zakat',
+    countryScope: ['SA'],
+    pricing: {
+      amount: 1500,
+      currency: 'SAR',
+      unit: 'per_year',
+    },
+    prerequisites: ['Entity Setup', 'Financial Statements'],
+    sla: {
+      turnaroundTime: '7 business days',
+      responseTime: '24 hours',
+    },
+    icon: '🕌',
+  },
+  {
+    id: 'esr-annual-ae',
+    name: 'UAE ESR Annual Report',
+    description: 'Economic Substance Report submission for UAE entities with significant economic activity',
+    category: 'Compliance',
+    countryScope: ['AE'],
+    pricing: {
+      amount: 3000,
+      currency: 'AED',
+      unit: 'per_year',
+    },
+    prerequisites: ['Entity Setup', 'Business Plan', 'Financial Records'],
+    sla: {
+      turnaroundTime: '14 business days',
+      responseTime: '24 hours',
+    },
+    icon: '📊',
+  },
+  {
+    id: 'eta-filing-eg',
+    name: 'ETA VAT Return (Egypt)',
+    description: 'Egyptian Tax Authority VAT return filing and e-Invoice compliance',
+    category: 'VAT Filing',
+    countryScope: ['EG'],
+    pricing: {
+      amount: 600,
+      currency: 'EGP',
+      unit: 'per_return',
+    },
+    prerequisites: ['Tax ID', 'E-Invoice Profile'],
+    sla: {
+      turnaroundTime: '4 business days',
+      responseTime: '24 hours',
+    },
+    icon: '🗂️',
+  },
+  {
+    id: 'bookkeeping',
+    name: 'Full Bookkeeping Service',
+    description: 'End-to-end bookkeeping including invoice entry, reconciliation, and reporting',
+    category: 'Bookkeeping',
+    countryScope: ['AE', 'SA', 'EG'],
+    pricing: {
+      amount: 2000,
+      currency: 'AED',
+      unit: 'per_month',
+    },
+    prerequisites: ['Business Setup', 'Bank Access'],
+    sla: {
+      turnaroundTime: 'Monthly',
+      responseTime: '48 hours',
+    },
+    icon: '📚',
+  },
+  {
+    id: 'audit',
+    name: 'Independent Audit',
+    description: 'Annual audit of financial statements in accordance with ISA standards',
+    category: 'Audit',
+    countryScope: ['AE', 'SA', 'EG'],
+    pricing: {
+      amount: 5000,
+      currency: 'AED',
+      unit: 'per_year',
+    },
+    prerequisites: ['Financial Statements', 'Annual Records'],
+    sla: {
+      turnaroundTime: '20 business days',
+      responseTime: '24 hours',
+    },
+    icon: '✓',
+  },
+];
 
-    // Use tenant context when available; otherwise derive hint from request
-    const ctxTenant = tenantContext.getContextOrNull()?.tenantId ?? null
-    const tenantId = ctxTenant || getTenantFromRequest(request as any)
-
-    // Guard the import and DB call to avoid long blocking if Prisma/DB is cold or unreachable
-    const timeoutMs = Number(process.env.SERVICES_QUERY_TIMEOUT_MS ?? 2500)
-    let prisma: any = null
+export const GET = withTenantContext(
+  async (request: NextRequest) => {
     try {
-      const importPromise = import('@/lib/prisma')
-      const imported = await Promise.race([
-        importPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Prisma import timeout')), Math.max(250, timeoutMs)))
-      ])
-      prisma = (imported as any).default
-    } catch (e) {
-      console.error('Prisma import failed or timed out, falling back to static services list:', e)
-      const fallback = [
-        { id: '1', name: 'Bookkeeping', slug: 'bookkeeping', shortDesc: 'Monthly bookkeeping and reconciliations', price: 299, featured: true },
-        { id: '2', name: 'Tax Preparation', slug: 'tax-preparation', shortDesc: 'Personal and business tax filings', price: 450, featured: true },
-        { id: '3', name: 'Payroll Management', slug: 'payroll', shortDesc: 'Payroll processing and compliance', price: 199, featured: true },
-        { id: '4', name: 'CFO Advisory Services', slug: 'cfo-advisory', shortDesc: 'Strategic financial guidance', price: 1200, featured: true },
-      ]
-      return NextResponse.json(fallback)
+      const { userId } = requireTenantContext();
+
+      // Get query parameters
+      const search = request.nextUrl.searchParams.get('search');
+      const country = request.nextUrl.searchParams.get('country');
+      const category = request.nextUrl.searchParams.get('category');
+
+      // Filter services
+      let filtered = SERVICES;
+
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filtered = filtered.filter(
+          (s) =>
+            s.name.toLowerCase().includes(searchLower) ||
+            s.description.toLowerCase().includes(searchLower)
+        );
+      }
+
+      if (country) {
+        filtered = filtered.filter((s) => s.countryScope.includes(country));
+      }
+
+      if (category) {
+        filtered = filtered.filter((s) => s.category === category);
+      }
+
+      // Get unique categories
+      const categories = Array.from(new Set(SERVICES.map((s) => s.category)));
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          services: filtered,
+          categories,
+          total: filtered.length,
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to fetch services', { error });
+      return NextResponse.json(
+        { error: 'Failed to fetch services' },
+        { status: 500 }
+      );
     }
+  },
+  { requireAuth: true }
+);
 
-    const where: Prisma.ServiceWhereInput = { active: true, ...(tenantFilter(tenantId) as any) }
+export const POST = withTenantContext(
+  async (request: NextRequest) => {
+    try {
+      const { userId } = requireTenantContext();
 
-    if (featured === 'true') {
-      where.featured = true
+      const data = await request.json();
+      const { serviceId } = data;
+
+      if (!serviceId) {
+        return NextResponse.json(
+          { error: 'Service ID is required' },
+          { status: 400 }
+        );
+      }
+
+      const service = SERVICES.find((s) => s.id === serviceId);
+      if (!service) {
+        return NextResponse.json(
+          { error: 'Service not found' },
+          { status: 404 }
+        );
+      }
+
+      // In production, this would create a service request ticket in messaging
+      const requestId = `req-${Date.now()}`;
+
+      // Log audit event
+      await logger.audit({
+        action: 'service.request_created',
+        actorId: userId,
+        targetId: serviceId,
+        details: { requestId, serviceName: service.name },
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          requestId,
+          serviceId,
+          serviceName: service.name,
+          status: 'pending',
+          createdAt: new Date(),
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to create service request', { error });
+      return NextResponse.json(
+        { error: 'Failed to create service request' },
+        { status: 500 }
+      );
     }
-
-    if (category) {
-      where.category = category
-    }
-
-    // Add a timeout guard to avoid hanging requests when DB is cold or unreachable
-    const findPromise = prisma.service.findMany({
-      where,
-      orderBy: [
-        { featured: 'desc' },
-        { createdAt: 'desc' }
-      ]
-    })
-
-    const services = await Promise.race<Awaited<ReturnType<typeof prisma.service.findMany>>>([
-      findPromise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Service query timeout')), Math.max(250, timeoutMs))) as Promise<never>,
-    ]).catch(() => null as any)
-
-    if (!services || services.length === 0) {
-      const fallback = [
-        { id: '1', name: 'Bookkeeping', slug: 'bookkeeping', shortDesc: 'Monthly bookkeeping and reconciliations', price: 299, featured: true },
-        { id: '2', name: 'Tax Preparation', slug: 'tax-preparation', shortDesc: 'Personal and business tax filings', price: 450, featured: true },
-        { id: '3', name: 'Payroll Management', slug: 'payroll', shortDesc: 'Payroll processing and compliance', price: 199, featured: true },
-        { id: '4', name: 'CFO Advisory Services', slug: 'cfo-advisory', shortDesc: 'Strategic financial guidance', price: 1200, featured: true },
-      ]
-      return NextResponse.json(fallback)
-    }
-
-    return NextResponse.json(services)
-  } catch (error) {
-    console.error('Error fetching services:', error)
-    // graceful fallback on runtime errors
-    const fallback = [
-      { id: '1', name: 'Bookkeeping', slug: 'bookkeeping', shortDesc: 'Monthly bookkeeping and reconciliations', price: 299, featured: true },
-      { id: '2', name: 'Tax Preparation', slug: 'tax-preparation', shortDesc: 'Personal and business tax filings', price: 450, featured: true },
-      { id: '3', name: 'Payroll Management', slug: 'payroll', shortDesc: 'Strategic financial guidance', price: 199, featured: true },
-      { id: '4', name: 'CFO Advisory Services', slug: 'cfo-advisory', shortDesc: 'Strategic financial guidance', price: 1200, featured: true },
-    ]
-    return NextResponse.json(fallback)
-  }
-}, { requireAuth: false })
-
-// POST /api/services - Create a new service (admin only); delegate to admin/services
-export const POST = withTenantContext(async (request: NextRequest) => {
-  const ctx = requireTenantContext()
-  const role = ctx.role ?? ''
-  if (!['ADMIN', 'OWNER', 'TEAM_LEAD'].includes(role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  try {
-    // Delegate to the canonical admin endpoint to centralize validation and audit
-    const mod = await import('@/app/api/admin/services/route')
-    const res: Response = await mod.POST(request as any, {} as any)
-    // Pass-through response (status/body)
-    const body = await res.json().catch(() => null)
-    return NextResponse.json(body, { status: res.status })
-  } catch (error) {
-    console.error('Error creating service via delegation:', error)
-    return NextResponse.json({ error: 'Failed to create service' }, { status: 500 })
-  }
-})
+  },
+  { requireAuth: true }
+);

@@ -8,7 +8,7 @@ export const userUpdateSchema = z.object({
   // Allow partial updates. Only fields that exist in our schema are actually persisted.
   name: z.string().min(1).max(200).optional(),
   email: z.string().email().optional(),
-  role: z.enum(['ADMIN', 'TEAM_MEMBER', 'TEAM_LEAD', 'CLIENT']).optional(),
+  role: z.enum(['ADMIN', 'TEAM_MEMBER', 'TEAM_LEAD', 'CLIENT', 'STAFF', 'USER']).optional(),
   // Accept additional keys from the UI but ignore them server-side if not supported by schema
   phone: z.string().max(100).optional().nullable(),
   company: z.string().max(200).optional().nullable(),

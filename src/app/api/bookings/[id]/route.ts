@@ -4,6 +4,7 @@ import type { BookingStatus } from '@prisma/client'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import { isMultiTenancyEnabled } from '@/lib/tenant'
+import { hasRole } from '@/lib/permissions'
 
 // GET /api/bookings/[id] - Get booking by ID
 export const GET = withTenantContext(async (request: NextRequest, context: { params: Promise<{ id: string }> }) => {
@@ -67,7 +68,7 @@ export const PUT = withTenantContext(async (request: NextRequest, context: { par
     if (!existingBooking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
 
     const isOwner = existingBooking.clientId === ctx.userId
-    const isAdminOrStaff = ['ADMIN', 'STAFF'].includes(ctx.role ?? '')
+    const isAdminOrStaff = hasRole(ctx.role ?? '', ['ADMIN', 'STAFF'])
 
     if (!isOwner && !isAdminOrStaff) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -127,7 +128,7 @@ export const DELETE = withTenantContext(async (request: NextRequest, context: { 
     }
 
     const isOwner = booking.clientId === ctx.userId
-    const isAdminOrStaff = ['ADMIN', 'STAFF'].includes(ctx.role ?? '')
+    const isAdminOrStaff = hasRole(ctx.role ?? '', ['ADMIN', 'STAFF'])
 
     if (!isOwner && !isAdminOrStaff) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

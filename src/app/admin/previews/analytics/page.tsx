@@ -1,6 +1,7 @@
 import { getSessionOrBypass } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import AnalyticsPage from '@/components/dashboard/templates/AnalyticsPage'
+import { hasRole } from '@/lib/permissions'
 
 export default async function AnalyticsPagePreview() {
   const stats = {
@@ -24,7 +25,7 @@ export default async function AnalyticsPagePreview() {
   const session = await getSessionOrBypass()
   if (!session?.user) { redirect('/login') }
   const role = (session.user as any)?.role as string | undefined
-  if (!['ADMIN','TEAM_LEAD','SUPER_ADMIN','STAFF'].includes(role || '')) { redirect('/admin') }
+  if (!hasRole(role || '', ['ADMIN', 'TEAM_LEAD', 'SUPER_ADMIN', 'STAFF'])) { redirect('/admin') }
   return (
     <AnalyticsPage
       title="Analytics Template Preview"

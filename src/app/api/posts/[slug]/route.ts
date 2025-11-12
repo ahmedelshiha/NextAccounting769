@@ -5,6 +5,7 @@ import { withTenantContext } from '@/lib/api-wrapper'
 import { tenantContext } from '@/lib/tenant-context'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import { getTenantFromRequest, tenantFilter } from '@/lib/tenant'
+import { hasRole } from '@/lib/permissions'
 
 // GET /api/posts/[slug] - Get post by slug
 export const GET = withTenantContext(async (request: NextRequest, context: { params: Promise<{ slug: string }> }) => {
@@ -15,7 +16,7 @@ export const GET = withTenantContext(async (request: NextRequest, context: { par
     const where: Prisma.PostWhereInput = { slug, ...(tenantFilter(tenantId) as any) }
 
     const role = tenantContext.getContextOrNull()?.role ?? null
-    if (!role || !['ADMIN', 'STAFF'].includes(role)) {
+    if (!role || !hasRole(role, ['ADMIN', 'STAFF'])) {
       where.published = true
     }
 
@@ -44,7 +45,7 @@ export const GET = withTenantContext(async (request: NextRequest, context: { par
 export const PUT = withTenantContext(async (request: NextRequest, context: { params: Promise<{ slug: string }> }) => {
   try {
     const ctx = requireTenantContext()
-    if (!['ADMIN', 'STAFF'].includes(String(ctx.role || ''))) {
+    if (!hasRole(String(ctx.role || ''), ['ADMIN', 'STAFF'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

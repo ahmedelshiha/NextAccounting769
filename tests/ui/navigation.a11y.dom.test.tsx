@@ -2,8 +2,21 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Navigation } from '@/components/ui/navigation'
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/services' }))
-vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { role: 'ADMIN', name: 'Test User', email: 'test@example.com' } }, status: 'authenticated' }) }))
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/services',
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    prefetch: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}))
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: { user: { role: 'ADMIN', name: 'Test User', email: 'test@example.com' } }, status: 'authenticated' }),
+  signOut: vi.fn(),
+}))
 
 describe('Navigation a11y', () => {
   it('has nav landmark, aria-current on active link, and accessible mobile toggle', () => {

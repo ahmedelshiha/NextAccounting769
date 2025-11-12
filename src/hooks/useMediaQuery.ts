@@ -1,39 +1,21 @@
-"use client"
+import { useEffect, useState } from 'react';
 
-import { useEffect, useState } from "react"
-
-export function useMediaQuery(query: string) {
-  const getMatches = (q: string) => {
-    if (typeof window === "undefined" || typeof window.matchMedia === "undefined") return false
-    return window.matchMedia(q).matches
-  }
-
-  const [matches, setMatches] = useState<boolean>(() => getMatches(query))
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia === "undefined") return
-    const mediaQueryList = window.matchMedia(query)
+    const mediaQuery = window.matchMedia(query);
+    setMatches(mediaQuery.matches);
 
-    const listener = (event: MediaQueryListEvent) => {
-      setMatches(event.matches)
-    }
+    const handler = (e: MediaQueryListEvent) => {
+      setMatches(e.matches);
+    };
 
-    // Set initial value in case it changed between renders
-    setMatches(mediaQueryList.matches)
+    mediaQuery.addEventListener('change', handler);
+    return () => {
+      mediaQuery.removeEventListener('change', handler);
+    };
+  }, [query]);
 
-    try {
-      mediaQueryList.addEventListener("change", listener)
-      return () => mediaQueryList.removeEventListener("change", listener)
-    } catch {
-      // Safari <14 support - fallback to legacy API
-      const addListener = (mediaQueryList as any).addListener?.bind(mediaQueryList)
-      const removeListener = (mediaQueryList as any).removeListener?.bind(mediaQueryList)
-      if (addListener && removeListener) {
-        addListener(listener)
-        return () => removeListener(listener)
-      }
-    }
-  }, [query])
-
-  return matches
+  return matches;
 }

@@ -1,6 +1,11 @@
 "use client"
 'use client'
 import React, { useState, useEffect } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import {
   Users,
   Edit,
@@ -83,6 +88,31 @@ function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetail
   const s = member.stats || defaultStats
   const utilizationColor = s.utilizationRate >= 85 ? 'text-green-600' : s.utilizationRate >= 70 ? 'text-yellow-600' : 'text-red-600'
 
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
+  const [taskTitle, setTaskTitle] = useState('')
+  const [taskDue, setTaskDue] = useState(new Date().toISOString().slice(0,10))
+  const [taskPriority, setTaskPriority] = useState('MEDIUM')
+
+  const openCreateTask = () => {
+    setTaskTitle(`Follow up: ${member.name}`)
+    setTaskDue(new Date().toISOString().slice(0,10))
+    setTaskPriority('MEDIUM')
+    setIsCreateTaskOpen(true)
+  }
+
+  const createTaskForMember = async () => {
+    if (!member.userId) { alert('This team member is not linked to a user account and cannot be assigned tasks. Edit member and set a User.'); return }
+    try {
+      const res = await fetch('/api/admin/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: taskTitle, priority: (taskPriority || 'MEDIUM').toUpperCase(), status: 'OPEN', dueAt: taskDue ? new Date(taskDue).toISOString() : null, assigneeId: member.userId }) })
+      if (res.ok) {
+        alert('Task created and assigned')
+        setIsCreateTaskOpen(false)
+      } else {
+        alert('Failed to create task')
+      }
+    } catch (e) { alert('Failed to create task') }
+  }
+
   return (
     <div className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-all">
       <div className="flex items-start justify-between mb-4">
@@ -121,23 +151,38 @@ function TeamMemberCard({ member, onEdit, onDelete, onToggleStatus, onViewDetail
                 {member.status === 'active' ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                 {member.status === 'active' ? 'Mark Inactive' : 'Mark Active'}
               </button>
-              <button onClick={() => {
-                if (!member.userId) { alert('This team member is not linked to a user account and cannot be assigned tasks. Edit member and set a User.'); return }
-                const title = prompt('Task title', `Follow up: ${member.name}`)
-                if (!title) return
-                const due = prompt('Due date (YYYY-MM-DD)', new Date().toISOString().slice(0,10))
-                const priority = prompt('Priority (LOW|MEDIUM|HIGH)', 'MEDIUM')
-                ;(async () => {
-                  try {
-                    const res = await fetch('/api/admin/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, priority: (priority || 'MEDIUM').toUpperCase(), status: 'OPEN', dueAt: due ? new Date(due).toISOString() : null, assigneeId: member.userId }) })
-                    if (res.ok) alert('Task created and assigned')
-                    else alert('Failed to create task')
-                  } catch { alert('Failed to create task') }
-                })()
-              }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+              <button onClick={() => openCreateTask()} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Create Task for Member
               </button>
+
+              {/* Create Task Dialog */}
+              <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Create Task</DialogTitle>
+                    <DialogDescription>Create and assign a task to {member.name}</DialogDescription>
+                  </DialogHeader>
+
+                  <div className="p-4 space-y-3">
+                    <Input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Task title" />
+                    <Input type="date" value={taskDue} onChange={(e) => setTaskDue(e.target.value)} />
+                    <Select value={taskPriority} onValueChange={(v) => setTaskPriority(v || 'MEDIUM')}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LOW">Low</SelectItem>
+                        <SelectItem value="MEDIUM">Medium</SelectItem>
+                        <SelectItem value="HIGH">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateTaskOpen(false)}>Cancel</Button>
+                    <Button onClick={createTaskForMember} disabled={!taskTitle}>Create</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <button onClick={() => onDelete(member.id)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 text-red-600 flex items-center gap-2">
                 <Trash2 className="h-4 w-4" />
                 Remove Member
@@ -505,10 +550,10 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
   useEffect(() => {
     const loadMembers = async () => {
       try {
-        // Load core team members
-        const res = await fetch('/api/admin/team-members', { cache: 'no-store' })
-        const data = await res.json().catch(() => ({}))
-        const members = Array.isArray(data.teamMembers) ? data.teamMembers : []
+        // Load core team members via service
+        const { TeamMemberService } = await import('@/services/team-member.service')
+        const svc = new TeamMemberService()
+        const members = await svc.list()
 
         // Load availability metrics (availabilityPercentage per member)
         const availabilityById: Record<string, number> = {}
@@ -585,17 +630,15 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
   const handleSave = async (data: Partial<TeamMember>) => {
     setLoading(true)
     try {
+      const { TeamMemberService } = await import('@/services/team-member.service')
+      const svc = new TeamMemberService()
       if (editingMember) {
-        const res = await fetch(`/api/admin/team-members/${editingMember.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-        if (!res.ok) throw new Error('Failed to update')
-        const json = await res.json()
-        const updated = json.teamMember as TeamMember
+        const updated = await svc.update(editingMember.id, data as any)
+        if (!updated) throw new Error('Failed to update')
         setTeamMembers((prev) => prev.map((m) => (m.id === editingMember.id ? updated : m)))
       } else {
-        const res = await fetch('/api/admin/team-members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-        if (!res.ok) throw new Error('Failed to create')
-        const json = await res.json()
-        const created = json.teamMember as TeamMember
+        const created = await svc.create(data as any)
+        if (!created) throw new Error('Failed to create')
         setTeamMembers((prev) => [...prev, created])
       }
       setShowForm(false)
@@ -611,8 +654,10 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
     if (!confirm('Are you sure you want to remove this team member?')) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/team-members/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete')
+      const { TeamMemberService } = await import('@/services/team-member.service')
+      const svc = new TeamMemberService()
+      const ok = await svc.remove(id)
+      if (!ok) throw new Error('Failed to delete')
       setTeamMembers((prev) => prev.filter((m) => m.id !== id))
     } catch {
       alert('Failed to remove team member')
@@ -623,8 +668,10 @@ export default function TeamManagement({ hideHeader = false }: { hideHeader?: bo
 
   const handleToggleStatus = async (member: TeamMember) => {
     const newStatus = member.status === 'active' ? 'inactive' : 'active'
-    const res = await fetch(`/api/admin/team-members/${member.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, isAvailable: newStatus === 'active' }) })
-    if (res.ok) {
+    const { TeamMemberService } = await import('@/services/team-member.service')
+    const svc = new TeamMemberService()
+    const updated = await svc.toggleStatus(member.id, newStatus)
+    if (updated) {
       setTeamMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: newStatus, isAvailable: newStatus === 'active' } : m)))
     }
   }
