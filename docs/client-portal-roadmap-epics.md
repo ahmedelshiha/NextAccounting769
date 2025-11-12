@@ -68,7 +68,7 @@ For each task:
 | Icon | Status | Description |
 |------|--------|-------------|
 | ✅ | Completed | Fully implemented and tested |
-| ⚠️ | In Progress | Currently working on |
+| ��️ | In Progress | Currently working on |
 | ❌ | Blocked | Cannot proceed due to dependencies |
 | 🔄 | Needs Review | Implementation complete, awaiting validation |
 | ⏸️ | Paused | Temporarily halted |
@@ -183,11 +183,24 @@ Epic: ENT-1.1 Setup wizard
     - Test coverage: forms, validation, navigation, accessibility, RTL, swipe
 
 ### Phase 1.1B — Business Verification
+**Status: ✅ COMPLETE**
+
 Epic: ENT-1.2 Verification job
-- TCK-1.2a Queue job processor
-  - Worker under src/lib/jobs/entity-setup.ts; Redis pub/sub updates; NOTIFY fallback.
-- TCK-1.2b Pending/Success/Error screens
-  - Pages and deep-link; telemetry events.
+- ✅ TCK-1.2a Queue job processor
+  - ✅ Worker under src/lib/jobs/entity-setup.ts with state machine
+  - ✅ Redis pub/sub for real-time updates
+  - ✅ TTL-based job cleanup (5 minute timeout)
+  - ✅ Retry logic with max retries (3)
+- ✅ TCK-1.2b Pending/Success/Error screens
+  - ✅ Full-screen status page at /portal/setup/status/:entityId
+  - ✅ Three-state UI: Pending (polling) → Success → Error
+  - ✅ Deep-linkable URLs for notifications
+  - ✅ Auto-redirect to dashboard on success
+  - ✅ Telemetry events for funnel tracking
+- ✅ Integration with Phase 1.1A
+  - ✅ Auto-enqueue verification job after entity setup
+  - ✅ Poll-based status updates (5s → exponential backoff)
+  - ✅ Support contact CTA on errors
 
 ## Phase 2 — Dashboard & Actionables
 Epic: DASH-2 Unified dashboard (mobile/desktop)
