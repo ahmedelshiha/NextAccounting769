@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withTenantContext } from '@/lib/api-wrapper';
 import { tenantContext } from '@/lib/tenant-context';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import MDMService from '@/lib/mdm/mdm-service';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
