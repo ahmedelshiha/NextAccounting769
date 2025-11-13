@@ -111,7 +111,7 @@ export async function matchTransactionsToInvoices(
         const invoices = await prisma.invoice.findMany({
           where: {
             tenantId,
-            status: { in: ['ISSUED', 'PARTIAL_PAID'] },
+            status: { in: ['SENT', 'UNPAID'] },
             createdAt: {
               gte: dateMin,
               lte: dateMax,
