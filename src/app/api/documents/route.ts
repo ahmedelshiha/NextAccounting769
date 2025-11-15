@@ -4,6 +4,8 @@ import { requireTenantContext } from '@/lib/tenant-utils'
 import prisma from '@/lib/prisma'
 import { logAuditSafe } from '@/lib/observability-helpers'
 import { z } from 'zod'
+import { randomUUID } from 'crypto'
+import { UPLOAD_PROVIDER, uploadFile } from '@/lib/upload-provider'
 
 const DocumentFilterSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
@@ -173,6 +175,79 @@ export const GET = withTenantContext(async (request: NextRequest) => {
     }
 
     console.error('Documents list API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+})
+
+export const POST = withTenantContext(async (request: NextRequest) => {
+  try {
+    const { userId, tenantId } = requireTenantContext()
+    if (!userId || !tenantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const formData = await request.formData()
+    const file = formData.get('file') as File | null
+    const entityId = formData.get('entityId') as string | null
+
+    if (!file) {
+      return NextResponse.json({ error: 'File is required' }, { status: 400 })
+    }
+
+    if (!entityId) {
+      return NextResponse.json(
+        { error: 'Entity ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer())
+    const fileId = randomUUID()
+    const fileKey = `${tenantId}/${entityId}/${fileId}-${file.name}`
+
+    const { url } = await uploadFile(fileBuffer, fileKey, file.type)
+
+    const attachment = await prisma.attachment.create({
+      data: {
+        id: fileId,
+        name: file.name,
+        key: fileKey,
+        url,
+        size: file.size,
+        contentType: file.type,
+        provider: UPLOAD_PROVIDER,
+        tenantId,
+        entityId,
+        uploaderId: userId,
+        avStatus: 'pending',
+      },
+    })
+
+    await logAuditSafe({
+      action: 'documents:upload',
+      details: {
+        documentId: attachment.id,
+        documentName: attachment.name,
+        documentSize: attachment.size,
+        entityId,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      document: {
+        id: attachment.id,
+        name: attachment.name,
+        size: attachment.size,
+        contentType: attachment.contentType,
+        url: attachment.url,
+      },
+    })
+  } catch (error) {
+    console.error('Documents upload API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

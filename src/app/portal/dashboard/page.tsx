@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import Link from "next/link";
+import SetupWizard from "@/components/portal/business-setup/SetupWizard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSetupModalOpen, setSetupModalOpen] = useState(false);
 
   // Fetch user's entities
   const { data: entitiesResponse, isLoading: entitiesLoading } = useSWR<{
@@ -82,6 +84,10 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SetupWizard
+        open={isSetupModalOpen}
+        onOpenChange={setSetupModalOpen}
+      />
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -151,12 +157,14 @@ export default function DashboardPage() {
               <p className="text-sm mb-3">
                 Create a business account or add an existing one to manage tax obligations.
               </p>
-              <Link href="/portal/setup">
-                <Button size="sm" className="w-full sm:w-auto">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Business Account
-                </Button>
-              </Link>
+              <Button
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => setSetupModalOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Business Account
+              </Button>
             </AlertDescription>
           </Alert>
         )}

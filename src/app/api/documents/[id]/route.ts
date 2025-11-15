@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
 import prisma from '@/lib/prisma'
-import { getSession } from 'next-auth/react'
 import { logAuditSafe } from '@/lib/observability-helpers'
+import { z } from 'zod'
+import { deleteFile } from '@/lib/upload-provider'
+
+const DocumentUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  category: z.string().optional(),
+  isStarred: z.boolean().optional(),
+})
 
 async function GET(
   request: NextRequest,
@@ -130,9 +137,17 @@ async function PATCH(
 
     const { id } = params
     const body = await request.json()
-    const { action } = body
+    const validation = DocumentUpdateSchema.safeParse(body)
 
-    // Verify document exists and belongs to tenant
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: validation.error.issues },
+        { status: 400 }
+      )
+    }
+
+    const { name, category, isStarred } = validation.data
+
     const document = await prisma.attachment.findFirst({
       where: { id, tenantId },
     })
@@ -141,29 +156,60 @@ async function PATCH(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Handle star/unstar action
-    if (action === 'star' || action === 'unstar') {
-      // TODO: Implement document stars/favorites in metadata or separate table
-      // For now, just log the action
-      await logAuditSafe({
-        action: `documents:${action}`,
-        details: {
-          documentId: document.id,
-          documentName: document.name,
-        },
-      }).catch(() => {})
-
-      return NextResponse.json(
-        {
-          success: true,
-          message: `Document ${action === 'star' ? 'starred' : 'unstarred'}`,
-        },
-        { status: 200 }
-      )
+    const updateData: {
+      name?: string
+      isStarred?: boolean
+      key?: string
+    } = {}
+    if (name) updateData.name = name
+    if (isStarred !== undefined) updateData.isStarred = isStarred
+    if (category) {
+      const oldKey = document.key || ''
+      const keyParts = oldKey.split('/')
+      keyParts[1] = category
+        .replace(/\s+/g, '-')
+        .toLowerCase()
+      updateData.key = keyParts.join('/')
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-  } catch (error) {
+    const latestVersion = await prisma.documentVersion.findFirst({
+      where: { attachmentId: document.id },
+      orderBy: { versionNumber: 'desc' },
+    })
+
+    await prisma.documentVersion.create({
+      data: {
+        attachmentId: document.id,
+        versionNumber: (latestVersion?.versionNumber || 0) + 1,
+        name: document.name,
+        size: document.size,
+        contentType: document.contentType,
+        key: document.key,
+        url: document.url,
+        uploaderId: userId,
+        changeDescription: 'Document metadata updated',
+        tenantId: tenantId,
+      },
+    })
+
+    const updatedDocument = await prisma.attachment.update({
+      where: { id },
+      data: updateData,
+    })
+
+    await logAuditSafe({
+      action: 'documents:update',
+      details: {
+        documentId: updatedDocument.id,
+        updatedFields: Object.keys(updateData),
+      },
+    })
+
+    return NextResponse.json({ success: true, document: updatedDocument })
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    }
     console.error('Document update API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -198,9 +244,12 @@ async function DELETE(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
+    // Delete file from storage provider
+    if (document.key) {
+      await deleteFile(document.key)
+    }
+
     // Delete document from database
-    // Note: File deletion from provider (Netlify/Supabase) should be handled separately
-    // using a cleanup job or the provider's API
     await prisma.attachment.delete({
       where: { id },
     })

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { logAuditSafe } from '@/lib/observability-helpers'
-import { esignService } from '@/lib/esign/esign-service'
+import { ESignatureService } from '@/lib/esign/esign-service'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
 
@@ -33,16 +33,17 @@ export const GET = withTenantContext(async (
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
+    const esignService = new ESignatureService()
     // Get signing status
-    const signingStatus = await esignService.getSigningStatus(sessionId)
+    const signingStatus = await esignService.getSignatureRequestStatus(sessionId)
 
     if (action === 'download') {
       // Download signed document
-      if (signingStatus.overallStatus !== 'COMPLETED') {
+      if (signingStatus.status !== 'completed') {
         return NextResponse.json(
           {
             error: 'Document not yet signed',
-            status: signingStatus.overallStatus,
+            status: signingStatus.status,
           },
           { status: 400 }
         )
@@ -83,7 +84,7 @@ export const GET = withTenantContext(async (
       {
         documentId: id,
         sessionId,
-        status: signingStatus.overallStatus,
+        status: signingStatus.status,
         signers: signingStatus.signers,
         completedAt: signingStatus.completedAt?.toISOString() || null,
         signedDocumentUrl: signingStatus.signedDocumentUrl,
@@ -126,8 +127,9 @@ export const DELETE = withTenantContext(async (
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
+    const esignService = new ESignatureService()
     // Cancel signing flow
-    await esignService.cancelSigningFlow(sessionId)
+    await esignService.cancelSignatureRequest(sessionId)
 
     // Log cancellation
     await logAuditSafe({

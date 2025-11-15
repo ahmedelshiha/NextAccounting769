@@ -952,10 +952,14 @@ model Attachment {
   avThreatName     String?
   avScanTime       Float?
   provider         String?
+  isStarred        Boolean         @default(false)
+  metadata         Json?
   uploadedAt       DateTime        @default(now())
   uploaderId       String?
+  entityId         String?
   serviceRequestId String?
   tenantId         String
+  entity           Entity?         @relation(fields: [entityId], references: [id])
   serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
   tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   uploader         User?           @relation(fields: [uploaderId], references: [id])
@@ -2292,6 +2296,7 @@ model Entity {
   consents              Consent[]
   taxFilings            TaxFiling[]
   userOnEntities        UserOnEntity[]
+  attachments           Attachment[]
 
   @@unique([tenantId, name])
   @@index([tenantId, country])
