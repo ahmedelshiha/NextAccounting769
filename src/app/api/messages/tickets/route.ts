@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-wrapper";
+import { requireTenantContext } from "@/lib/tenant-utils";
 import { TicketsService } from "@/lib/services/messages/tickets-service";
 import { z } from "zod";
 
@@ -29,19 +29,19 @@ const createTicketSchema = z.object({
   attachments: z.array(z.string()).optional(),
 });
 
-export async function GET(request: NextRequest) {
+export const GET = withTenantContext(async (request: NextRequest) => {
   try {
     // Authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const ctx = requireTenantContext();
+    if (!ctx.userId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const tenantId = session.user.tenantId;
-    const userId = session.user.id;
+    const tenantId = ctx.tenantId;
+    const userId = ctx.userId;
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -81,21 +81,21 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withTenantContext(async (request: NextRequest) => {
   try {
     // Authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const ctx = requireTenantContext();
+    if (!ctx.userId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const tenantId = session.user.tenantId;
-    const userId = session.user.id;
+    const tenantId = ctx.tenantId;
+    const userId = ctx.userId;
 
     // Parse and validate request body
     const body = await request.json();
@@ -135,4 +135,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

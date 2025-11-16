@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-wrapper";
+import { requireTenantContext } from "@/lib/tenant-utils";
 
-export async function GET(request: NextRequest) {
+export const GET = withTenantContext(async (request: NextRequest) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const ctx = requireTenantContext();
+    if (!ctx.userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
         status: "UPCOMING",
         priority: "high",
         completionPercentage: 65,
-        assigneeId: session.user.id,
-        assigneeName: session.user.name || "You",
+        assigneeId: ctx.userId,
+        assigneeName: ctx.userName || "You",
       },
       {
         id: "comp-2",
@@ -70,4 +70,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

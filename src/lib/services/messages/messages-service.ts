@@ -3,7 +3,7 @@
  * Handles chat messages and thread management
  */
 
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import type { ChatMessage, MessageThread, MessageFilters } from "@/types/messages";
 
 export class MessagesService {

@@ -1,0 +1,4 @@
+
+---When developing solutions, prioritize "professional solutions" that are "ready for production" over "temporary solutions" or quick fixes. The focus should be on quality, maintainability, and production readiness.
+
+When encountering a missing dependency or component (e.g., a "missing modal" in a development context), the agent should proceed to create the missing component rather than stopping or asking for clarification, especially to conserve computational resources ("credits"). The user prefers an autonomous, proactive approach to resolving missing components.

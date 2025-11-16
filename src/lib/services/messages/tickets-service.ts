@@ -3,7 +3,7 @@
  * Handles support ticket management
  */
 
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import type {
   SupportTicket,
   CreateTicketRequest,

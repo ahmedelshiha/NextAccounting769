@@ -3,6 +3,7 @@ import { withTenantContext } from "@/lib/api-wrapper";
 import { requireTenantContext } from "@/lib/tenant-utils";
 import { billsService } from "@/lib/services/bills/bills-service";
 import { logger } from "@/lib/logger";
+import type { BillUpdateInput } from "@/types/bills";
 import { z } from "zod";
 
 const BillUpdateSchema = z.object({
@@ -73,7 +74,7 @@ const _api_PATCH = async (
     const body = await request.json();
 
     // Validate input
-    const data = BillUpdateSchema.parse(body);
+    const data = BillUpdateSchema.parse(body) as BillUpdateInput;
 
     // Update bill
     const bill = await billsService.updateBill(

@@ -51,9 +51,9 @@ const _api_GET = async (request: NextRequest) => {
         verifiedAt: entity.registrations.find(r => r.type === "TRN" || r.type === "TIN")?.verifiedAt?.toISOString(),
       },
       address: {
-        status: entity.address ? "completed" as const : "pending" as const,
-        address: entity.address || undefined,
-        verifiedAt: entity.updatedAt.toISOString(),
+        status: "pending" as const,
+        address: undefined,
+        verifiedAt: undefined,
       },
       businessInfo: {
         status: entity.licenses.length > 0 ? "completed" as const : "pending" as const,

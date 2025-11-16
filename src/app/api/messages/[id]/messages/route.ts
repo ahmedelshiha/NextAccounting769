@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-wrapper";
+import { requireTenantContext } from "@/lib/tenant-utils";
 import { MessagesService } from "@/lib/services/messages/messages-service";
 import { z } from "zod";
 
@@ -14,24 +14,24 @@ const sendMessageSchema = z.object({
   attachments: z.array(z.string()).optional(),
 });
 
-export async function POST(
+export const POST = withTenantContext(async (
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+) => {
   try {
     // Authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const ctx = requireTenantContext();
+    if (!ctx.userId || !ctx.tenantId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const tenantId = session.user.tenantId;
-    const userId = session.user.id;
-    const userName = session.user.name || session.user.email;
-    const userRole = session.user.role || "CLIENT";
+    const tenantId = ctx.tenantId;
+    const userId = ctx.userId;
+    const userName = ctx.userName || "";
+    const userRole = ctx.role || "CLIENT";
     const threadId = params.id;
 
     // Parse and validate request body
@@ -77,4 +77,4 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});

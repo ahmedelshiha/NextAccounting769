@@ -3,6 +3,7 @@ import { withTenantContext } from "@/lib/api-wrapper";
 import { requireTenantContext } from "@/lib/tenant-utils";
 import { billsService } from "@/lib/services/bills/bills-service";
 import { logger } from "@/lib/logger";
+import type { BillFilters } from "@/types/bills";
 import { z } from "zod";
 
 // Validation schemas
@@ -49,7 +50,7 @@ const _api_GET = async (request: NextRequest) => {
 
     // Parse and validate query parameters
     const queryParams = Object.fromEntries(request.nextUrl.searchParams);
-    const filters = BillFiltersSchema.parse(queryParams);
+    const filters = BillFiltersSchema.parse(queryParams) as BillFilters;
 
     // Fetch bills
     const { bills, total } = await billsService.listBills(tenantId, filters);

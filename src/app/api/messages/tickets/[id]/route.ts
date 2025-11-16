@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-wrapper";
+import { requireTenantContext } from "@/lib/tenant-utils";
 import { TicketsService } from "@/lib/services/messages/tickets-service";
 import { z } from "zod";
 
@@ -42,21 +42,21 @@ const updateTicketSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-export async function GET(
+export const GET = withTenantContext(async (
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+) => {
   try {
     // Authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const ctx = requireTenantContext();
+    if (!ctx.userId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const tenantId = session.user.tenantId;
+    const tenantId = ctx.tenantId;
     const ticketId = params.id;
 
     // Get ticket
@@ -84,24 +84,24 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});
 
-export async function PATCH(
+export const PATCH = withTenantContext(async (
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+) => {
   try {
     // Authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const ctx = requireTenantContext();
+    if (!ctx.userId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const tenantId = session.user.tenantId;
-    const userId = session.user.id;
+    const tenantId = ctx.tenantId;
+    const userId = ctx.userId;
     const ticketId = params.id;
 
     // Parse and validate request body
@@ -143,4 +143,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+});

@@ -3,6 +3,7 @@ import { withTenantContext } from "@/lib/api-wrapper";
 import { requireTenantContext } from "@/lib/tenant-utils";
 import { approvalsService } from "@/lib/services/approvals/approvals-service";
 import { logger } from "@/lib/logger";
+import type { ApprovalFilters } from "@/types/approvals";
 import { z } from "zod";
 
 // Validation schemas
@@ -36,7 +37,7 @@ const _api_GET = async (request: NextRequest) => {
 
     // Parse and validate query parameters
     const queryParams = Object.fromEntries(request.nextUrl.searchParams);
-    const filters = ApprovalFiltersSchema.parse(queryParams);
+    const filters = ApprovalFiltersSchema.parse(queryParams) as ApprovalFilters;
 
     // Fetch approvals
     const { approvals, total } = await approvalsService.listApprovals(

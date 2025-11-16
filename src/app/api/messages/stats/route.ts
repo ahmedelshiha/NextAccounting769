@@ -4,24 +4,24 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withTenantContext } from "@/lib/api-wrapper";
+import { requireTenantContext } from "@/lib/tenant-utils";
 import { MessagesService } from "@/lib/services/messages/messages-service";
 import { TicketsService } from "@/lib/services/messages/tickets-service";
 
-export async function GET(request: NextRequest) {
+export const GET = withTenantContext(async (request: NextRequest) => {
   try {
     // Authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const ctx = requireTenantContext();
+    if (!ctx.userId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const tenantId = session.user.tenantId;
-    const userId = session.user.id;
+    const tenantId = ctx.tenantId;
+    const userId = ctx.userId;
 
     // Get statistics
     const [messagesStats, ticketsStats] = await Promise.all([
@@ -57,4 +57,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
