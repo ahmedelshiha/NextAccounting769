@@ -20,20 +20,29 @@ if (!AsyncLocalStorageClass) {
       // Support both synchronous and asynchronous callbacks. If the callback
       // returns a promise, ensure the store remains available until the promise
       // settles so async code can access the tenant context.
+      const previousStore = this._store
       this._store = store
-      const clear = () => { this._store = undefined }
+
       try {
         const result = callback()
         if (result && typeof (result as any).then === 'function') {
+          // For promises, we need to preserve the context through the entire async chain
           return (result as Promise<any>).then(
-            (v) => { clear(); return v },
-            (err) => { clear(); throw err }
+            (v) => {
+              this._store = previousStore
+              return v
+            },
+            (err) => {
+              this._store = previousStore
+              throw err
+            }
           )
         }
-        clear()
+        // For synchronous results, clear immediately
+        this._store = previousStore
         return result
       } catch (err) {
-        clear()
+        this._store = previousStore
         throw err
       }
     }
