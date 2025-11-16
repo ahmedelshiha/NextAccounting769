@@ -194,7 +194,17 @@ export const GET = withTenantContext(async (request: NextRequest) => {
 
 export const POST = withTenantContext(async (request: NextRequest) => {
   try {
-    const { userId, tenantId } = requireTenantContext()
+    let ctx
+    try {
+      ctx = requireTenantContext()
+    } catch (contextError) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Tenant context not available' },
+        { status: 401 }
+      )
+    }
+
+    const { userId, tenantId } = ctx
     if (!userId || !tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
