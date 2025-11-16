@@ -72,9 +72,9 @@ export default function SetupWizard({
             <span className="text-2xl">🏢</span>
             <div>
               <DialogTitle>Business Account Setup</DialogTitle>
-              <p className="text-sm text-gray-600 mt-1">
+              <DialogDescription className="text-sm text-gray-600 mt-1">
                 Create or link your business account in just a few steps
-              </p>
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>
