@@ -4,6 +4,7 @@ import { InvoiceStatus } from '@prisma/client'
 import { logAuditSafe } from '@/lib/observability-helpers'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { ZATCAAdapter } from '@/lib/einvoicing/zatca-adapter'
 import { ETAAdapter } from '@/lib/einvoicing/eta-adapter'
@@ -149,18 +150,18 @@ export const POST = withTenantContext(async (request: NextRequest) => {
 
     // Update invoice with submission details
     if (submitResult.success) {
+      const metadata = invoice.metadata ? (typeof invoice.metadata === 'string' ? JSON.parse(invoice.metadata) : invoice.metadata) : {}
       await prisma.invoice.update({
         where: { id: validated.invoiceId },
         data: {
           status: 'SUBMITTED' as InvoiceStatus,
-          // metadata update temporarily removed to fix build error
-          // metadata: JSON.stringify({
-          //   ...invoice.metadata,
-          //   einvoicingStatus: 'SUBMITTED',
-          //   einvoicingReference: submitResult.referenceNumber || submitResult.etaUuid,
-          //   einvoicingSubmittedAt: new Date().toISOString(),
-          //   country: validated.country,
-          // }),
+          metadata: JSON.stringify({
+            ...metadata,
+            einvoicingStatus: 'SUBMITTED',
+            einvoicingReference: submitResult.referenceNumber || submitResult.etaUuid,
+            einvoicingSubmittedAt: new Date().toISOString(),
+            country: validated.country,
+          }),
         },
       })
     }
@@ -196,7 +197,7 @@ export const POST = withTenantContext(async (request: NextRequest) => {
       )
     }
 
-    console.error('E-invoicing submission error:', error)
+    logger.error('E-invoicing submission error', { invoiceId: validated?.invoiceId }, error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 })
