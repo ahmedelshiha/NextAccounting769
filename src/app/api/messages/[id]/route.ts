@@ -16,7 +16,7 @@ export const GET = withTenantContext(async (
   try {
     // Authentication
     const ctx = requireTenantContext();
-    if (!ctx.userId) {
+    if (!ctx.userId || !ctx.tenantId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
