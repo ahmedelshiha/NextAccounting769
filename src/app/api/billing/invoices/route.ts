@@ -129,8 +129,8 @@ export const POST = withTenantContext(async (request: NextRequest) => {
 
     logger.error('Error creating invoice', {
       error: errorMsg,
-      userId: ctx.userId,
-      tenantId: ctx.tenantId,
+      userId: ctx?.userId,
+      tenantId: ctx?.tenantId,
     });
 
     console.error('[INVOICES_API_ERROR] POST failed:', {
