@@ -114,8 +114,9 @@ const _api_GET = async (request: NextRequest) => {
  * Create new bill
  */
 const _api_POST = async (request: NextRequest) => {
+  let ctx: TenantContext | undefined;
+
   try {
-    let ctx;
     try {
       ctx = requireTenantContext();
     } catch (contextError) {
