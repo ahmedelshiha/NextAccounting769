@@ -73,9 +73,26 @@ const _api_GET = async (request: NextRequest) => {
       );
     }
 
-    logger.error("Error listing approvals", { error });
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    logger.error("Error listing approvals", {
+      error: errorMsg,
+      userId: ctx?.userId,
+      tenantId: ctx?.tenantId,
+    });
+
+    console.error('[APPROVALS_API_ERROR] GET failed:', {
+      message: errorMsg,
+      stack: errorStack,
+    });
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        message: errorMsg,
+        ...(process.env.NODE_ENV === 'development' && { details: errorStack }),
+      },
       { status: 500 }
     );
   }
