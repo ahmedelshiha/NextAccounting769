@@ -1,38 +1,36 @@
 'use client'
 
 import { ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 
-/**
- * Props for {{ComponentName}}
- */
-interface {{ComponentName}}Props {
+interface BaseComponentProps {
   /**
    * Component variant for different display modes
    * @default 'default'
    */
   variant?: 'portal' | 'admin' | 'default'
-  
+
   /**
    * Additional CSS class names
    */
   className?: string
-  
+
   /**
    * Children elements
    */
   children?: ReactNode
-  
+
   /**
    * Loading state
    * @default false
    */
   loading?: boolean
-  
+
   /**
    * Error message to display
    */
   error?: string | null
-  
+
   /**
    * Disabled state
    * @default false
@@ -41,35 +39,35 @@ interface {{ComponentName}}Props {
 }
 
 /**
- * {{ComponentDescription}}
- * 
+ * BaseComponent
+ *
  * Supports both portal and admin variants. Handles loading, error, and empty states.
- * 
+ *
  * @example
  * ```tsx
- * <{{ComponentName}} variant="portal" loading={isLoading}>
+ * <BaseComponent variant="portal" loading={isLoading}>
  *   {children}
- * </{{ComponentName}}>
+ * </BaseComponent>
  * ```
- * 
+ *
  * @example
  * ```tsx
- * <{{ComponentName}} 
- *   variant="admin" 
+ * <BaseComponent
+ *   variant="admin"
  *   error={errorMessage}
  * >
  *   {children}
- * </{{ComponentName}}>
+ * </BaseComponent>
  * ```
  */
-export function {{ComponentName}}({
+export function BaseComponent({
   variant = 'default',
   className,
   children,
   loading = false,
   error = null,
   disabled = false,
-}: {{ComponentName}}Props) {
+}: BaseComponentProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -101,4 +99,4 @@ export function {{ComponentName}}({
   )
 }
 
-export default {{ComponentName}}
+export default BaseComponent

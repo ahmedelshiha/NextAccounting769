@@ -402,7 +402,7 @@ export function createCRUDRoute<T>(
   return routes
 }
 
-export default {
+const apiRouteFactory = {
   createListRoute,
   createDetailGetRoute,
   createDetailUpdateRoute,
@@ -410,3 +410,5 @@ export default {
   createCreateRoute,
   createCRUDRoute,
 }
+
+export default apiRouteFactory

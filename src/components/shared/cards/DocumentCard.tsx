@@ -3,6 +3,7 @@
 import React from 'react'
 import { Document } from '@/types/shared/entities/document'
 import { usePermissions } from '@/lib/use-permissions'
+import { PERMISSIONS } from '@/lib/permissions'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -70,8 +71,8 @@ export default function DocumentCard({
   className = '',
 }: DocumentCardProps) {
   const { has } = usePermissions()
-  const canDeleteDocument = has('documents:delete')
-  const canViewDocument = has('documents:view')
+  const canDeleteDocument = has(PERMISSIONS.DOCUMENTS_DELETE)
+  const canViewDocument = has(PERMISSIONS.DOCUMENTS_READ)
 
   if (!document || !canViewDocument) return null
 

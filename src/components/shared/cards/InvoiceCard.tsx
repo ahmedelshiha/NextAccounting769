@@ -3,6 +3,7 @@
 import React from 'react'
 import { Invoice } from '@/types/shared/entities/invoice'
 import { usePermissions } from '@/lib/use-permissions'
+import { PERMISSIONS } from '@/lib/permissions'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -61,8 +62,8 @@ export default function InvoiceCard({
   className = '',
 }: InvoiceCardProps) {
   const { has } = usePermissions()
-  const canDeleteInvoice = has('invoices:delete')
-  const canSendInvoice = has('invoices:send')
+  const canDeleteInvoice = has(PERMISSIONS.INVOICES_DELETE)
+  const canSendInvoice = has(PERMISSIONS.INVOICES_SEND)
 
   if (!invoice) return null
 
