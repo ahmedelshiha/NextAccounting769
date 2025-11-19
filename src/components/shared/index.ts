@@ -39,6 +39,7 @@ export { default as SharedDataTable } from './tables/SharedDataTable'
 export { default as StatusBadge } from './widgets/StatusBadge'
 export { default as PriorityBadge } from './widgets/PriorityBadge'
 export { default as UserAvatar } from './widgets/UserAvatar'
+export { ServiceGrid } from './widgets/ServiceGrid'
 
 // Notifications - Notification components
 export { default as NotificationBanner } from './notifications/NotificationBanner'
