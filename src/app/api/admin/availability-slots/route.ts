@@ -6,6 +6,8 @@ import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext, getTenantFilter } from '@/lib/tenant-utils'
 import { hasPermission, PERMISSIONS } from '@/lib/permissions'
 import { respond } from '@/lib/api-response'
+import { publishSlotCreated, publishSlotUpdated, publishSlotDeleted } from '@/lib/realtime/availability-events'
+import { format } from 'date-fns'
 
 export const runtime = 'nodejs'
 
