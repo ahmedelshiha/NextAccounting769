@@ -59,8 +59,8 @@ export default function BookingForm({
   variant = 'portal',
   className,
 }: BookingFormProps) {
-  const { can } = usePermissions()
-  const isAdmin = variant === 'admin' && can(PERMISSIONS.BOOKINGS_CREATE)
+  const { has } = usePermissions()
+  const isAdmin = variant === 'admin' && has(PERMISSIONS.BOOKINGS_CREATE)
   const isEditing = !!initialData?.id
 
   // Determine which schema to use
@@ -75,7 +75,6 @@ export default function BookingForm({
       scheduledTime: initialData?.scheduledAt ? new Date(initialData.scheduledAt).toISOString().split('T')[1]?.slice(0, 5) : '09:00',
       notes: initialData?.notes || '',
       ...(isAdmin && {
-        assignedToId: initialData?.assignedToId || '',
         status: initialData?.status || 'PENDING',
       }),
     },
