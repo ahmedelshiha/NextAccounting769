@@ -136,6 +136,24 @@ export const PERMISSIONS = {
   INVOICES_DELETE: 'invoices.delete',
   INVOICES_SEND: 'invoices.send',
   INVOICES_PAY: 'invoices.pay',
+
+  // Bookings Management
+  BOOKINGS_CREATE: 'bookings.create',
+  BOOKINGS_READ_OWN: 'bookings.read.own',
+  BOOKINGS_READ_ALL: 'bookings.read.all',
+  BOOKINGS_EDIT: 'bookings.edit',
+  BOOKINGS_CANCEL: 'bookings.cancel',
+  BOOKINGS_RESCHEDULE: 'bookings.reschedule',
+  BOOKINGS_DELETE: 'bookings.delete',
+
+  // Tasks Management (entity-level)
+  TASKS_EDIT: 'tasks.edit',
+  TASKS_DELETE: 'tasks.delete',
+  TASKS_UPDATE_OWN: 'tasks.update.own',
+
+  // Services Management (entity-level)
+  SERVICES_EDIT: 'services.edit',
+  SERVICES_DELETE: 'services.delete',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
