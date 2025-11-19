@@ -167,7 +167,7 @@ export default function InvoiceCard({
           <span>{formatCurrency(invoice.total || 0, invoice.currency || 'USD')}</span>
           {invoice.amountPaid != null && invoice.amountPaid > 0 && (
             <span className="text-sm text-green-600">
-              ({formatCurrency(invoice.amountPaid, invoice.currency)} paid)
+              ({formatCurrency(invoice.amountPaid, invoice.currency || 'USD')} paid)
             </span>
           )}
         </div>
