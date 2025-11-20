@@ -116,6 +116,9 @@ model User {
   approvalsToApprove        Approval[]              @relation("ApprovalApprover")
   approvalsDecided          Approval[]              @relation("ApprovalDecider")
   approvalHistoryActions    ApprovalHistory[]       @relation("ApprovalHistoryPerformer")
+  notificationsReceived     Notification[]          @relation("NotificationsReceived")
+  notificationsSent         Notification[]          @relation("NotificationsSent")
+  notificationPreferences   NotificationPreference? @relation("NotificationPreferences")
 
   @@unique([tenantId, email])
   @@index([tenantId, role])
@@ -385,6 +388,8 @@ model Tenant {
   bills                 Bill[]
   approvals             Approval[]
   approvalHistory       ApprovalHistory[]
+  notifications         Notification[]
+  notificationPreferences NotificationPreference[]
 
   @@index([status])
 }
@@ -3126,6 +3131,80 @@ model ApprovalHistory {
   @@index([approvalId])
   @@index([tenantId])
   @@map("approval_history")
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  tenantId      String
+  userId        String
+  type          String   @db.VarChar(50)
+  title         String   @db.VarChar(255)
+  message       String   @db.Text
+  description   String?  @db.Text
+  link          String?  @db.VarChar(500)
+  readAt        DateTime?
+  readBy        String?
+
+  // Notification type & source
+  entityType    String?  @db.VarChar(50) // e.g., "booking", "task", "document"
+  entityId      String?  @db.VarChar(100)
+  relatedUserId String?  @db.VarChar(100) // User who triggered notification
+
+  // Notification preferences
+  channels      String[] @default(["in_app"]) // in_app, email, sms
+  priority      String   @default("normal") @db.VarChar(20) // low, normal, high, urgent
+  status        String   @default("sent") @db.VarChar(20) // pending, sent, failed, deleted
+
+  // Metadata
+  metadata      Json?    // Additional data specific to notification type
+
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  sentAt        DateTime?
+
+  // Relations
+  user          User     @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  relatedUser   User?    @relation("NotificationsSent", fields: [relatedUserId], references: [id], onDelete: SetNull)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, readAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  tenantId        String
+
+  // Channel preferences
+  inAppEnabled    Boolean  @default(true)
+  emailEnabled    Boolean  @default(true)
+  smsEnabled      Boolean  @default(false)
+
+  // Notification type preferences
+  types           Json     @default("{}")     // { "booking": { "enabled": true, "channels": ["email", "in_app"] } }
+
+  // Frequency settings
+  emailDigest     String   @default("instant") @db.VarChar(20) // instant, daily, weekly, none
+  doNotDisturb    Boolean  @default(false)
+  doNotDisturbStart String? // HH:mm format
+  doNotDisturbEnd   String? // HH:mm format
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation("NotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("notification_preferences")
 }
 
 enum ApprovalItemType {

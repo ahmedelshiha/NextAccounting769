@@ -17,6 +17,9 @@ export { useTableState, type TableState, type SortState } from './useTableState'
 export { useFormState } from './useFormState'
 export { useSelection, type SelectionState } from './useSelection'
 
+// Notification hooks
+export { useNotifications, useNotificationPreferences, useSendNotification } from './useNotifications'
+
 // Permission & session hooks
 export { useCanAction } from './useCanAction'
 export { useRequiredPermission } from './useRequiredPermission'

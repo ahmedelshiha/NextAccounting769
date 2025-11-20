@@ -1,103 +1,144 @@
-import { NextRequest, NextResponse } from "next/server";
-import { withTenantContext } from "@/lib/api-wrapper";
-import { requireTenantContext } from "@/lib/tenant-utils";
-import type { TenantContext } from "@/lib/tenant-context";
-import { approvalsService } from "@/lib/services/approvals/approvals-service";
-import { logger } from "@/lib/logger";
-import type { ApprovalFilters } from "@/types/approvals";
-import { z } from "zod";
-
-// Validation schemas
-const ApprovalFiltersSchema = z.object({
-  search: z.string().optional(),
-  status: z.enum(["PENDING", "APPROVED", "REJECTED", "DELEGATED", "ESCALATED", "EXPIRED", "all"]).optional(),
-  itemType: z.enum(["BILL", "EXPENSE", "DOCUMENT", "INVOICE", "SERVICE_REQUEST", "ENTITY", "USER", "OTHER", "all"]).optional(),
-  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT", "all"]).optional(),
-  approverId: z.string().optional(),
-  requesterId: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  sortBy: z.enum(["requestedAt", "priority", "itemType", "status"]).default("requestedAt"),
-  sortOrder: z.enum(["asc", "desc"]).default("desc"),
-  limit: z.coerce.number().min(1).max(100).default(20),
-  offset: z.coerce.number().min(0).default(0),
-});
-
 /**
- * GET /api/approvals
- * List approvals with filters and pagination
+ * Approvals API
+ * GET /api/approvals - List pending approvals for current user
+ * POST /api/approvals - Create new approval request (admin only)
  */
-const _api_GET = async (request: NextRequest) => {
-  let ctx: TenantContext | undefined;
 
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
+import { prisma } from '@/lib/prisma'
+import { ApprovalEngine } from '@/lib/workflows/approval-engine'
+import { respond } from '@/lib/api-response'
+import { z } from 'zod'
+
+// GET - List pending approvals
+export async function GET(request: NextRequest) {
   try {
-    try {
-      ctx = requireTenantContext();
-    } catch (contextError) {
-      logger.error("Failed to get tenant context in GET /api/approvals", { error: contextError });
-      return NextResponse.json(
-        { error: "Unauthorized", message: "Tenant context not available" },
-        { status: 401 }
-      );
+    const session = await getServerSession()
+
+    if (!session?.user) {
+      return respond.unauthorized()
     }
 
-    const { userId, tenantId } = ctx;
-
+    const userId = session.user.id
+    const tenantId = session.user.tenantId
     if (!userId || !tenantId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respond.unauthorized()
     }
 
-    // Parse and validate query parameters
-    const queryParams = Object.fromEntries(request.nextUrl.searchParams);
-    const filters = ApprovalFiltersSchema.parse(queryParams) as ApprovalFilters;
+    // Parse query parameters
+    const searchParams = request.nextUrl.searchParams
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
+    const offset = parseInt(searchParams.get('offset') || '0')
+    const type = searchParams.get('type') // BILL, EXPENSE, DOCUMENT, etc.
+    const status = searchParams.get('status') // PENDING, APPROVED, REJECTED, EXPIRED
 
-    // Fetch approvals
-    const { approvals, total } = await approvalsService.listApprovals(
+    // Build where clause
+    const where: any = {
       tenantId,
-      userId,
-      filters
-    );
+      approverId: userId,
+    }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        approvals,
+    if (type) where.itemType = type
+    if (status) where.status = status
+
+    const [approvals, total] = await Promise.all([
+      prisma.approval.findMany({
+        where,
+        include: {
+          requester: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.approval.count({ where }),
+    ])
+
+    return respond.ok({
+      data: approvals,
+      meta: {
         total,
-        limit: filters.limit,
-        offset: filters.offset,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
       },
-    });
+    })
+  } catch (error) {
+    console.error('Error fetching approvals:', error)
+    return respond.serverError()
+  }
+}
+
+// POST - Create approval request (admin only)
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession()
+
+    if (!session?.user) {
+      return respond.unauthorized()
+    }
+
+    const userId = session.user.id
+    const tenantId = session.user.tenantId
+    if (!userId || !tenantId || session.user.role !== 'ADMIN') {
+      return respond.forbidden('Admin access required')
+    }
+
+    // Validate request body
+    const schema = z.object({
+      itemType: z.enum([
+        'BILL',
+        'EXPENSE',
+        'DOCUMENT',
+        'INVOICE',
+        'SERVICE_REQUEST',
+        'ENTITY',
+        'USER',
+        'OTHER',
+      ]),
+      itemId: z.string().min(1),
+      approverId: z.string().min(1),
+      priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).optional(),
+      expiresInDays: z.number().min(1).max(365).optional(),
+      metadata: z.record(z.any()).optional(),
+    })
+
+    const payload = schema.parse(await request.json())
+
+    // Verify approver exists
+    const approver = await prisma.user.findUnique({
+      where: { id: payload.approverId },
+    })
+
+    if (!approver || approver.tenantId !== tenantId) {
+      return respond.badRequest('Invalid approver')
+    }
+
+    // Create approval using engine
+    const expiresAt = payload.expiresInDays
+      ? new Date(Date.now() + payload.expiresInDays * 24 * 60 * 60 * 1000)
+      : undefined
+
+    const approval = await ApprovalEngine.requestApproval({
+      tenantId,
+      itemType: payload.itemType as any,
+      itemId: payload.itemId,
+      approverId: payload.approverId,
+      requesterId: userId,
+      priority: payload.priority?.toLowerCase() as any,
+      expiresAt,
+      metadata: payload.metadata,
+    })
+
+    return respond.ok({ data: approval }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation error", details: error.issues },
-        { status: 400 }
-      );
+      return respond.badRequest(error.errors)
     }
-
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-
-    logger.error("Error listing approvals", {
-      error: errorMsg,
-      userId: ctx?.userId,
-      tenantId: ctx?.tenantId,
-    });
-
-    console.error('[APPROVALS_API_ERROR] GET failed:', {
-      message: errorMsg,
-      stack: errorStack,
-    });
-
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        message: errorMsg,
-        ...(process.env.NODE_ENV === 'development' && { details: errorStack }),
-      },
-      { status: 500 }
-    );
+    console.error('Error creating approval:', error)
+    return respond.serverError()
   }
-};
-
-export const GET = withTenantContext(_api_GET, { requireAuth: true });
+}

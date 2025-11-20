@@ -1,7 +1,2 @@
-/**
- * Shared Notification Components
- * Reusable notification and alert components
- */
-
-export { default as NotificationBanner } from './NotificationBanner'
-export { default as TaskNotification } from './TaskNotification'
+export { NotificationBell } from './NotificationBell'
+export { NotificationCenter, NotificationItem } from './NotificationCenter'

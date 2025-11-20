@@ -48,3 +48,5 @@ export { DocumentVersionHistory } from './widgets/DocumentVersionHistory'
 
 // Notifications - Notification components
 export { default as NotificationBanner } from './notifications/NotificationBanner'
+export { NotificationBell } from './notifications/NotificationBell'
+export { NotificationCenter, NotificationItem } from './notifications/NotificationCenter'
