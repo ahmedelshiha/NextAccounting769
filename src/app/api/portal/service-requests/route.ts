@@ -68,21 +68,13 @@ export const GET = withTenantContext(async (request: NextRequest) => {
   const dateFrom = searchParams.get('dateFrom')
   const dateTo = searchParams.get('dateTo')
 
-  // Resolve effective user and tenant identifiers, prefer tenantContext but fall back to next-auth session when missing
-  let resolvedUserId = ctx.userId
-  let resolvedTenantId = ctx.tenantId
-  if (!resolvedUserId || !resolvedTenantId) {
-    try {
-      const na = await import('next-auth').catch(() => null as any)
-      if (na && typeof na.getServerSession === 'function') {
-        const authMod = await import('@/lib/auth')
-        const session = await na.getServerSession((authMod as any).authOptions)
-        if (session?.user) {
-          resolvedUserId = resolvedUserId || session.user.id
-          resolvedTenantId = resolvedTenantId || session.user.tenantId
-        }
-      }
-    } catch {}
+  // Use IDs from tenant context directly
+  const resolvedUserId = ctx.userId
+  const resolvedTenantId = ctx.tenantId
+
+  // If no user ID is present after middleware, we can't proceed
+  if (!resolvedUserId) {
+    return respond.unauthorized()
   }
 
   const where: any = {
@@ -133,7 +125,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
     // Legacy path when scheduledAt/isBooking columns are missing
     if (code === 'P2022' || /column .*does not exist/i.test(msg)) {
       const whereLegacy: any = {
-        clientId: ctx.userId,
+        clientId: resolvedUserId,
         ...(status && { status }),
         ...(priority && { priority }),
         ...(q && {
@@ -170,24 +162,7 @@ export const GET = withTenantContext(async (request: NextRequest) => {
       try {
         const { getAllRequests } = await import('@/lib/dev-fallbacks')
         let all = getAllRequests()
-        // Debug: report dev-fallbacks content and resolved ids
-        try { console.log('[dev-fallbacks] total', all.length, 'ctx.userId', ctx.userId, 'ctx.tenantId', ctx.tenantId) } catch {}
-        // Resolve userId/tenantId from context or fallback to session when context is missing in test setups
-        let resolvedUserId = ctx.userId
-        let resolvedTenantId = ctx.tenantId
-        if (!resolvedUserId || !resolvedTenantId) {
-          try {
-            const na = await import('next-auth').catch(() => null as any)
-            if (na && typeof na.getServerSession === 'function') {
-              const authMod = await import('@/lib/auth')
-              const session = await na.getServerSession((authMod as any).authOptions)
-              if (session?.user) {
-                resolvedUserId = resolvedUserId || session.user.id
-                resolvedTenantId = resolvedTenantId || session.user.tenantId
-              }
-            }
-          } catch {}
-        }
+
         all = all.filter((r: any) => r.clientId === resolvedUserId && r.tenantId === resolvedTenantId)
         if (type === 'appointments') all = all.filter((r: any) => !!((r as any).scheduledAt || r.deadline))
         if (type === 'requests') all = all.filter((r: any) => !((r as any).scheduledAt || r.deadline))
@@ -224,6 +199,11 @@ export const GET = withTenantContext(async (request: NextRequest) => {
 
 export const POST = withTenantContext(async (request: NextRequest) => {
   const ctx = requireTenantContext()
+
+  // If no user ID is present after middleware, we can't proceed
+  if (!ctx.userId) {
+    return respond.unauthorized()
+  }
 
   const idemKey = request.headers.get('x-idempotency-key') || ''
   if (idemKey) {

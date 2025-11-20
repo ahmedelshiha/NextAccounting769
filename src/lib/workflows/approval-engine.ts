@@ -1,5 +1,3 @@
-'use server'
-
 import { prisma } from '@/lib/prisma'
 import { EventEmitter } from '@/lib/events/event-emitter'
 import { NotificationHub } from '@/lib/notifications/hub'

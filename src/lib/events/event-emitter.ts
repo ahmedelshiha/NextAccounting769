@@ -1,5 +1,3 @@
-'use server'
-
 import { prisma } from '@/lib/prisma'
 import { NotificationHub } from '@/lib/notifications/hub'
 import type { NotificationType, NotificationChannel } from '@/types/notifications'

@@ -1,5 +1,3 @@
-'use server'
-
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodSchema } from 'zod'
 import { withAdminAuth, withTenantAuth, type AuthenticatedRequest } from '@/lib/auth-middleware'

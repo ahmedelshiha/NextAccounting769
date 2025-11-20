@@ -135,33 +135,8 @@ export const POST = withTenantContext(async (request: NextRequest) => {
     }
 
     let tenantId = ctx.tenantId
-    // If tenantId is missing, attempt to resolve it from request or session as a fallback
-    if (!tenantId) {
-      try {
-        const tenantMod = await import('@/lib/tenant')
-        if (typeof tenantMod.getResolvedTenantId === 'function') {
-          const resolved = await (tenantMod.getResolvedTenantId as any)(request as any).catch(() => null)
-          if (resolved) tenantId = resolved
-        } else if (typeof tenantMod.getTenantFromRequest === 'function') {
-          try {
-            const resolved = (tenantMod.getTenantFromRequest as any)(request as any)
-            if (resolved) tenantId = resolved
-          } catch {}
-        }
-      } catch {}
-    }
-
-    // Last-resort: try to read tenant from server session
-    if (!tenantId) {
-      try {
-        const naNext = await import('next-auth/next').catch(() => null as any)
-        if (naNext && typeof naNext.getServerSession === 'function') {
-          const authMod = await import('@/lib/auth')
-          const session = await naNext.getServerSession((authMod as any).authOptions)
-          if (session?.user?.tenantId) tenantId = String(session.user.tenantId)
-        }
-      } catch {}
-    }
+    // If tenantId is missing, it will fail validation in service creation if it's required
+    // We trust the context provider to resolve it correctly
 
     const service = await svc.createService(tenantId ?? null, validated as any, String(ctx.userId ?? ''))
 

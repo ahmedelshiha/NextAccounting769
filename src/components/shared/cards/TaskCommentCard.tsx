@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Edit2, Trash2, Reply } from 'lucide-react'
 import { formatDate, formatRelativeTime } from '@/lib/shared/formatters'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/shared/widgets/UserAvatar' // Changed import path
 
 interface TaskCommentCardProps {
   /** The comment to display */

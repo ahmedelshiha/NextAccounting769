@@ -1,5 +1,3 @@
-'use server'
-
 import { prisma } from '@/lib/prisma'
 import { Notification, NotificationPreference } from '@prisma/client'
 import { sendEmail } from '@/lib/email/send'
