@@ -44,6 +44,7 @@ export { default as StatusBadge } from './widgets/StatusBadge'
 export { default as PriorityBadge } from './widgets/PriorityBadge'
 export { default as UserAvatar } from './widgets/UserAvatar'
 export { ServiceGrid } from './widgets/ServiceGrid'
+export { DocumentVersionHistory } from './widgets/DocumentVersionHistory'
 
 // Notifications - Notification components
 export { default as NotificationBanner } from './notifications/NotificationBanner'
