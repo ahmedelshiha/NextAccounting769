@@ -314,9 +314,9 @@ export function findSimilarPresets(
   allPresets: ServerFilterPreset[],
   maxResults: number = 5
 ): PresetRecommendation[] {
-  const recommendations = allPresets
+  const recommendations: PresetRecommendation[] = allPresets
     .filter(p => p.id !== targetPreset.id)
-    .map(p => ({
+    .map((p): PresetRecommendation => ({
       preset: p,
       score: calculateFilterSimilarity(targetPreset.filters, p.filters) * 100,
       reason: 'similar',

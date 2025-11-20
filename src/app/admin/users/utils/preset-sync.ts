@@ -230,13 +230,14 @@ export function sanitizePresets(presets: ServerFilterPreset[]): ServerFilterPres
         console.warn(`Invalid preset ${preset.id}:`, validation.errors)
         return null
       }
-      return {
+      const sanitized: ServerFilterPreset = {
         ...preset,
         name: preset.name.trim(),
         description: preset.description?.trim() || undefined
       }
+      return sanitized
     })
-    .filter((p): p is ServerFilterPreset => p !== null)
+    .filter((p): p is ServerFilterPreset => p !== null && typeof p === 'object' && 'id' in p && 'name' in p)
 }
 
 /**

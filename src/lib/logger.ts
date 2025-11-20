@@ -138,6 +138,10 @@ class Logger {
   performanceMetric(metric: string, value: number, unit: string = 'ms') {
     this.info('Performance Metric', { metric, value, unit })
   }
+
+  audit(payload: { action: string; actorId?: string; targetId?: string; details?: Record<string, unknown> }) {
+    this.info('Audit Event', payload)
+  }
 }
 
 export const logger = new Logger()

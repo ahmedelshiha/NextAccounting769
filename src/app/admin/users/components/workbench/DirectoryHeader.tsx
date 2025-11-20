@@ -2,29 +2,26 @@
 
 import React from 'react'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, Settings } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 
 interface DirectoryHeaderProps {
   selectedCount?: number
   onClearSelection?: () => void
   onSidebarToggle?: () => void
-  onColumnSettings?: () => void
 }
 
 /**
  * Header for the user directory table section
- * 
+ *
  * Features:
  * - Directory title and info
- * - Column settings button
  * - Sidebar toggle (on tablet/mobile)
  * - Clear selection button (when users selected)
  */
 export default function DirectoryHeader({
   selectedCount = 0,
   onClearSelection,
-  onSidebarToggle,
-  onColumnSettings
+  onSidebarToggle
 }: DirectoryHeaderProps) {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50 rounded-t-lg flex-shrink-0" data-testid="directory-header">
@@ -65,16 +62,6 @@ export default function DirectoryHeader({
             Clear ({selectedCount})
           </Button>
         )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onColumnSettings}
-          aria-label="Column settings"
-          title="Configure visible columns"
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
       </div>
     </div>
   )

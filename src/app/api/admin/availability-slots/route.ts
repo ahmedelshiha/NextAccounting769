@@ -6,6 +6,8 @@ import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext, getTenantFilter } from '@/lib/tenant-utils'
 import { hasPermission, PERMISSIONS } from '@/lib/permissions'
 import { respond } from '@/lib/api-response'
+import { publishSlotCreated, publishSlotUpdated, publishSlotDeleted } from '@/lib/realtime/availability-events'
+import { format } from 'date-fns'
 
 export const runtime = 'nodejs'
 
@@ -15,7 +17,7 @@ const CreateSchema = z.object({
   date: z.string().min(1), // yyyy-mm-dd
   startTime: z.string().min(1), // HH:mm
   endTime: z.string().min(1), // HH:mm
-  available: z.boolean().optional().default(true),
+  available: z.boolean().default(true),
   reason: z.string().optional(),
   maxBookings: z.number().int().min(0).optional(),
 })
@@ -71,10 +73,11 @@ export const POST = withTenantContext(async (request: NextRequest) => {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid payload', details: parsed.error.issues }, { status: 400 })
 
   try {
+    const slotDate = new Date(parsed.data.date)
     const data: any = {
       serviceId: parsed.data.serviceId,
       teamMemberId: parsed.data.teamMemberId || null,
-      date: new Date(parsed.data.date),
+      date: slotDate,
       startTime: parsed.data.startTime,
       endTime: parsed.data.endTime,
       available: parsed.data.available ?? true,
@@ -84,6 +87,14 @@ export const POST = withTenantContext(async (request: NextRequest) => {
     if (isMultiTenancyEnabled() && tenantId) data.tenantId = tenantId
 
     const created = await prisma.availabilitySlot.create({ data })
+
+    // Publish real-time event for portal and admin notifications
+    publishSlotCreated(
+      parsed.data.serviceId,
+      format(slotDate, 'yyyy-MM-dd'),
+      parsed.data.teamMemberId
+    )
+
     return NextResponse.json({ availabilitySlot: created }, { status: 201 })
   } catch (e: any) {
     console.error('admin/availability-slots POST error', e)
@@ -105,10 +116,11 @@ export const PUT = withTenantContext(async (request: NextRequest) => {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid payload', details: parsed.error.issues }, { status: 400 })
 
   try {
+    const slotDate = new Date(parsed.data.date)
     const updateData: any = {
       serviceId: parsed.data.serviceId,
       teamMemberId: parsed.data.teamMemberId || null,
-      date: new Date(parsed.data.date),
+      date: slotDate,
       startTime: parsed.data.startTime,
       endTime: parsed.data.endTime,
       available: parsed.data.available ?? true,
@@ -119,6 +131,14 @@ export const PUT = withTenantContext(async (request: NextRequest) => {
     if (isMultiTenancyEnabled() && tenantId) Object.assign(where, tenantFilter(tenantId))
 
     const updated = await prisma.availabilitySlot.update({ where, data: updateData })
+
+    // Publish real-time event for portal and admin notifications
+    publishSlotUpdated(
+      parsed.data.serviceId,
+      format(slotDate, 'yyyy-MM-dd'),
+      parsed.data.teamMemberId
+    )
+
     return NextResponse.json({ availabilitySlot: updated })
   } catch (e: any) {
     console.error('admin/availability-slots PUT error', e)
@@ -143,7 +163,20 @@ export const DELETE = withTenantContext(async (request: NextRequest) => {
     const where: any = { id }
     if (isMultiTenancyEnabled() && tenantId) Object.assign(where, tenantFilter(tenantId))
 
+    // Get slot details before deletion for event publishing
+    const slot = await prisma.availabilitySlot.findFirst({ where })
+
     await prisma.availabilitySlot.delete({ where })
+
+    // Publish real-time event for portal and admin notifications
+    if (slot) {
+      publishSlotDeleted(
+        slot.serviceId,
+        format(slot.date, 'yyyy-MM-dd'),
+        slot.teamMemberId || undefined
+      )
+    }
+
     return NextResponse.json({ success: true })
   } catch (e: any) {
     console.error('admin/availability-slots DELETE error', e)

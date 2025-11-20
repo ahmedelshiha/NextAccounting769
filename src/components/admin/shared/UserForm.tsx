@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import React, { useState, useCallback, useMemo } from 'react'
+import { useForm, Path } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,13 +21,16 @@ import { Copy, RefreshCw, Mail, Phone, Building, MapPin, Shield, Lock, FileText 
 interface UserFormProps {
   /**
    * Mode: 'create' for new user, 'edit' for existing user
+   * When 'create': initialData should be undefined
+   * When 'edit': initialData should be provided
    */
   mode: 'create' | 'edit'
 
   /**
-   * Initial user data (required for edit mode)
+   * Initial user data (required for edit mode, omitted for create mode)
+   * In edit mode, this may include email (read-only) even though email is not in UserEdit schema
    */
-  initialData?: Partial<UserEdit>
+  initialData?: Partial<UserEdit & { email?: string }>
 
   /**
    * Callback when form is submitted
@@ -52,7 +55,7 @@ interface UserFormProps {
 
 export const UserForm = React.forwardRef<HTMLFormElement, UserFormProps>(
   function UserForm({
-    mode = 'create',
+    mode,
     initialData,
     onSubmit,
     onCancel,
@@ -60,25 +63,34 @@ export const UserForm = React.forwardRef<HTMLFormElement, UserFormProps>(
     showPasswordGeneration = true,
   }, ref) {
     const [tempPassword, setTempPassword] = useState<string | null>(
-      initialData?.temporaryPassword || null
+      mode === 'edit' && initialData?.temporaryPassword ? initialData.temporaryPassword : null
     )
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const schema = (mode === 'create' ? UserCreateSchema : UserEditSchema) as any
+    // Type-safe schema selection based on mode
+    const schema = useMemo(() => (mode === 'create' ? UserCreateSchema : UserEditSchema), [mode])
+
+    // Use proper form with generic type
+    const formMethods = useForm<UserCreate | UserEdit>({
+      resolver: zodResolver(schema),
+      defaultValues: useMemo(
+        () => ({
+          ...(initialData || {}),
+          role: initialData?.role || 'CLIENT',
+          isActive: initialData?.isActive ?? true,
+          requiresOnboarding: mode === 'create' ? true : initialData?.requiresOnboarding ?? false,
+        }),
+        [initialData, mode]
+      ),
+    })
+
     const {
       register,
       handleSubmit,
       watch,
       setValue,
       formState: { errors },
-    } = useForm({
-      resolver: zodResolver(schema),
-      defaultValues: initialData || {
-        role: 'CLIENT',
-        isActive: true,
-        requiresOnboarding: mode === 'create',
-      },
-    })
+    } = formMethods
 
     const role = watch('role')
     const isActive = watch('isActive')
@@ -86,7 +98,7 @@ export const UserForm = React.forwardRef<HTMLFormElement, UserFormProps>(
     const handleGeneratePassword = useCallback(() => {
       const newPassword = generateTemporaryPassword()
       setTempPassword(newPassword)
-      setValue('temporaryPassword', newPassword)
+      setValue('temporaryPassword' as Path<UserCreate | UserEdit>, newPassword)
       toast.success('Temporary password generated')
     }, [setValue])
 
@@ -138,27 +150,40 @@ export const UserForm = React.forwardRef<HTMLFormElement, UserFormProps>(
               )}
             </div>
 
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-semibold text-slate-900">
-                Email Address <span className="text-red-600">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john.doe@example.com"
-                disabled={mode === 'edit' || isSubmitting || isLoading}
-                {...register('email')}
-                aria-invalid={!!errors.email}
-                className={`h-10 border border-slate-300 rounded-lg ${mode === 'edit' ? 'bg-slate-50 cursor-not-allowed' : 'focus:ring-2 focus:ring-blue-500 focus:border-transparent'}`}
-              />
-              {errors.email && errors.email.message && (
-                <p className="text-sm text-red-600 font-medium">{String(errors.email.message)}</p>
-              )}
-              {mode === 'edit' && (
+            {/* Email Field - Create Mode Only */}
+            {mode === 'create' && (
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-slate-900">
+                  Email Address <span className="text-red-600">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john.doe@example.com"
+                  disabled={isSubmitting || isLoading}
+                  {...register('email' as Path<UserCreate | UserEdit>)}
+                  aria-invalid={!!(errors as any).email}
+                  className="h-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {(errors as any).email && (errors as any).email.message && (
+                  <p className="text-sm text-red-600 font-medium">{String((errors as any).email.message)}</p>
+                )}
+              </div>
+            )}
+            {mode === 'edit' && initialData?.email && (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-900">
+                  Email Address
+                </Label>
+                <Input
+                  type="email"
+                  value={initialData.email}
+                  disabled
+                  className="h-10 border border-slate-300 rounded-lg bg-slate-50 cursor-not-allowed text-slate-600"
+                />
                 <p className="text-xs text-slate-600">Email address cannot be changed</p>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Phone Field */}
             <div className="space-y-2">
@@ -234,7 +259,7 @@ export const UserForm = React.forwardRef<HTMLFormElement, UserFormProps>(
               </Label>
               <Select
                 value={role}
-                onValueChange={(value) => setValue('role', value as any)}
+                onValueChange={(value) => setValue('role' as Path<UserCreate | UserEdit>, value as any)}
                 disabled={isSubmitting || isLoading}
               >
                 <SelectTrigger id="role" aria-invalid={!!errors.role} className="h-10 border border-slate-300">

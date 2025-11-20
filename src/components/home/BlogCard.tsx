@@ -22,12 +22,12 @@ export default function BlogCard({ post }: { post: BlogPost }) {
   }
 
   return (
-    <Card role="article" aria-labelledby={`post-${post.id}-title`} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg overflow-hidden">
-      <div className="blog-card-visual h-40 bg-gradient-to-br from-blue-100 to-blue-200 relative overflow-hidden">
-        <div className="blog-card-overlay absolute inset-0 bg-blue-600 opacity-10 transition-opacity"></div>
-        <div className="blog-card-tags absolute bottom-4 left-4">
+    <Card role="article" aria-labelledby={`post-${post.id}-title`} className="article-card hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg overflow-hidden">
+      <div className="article-visual h-40 bg-gradient-to-br from-blue-100 to-blue-200 relative overflow-hidden">
+        <div className="article-visual__overlay absolute inset-0 bg-blue-600 opacity-10 transition-opacity"></div>
+        <div className="article-tags absolute bottom-4 left-4">
           {(post.tags || []).slice(0, 2).map((tag) => (
-            <span key={tag} className="blog-card-tag inline-block bg-white/90 text-blue-600 px-2 py-1 rounded text-xs font-medium mr-2">
+            <span key={tag} className="tag-pill inline-block bg-white/90 text-blue-600 px-2 py-1 rounded text-xs font-medium mr-2">
               {tag}
             </span>
           ))}
@@ -60,13 +60,13 @@ export default function BlogCard({ post }: { post: BlogPost }) {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="author-avatar w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+            <div className="author-avatar__wrapper w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
               <User className="h-4 w-4 text-gray-600" />
             </div>
             <span className="text-sm text-gray-700">{post.author?.name || 'Author'}</span>
           </div>
 
-          <Button variant="ghost" size="sm" className="transition-colors p-0 hover:text-blue-600" asChild>
+          <Button variant="ghost" size="sm" className="read-more-btn transition-colors p-0 hover:text-blue-600" asChild>
             <Link href={`/blog/${post.slug}`} aria-label={`Read more: ${post.title}`}>
               Read More
               <ArrowRight className="ml-1 h-3 w-3 transition-transform" />

@@ -132,11 +132,10 @@ export function useErrorHandler() {
     logger.error('Async error caught by error handler', {
       errorName: error.name,
       errorMessage: error.message,
+      errorStack: error.stack,
       errorInfo,
       asyncError: true
     }, error)
-
-    console.error('Async error:', error)
   }
 }
 

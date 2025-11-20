@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm vercel:build",
+  "buildCommand": "bash scripts/vercel-build.sh",
   "env": {
     "NODE_ENV": "production"
   }

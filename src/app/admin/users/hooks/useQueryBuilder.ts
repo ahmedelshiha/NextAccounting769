@@ -56,6 +56,7 @@ export function useQueryBuilder(initialQuery?: FilterGroup | FilterCondition) {
   const addCondition = useCallback((groupId: string) => {
     const updateQueryRecursive = (q: FilterGroup | FilterCondition): FilterGroup | FilterCondition => {
       if ('conditions' in q) {
+        // It's a group
         if (q.id === groupId) {
           return {
             ...q,
@@ -65,6 +66,16 @@ export function useQueryBuilder(initialQuery?: FilterGroup | FilterCondition) {
         return {
           ...q,
           conditions: q.conditions.map(updateQueryRecursive)
+        }
+      } else {
+        // It's a single condition
+        // If the groupId matches this condition's ID, convert to group
+        if (q.id === groupId) {
+          return {
+            id: q.id,
+            operator: 'AND' as LogicalOperator,
+            conditions: [q, createEmptyCondition()]
+          }
         }
       }
       return q

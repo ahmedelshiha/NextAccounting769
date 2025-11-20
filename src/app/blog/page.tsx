@@ -27,7 +27,7 @@ export default async function BlogPage() {
   let featuredPost: BlogPost | null = null
   let recentPosts: BlogPost[] = []
 
-  const hasDb = !!process.env.NETLIFY_DATABASE_URL
+  const hasDb = !!process.env.NETLIFY_DATABASE_URL || (process.env.NODE_ENV === 'production' && !process.env.CI)
 
   if (hasDb) {
     try {

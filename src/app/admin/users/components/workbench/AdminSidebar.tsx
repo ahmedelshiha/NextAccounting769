@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { X } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -14,38 +14,30 @@ import RecentActivityFeed from '../RecentActivityFeed'
 import { useUsersContext } from '../../contexts/UsersContextProvider'
 
 interface AdminSidebarProps {
-  onFilterChange?: (filters: Record<string, any>) => void
   onClose?: () => void
 }
 
 /**
- * Left sidebar with filters, analytics, and widgets
- * 
+ * Left sidebar with analytics and widgets
+ *
  * Features:
- * - Collapsible filter sections
- * - Role and status filters
+ * - Collapsible analytics sections with proper width transitions
  * - Analytics widgets (charts, stats)
  * - Recent activity list
  * - Responsive drawer on mobile/tablet
+ * - Proper layout expansion when sidebar collapses
+ *
+ * Note: Filters have been moved to the main filter bar in the header
  */
 export default function AdminSidebar({
-  onFilterChange,
   onClose
 }: AdminSidebarProps) {
   const context = useUsersContext()
   const [expandedSections, setExpandedSections] = useState({
-    filters: true,
     analytics: true,
-    activity: false
+    activity: true
   })
-
-  const [filters, setFilters] = useState({
-    search: '',
-    role: undefined,
-    status: undefined,
-    department: undefined,
-    dateRange: 'all'
-  })
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   // Generate role distribution data from users
   const roleDistributionData = useMemo(() => {
@@ -91,162 +83,50 @@ export default function AdminSidebar({
     }))
   }, [])
 
-  const handleFilterChange = useCallback(
-    (key: string, value: any) => {
-      const newFilters = { ...filters, [key]: value }
-      setFilters(newFilters)
-      onFilterChange?.(newFilters)
-    },
-    [filters, onFilterChange]
-  )
+  const toggleSidebarCollapse = useCallback(() => {
+    setIsCollapsed((prev) => !prev)
+  }, [])
 
   return (
-    <div className="admin-sidebar-wrapper">
-      {/* Header with close button (mobile) */}
+    <div className="admin-sidebar-wrapper" data-collapsed={isCollapsed}>
+      {/* Header with collapse/close buttons */}
       <div className="admin-sidebar-header">
-        <h3 className="text-lg font-semibold text-gray-900">Filters & Analytics</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="lg:hidden"
-          aria-label="Close sidebar"
-        >
-          <X className="w-5 h-5" />
-        </Button>
+        <h3 className="admin-sidebar-title">
+          Analytics
+        </h3>
+        <div className="admin-sidebar-header-actions">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebarCollapse}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!isCollapsed}
+            title={isCollapsed ? 'Expand' : 'Collapse'}
+            className="admin-sidebar-toggle-btn"
+          >
+            {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Sidebar content */}
       <div className="admin-sidebar-content">
-        {/* Filters Section */}
-        <Collapsible open={expandedSections.filters}>
-          <CollapsibleTrigger
-            onClick={() => toggleSection('filters')}
-            className="admin-sidebar-trigger"
-          >
-            <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
-            <svg
-              className={`admin-sidebar-trigger-icon ${expandedSections.filters ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 14l-7 7m0 0l-7-7m7 7V3"
-              />
-            </svg>
-          </CollapsibleTrigger>
-
-          <CollapsibleContent className="admin-sidebar-content-inner">
-            {/* Role filter */}
-            <div className="admin-sidebar-filter-group">
-              <label className="admin-sidebar-filter-label">Role</label>
-              <select
-                value={filters.role || ''}
-                onChange={(e) => handleFilterChange('role', e.target.value || undefined)}
-                className="admin-sidebar-filter-select"
-                aria-label="Filter by role"
-              >
-                <option value="">All Roles</option>
-                <option value="ADMIN">Admin</option>
-                <option value="EDITOR">Editor</option>
-                <option value="VIEWER">Viewer</option>
-                <option value="TEAM_LEAD">Team Lead</option>
-                <option value="TEAM_MEMBER">Team Member</option>
-              </select>
-            </div>
-
-            {/* Status filter */}
-            <div className="admin-sidebar-filter-group">
-              <label className="admin-sidebar-filter-label">Status</label>
-              <select
-                value={filters.status || ''}
-                onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
-                className="admin-sidebar-filter-select"
-                aria-label="Filter by status"
-              >
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="SUSPENDED">Suspended</option>
-                <option value="PENDING">Pending</option>
-              </select>
-            </div>
-
-            {/* Department filter */}
-            <div className="admin-sidebar-filter-group">
-              <label className="admin-sidebar-filter-label">Department</label>
-              <select
-                value={filters.department || ''}
-                onChange={(e) => handleFilterChange('department', e.target.value || undefined)}
-                className="admin-sidebar-filter-select"
-                aria-label="Filter by department"
-              >
-                <option value="">All Departments</option>
-                <option value="ENGINEERING">Engineering</option>
-                <option value="SALES">Sales</option>
-                <option value="MARKETING">Marketing</option>
-                <option value="OPERATIONS">Operations</option>
-                <option value="HR">HR</option>
-              </select>
-            </div>
-
-            {/* Date range filter */}
-            <div className="admin-sidebar-filter-group">
-              <label className="admin-sidebar-filter-label">Date Range</label>
-              <select
-                value={filters.dateRange || 'all'}
-                onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-                className="admin-sidebar-filter-select"
-                aria-label="Filter by date range"
-              >
-                <option value="all">All Time</option>
-                <option value="this-month">This Month</option>
-                <option value="last-30">Last 30 Days</option>
-                <option value="last-90">Last 90 Days</option>
-                <option value="this-year">This Year</option>
-              </select>
-            </div>
-
-            {/* Clear filters button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setFilters({
-                  search: '',
-                  role: undefined,
-                  status: undefined,
-                  department: undefined,
-                  dateRange: 'all'
-                })
-                onFilterChange?.({
-                  search: '',
-                  role: undefined,
-                  status: undefined,
-                  department: undefined,
-                  dateRange: 'all'
-                })
-              }}
-              className="w-full mt-2"
-              aria-label="Clear all filters"
-            >
-              Clear Filters
-            </Button>
-          </CollapsibleContent>
-        </Collapsible>
-
         {/* Analytics Section */}
         <Collapsible open={expandedSections.analytics}>
           <CollapsibleTrigger
             onClick={() => toggleSection('analytics')}
             className="admin-sidebar-trigger"
           >
-            <h3 className="text-sm font-semibold text-gray-900">Analytics</h3>
+            <h3 className="admin-sidebar-section-title">Analytics</h3>
             <svg
               className={`admin-sidebar-trigger-icon ${expandedSections.analytics ? 'rotate-180' : ''}`}
               fill="none"
@@ -264,14 +144,14 @@ export default function AdminSidebar({
           </CollapsibleTrigger>
 
           <CollapsibleContent className="admin-sidebar-content-inner">
-            <div className="space-y-4">
-              <div className="bg-white rounded border border-gray-100 p-3">
+            <div className="admin-sidebar-charts-container">
+              <div className="admin-sidebar-chart">
                 <RoleDistributionChart
                   data={roleDistributionData}
                   loading={context.isLoading}
                 />
               </div>
-              <div className="bg-white rounded border border-gray-100 p-3">
+              <div className="admin-sidebar-chart">
                 <UserGrowthChart
                   data={userGrowthData}
                   loading={context.isLoading}
@@ -287,7 +167,7 @@ export default function AdminSidebar({
             onClick={() => toggleSection('activity')}
             className="admin-sidebar-trigger"
           >
-            <h3 className="text-sm font-semibold text-gray-900">Recent Activity</h3>
+            <h3 className="admin-sidebar-section-title">Recent Activity</h3>
             <svg
               className={`admin-sidebar-trigger-icon ${expandedSections.activity ? 'rotate-180' : ''}`}
               fill="none"
@@ -305,7 +185,7 @@ export default function AdminSidebar({
           </CollapsibleTrigger>
 
           <CollapsibleContent className="admin-sidebar-content-inner">
-            <div className="bg-white rounded border border-gray-100">
+            <div className="admin-sidebar-activity">
               <RecentActivityFeed
                 limit={5}
                 showViewAll={true}
@@ -321,8 +201,18 @@ export default function AdminSidebar({
           display: flex;
           flex-direction: column;
           height: 100%;
+          width: 100%;
           padding: 1rem;
           gap: 0.5rem;
+          transition: padding 300ms ease-in-out;
+          overflow: visible;
+          box-sizing: border-box;
+        }
+
+        .admin-sidebar-wrapper[data-collapsed="true"] {
+          padding: 0.5rem;
+          align-items: center;
+          justify-content: flex-start;
         }
 
         .admin-sidebar-header {
@@ -332,6 +222,62 @@ export default function AdminSidebar({
           padding-bottom: 0.75rem;
           border-bottom: 1px solid #e5e7eb;
           gap: 0.5rem;
+          transition: all 300ms ease-in-out;
+          flex-shrink: 0;
+          width: 100%;
+        }
+
+        .admin-sidebar-wrapper[data-collapsed="true"] .admin-sidebar-header {
+          padding-bottom: 0.5rem;
+          border-bottom: none;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 0.5rem;
+        }
+
+        .admin-sidebar-title {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #111827;
+          margin: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          transition: all 300ms ease-in-out;
+          min-width: 0;
+        }
+
+        .admin-sidebar-wrapper[data-collapsed="true"] .admin-sidebar-title {
+          opacity: 0;
+          max-width: 0;
+          min-width: 0;
+          visibility: hidden;
+        }
+
+        .admin-sidebar-header-actions {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.25rem;
+          flex-shrink: 0;
+          transition: all 300ms ease-in-out;
+        }
+
+        .admin-sidebar-wrapper[data-collapsed="true"] .admin-sidebar-header-actions {
+          width: 100%;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .admin-sidebar-toggle-btn {
+          transition: transform 300ms ease-in-out;
+          flex-shrink: 0;
+        }
+
+        .admin-sidebar-wrapper[data-collapsed="true"] .admin-sidebar-toggle-btn {
+          width: 100%;
+          justify-content: center;
         }
 
         .admin-sidebar-content {
@@ -340,6 +286,14 @@ export default function AdminSidebar({
           gap: 0.75rem;
           flex: 1;
           overflow-y: auto;
+          transition: opacity 300ms ease-in-out;
+          min-height: 0;
+        }
+
+        .admin-sidebar-wrapper[data-collapsed="true"] .admin-sidebar-content {
+          opacity: 0;
+          visibility: hidden;
+          overflow: hidden;
         }
 
         .admin-sidebar-trigger {
@@ -349,21 +303,32 @@ export default function AdminSidebar({
           width: 100%;
           padding: 0.5rem 0;
           cursor: pointer;
-          transition: background-color 0.2s;
+          transition: background-color 200ms ease;
+          border-radius: 0.375rem;
+          gap: 0.5rem;
         }
 
         .admin-sidebar-trigger:hover {
           background-color: #f3f4f6;
-          border-radius: 0.375rem;
           padding-left: 0.25rem;
           padding-right: 0.25rem;
+        }
+
+        .admin-sidebar-section-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #111827;
+          margin: 0;
+          flex: 1;
+          text-align: left;
         }
 
         .admin-sidebar-trigger-icon {
           width: 1rem;
           height: 1rem;
-          transition: transform 0.3s ease;
+          transition: transform 300ms ease-in-out;
           color: #6b7280;
+          flex-shrink: 0;
         }
 
         .admin-sidebar-content-inner {
@@ -374,46 +339,34 @@ export default function AdminSidebar({
           padding: 0.75rem;
           background-color: #f9fafb;
           border-radius: 0.375rem;
+          animation: slideDown 300ms ease-in-out;
         }
 
-        .admin-sidebar-filter-group {
+        .admin-sidebar-charts-container {
           display: flex;
           flex-direction: column;
-          gap: 0.375rem;
+          gap: 1rem;
         }
 
-        .admin-sidebar-filter-label {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: #6b7280;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
+        .admin-sidebar-chart {
+          width: 100%;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+          padding: 0.75rem;
+          background-color: white;
         }
 
-        .admin-sidebar-filter-select {
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          border: 1px solid #d1d5db;
-          border-radius: 0.375rem;
-          background-color: #ffffff;
-          color: #111827;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .admin-sidebar-filter-select:hover {
-          border-color: #9ca3af;
-          background-color: #f9fafb;
-        }
-
-        .admin-sidebar-filter-select:focus {
-          outline: none;
-          border-color: #1f55d4;
-          box-shadow: 0 0 0 3px rgba(31, 85, 212, 0.1);
+        .admin-sidebar-activity {
+          width: 100%;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+          background-color: white;
+          overflow: hidden;
         }
 
         /* Scrollbar styling */
         .admin-sidebar-content::-webkit-scrollbar {
-          width: 4px;
+          width: 6px;
         }
 
         .admin-sidebar-content::-webkit-scrollbar-track {
@@ -422,15 +375,20 @@ export default function AdminSidebar({
 
         .admin-sidebar-content::-webkit-scrollbar-thumb {
           background-color: #cbd5e1;
-          border-radius: 2px;
+          border-radius: 3px;
         }
 
-        /* Chart container styles */
+        .admin-sidebar-content::-webkit-scrollbar-thumb:hover {
+          background-color: #94a3b8;
+        }
+
+        /* Chart container styles - Global scope */
         :global(.role-distribution-chart-container),
         :global(.user-growth-chart-container) {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
+          width: 100%;
         }
 
         :global(.role-distribution-chart-title),
@@ -445,6 +403,31 @@ export default function AdminSidebar({
         :global(.user-growth-chart-body) {
           width: 100%;
           height: auto;
+        }
+
+        /* Animation */
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            max-height: 0;
+          }
+          to {
+            opacity: 1;
+            max-height: 100%;
+          }
+        }
+
+        /* Reduce motion preference */
+        @media (prefers-reduced-motion: reduce) {
+          .admin-sidebar-wrapper,
+          .admin-sidebar-header,
+          .admin-sidebar-title,
+          .admin-sidebar-toggle-btn,
+          .admin-sidebar-content,
+          .admin-sidebar-trigger,
+          .admin-sidebar-content-inner {
+            transition: none;
+          }
         }
       `}</style>
     </div>

@@ -85,9 +85,9 @@ export default function ProfessionalKPIGrid({ stats }: KPIStatsProps) {
   ]
 
   return (
-    <div className="space-y-6 mb-8">
+    <div className="space-y-4 mb-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Key Performance Indicators</h2>
+        <h2 className="text-base font-semibold text-gray-900">Key Performance Indicators</h2>
         <div className="flex items-center gap-2">
           <label htmlFor="kpi-timeframe" className="text-sm text-gray-600">Period:</label>
           <select
@@ -103,7 +103,7 @@ export default function ProfessionalKPIGrid({ stats }: KPIStatsProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => {
           const IconComponent = kpi.icon
           const isExpanded = expandedKPI === kpi.id
@@ -125,20 +125,20 @@ export default function ProfessionalKPIGrid({ stats }: KPIStatsProps) {
                 </div>
               )}
 
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <div className={`p-2 rounded-lg ${kpi.bgColor} group-hover:scale-110 transition-transform`}>
-                    <IconComponent className={`h-5 w-5 ${kpi.color}`} />
+                  <div className={`p-1.5 rounded-lg ${kpi.bgColor} group-hover:scale-110 transition-transform`}>
+                    <IconComponent className={`h-4 w-4 ${kpi.color}`} />
                   </div>
                   <div className="flex items-center gap-2">
                     {'change' in kpi && (
                       <div className="flex items-center gap-1">
                         {kpi.trend === 'up' ? (
-                          <TrendingUp className="h-4 w-4 text-green-500" />
+                          <TrendingUp className="h-3 w-3 text-green-500" />
                         ) : (
-                          <TrendingDown className="h-4 w-4 text-red-500" />
+                          <TrendingDown className="h-3 w-3 text-red-500" />
                         )}
-                        <span className={`text-sm font-medium ${
+                        <span className={`text-xs font-medium ${
                           kpi.trend === 'up' ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {kpi.change! > 0 ? '+' : ''}{kpi.change!.toFixed(1)}%
@@ -148,7 +148,7 @@ export default function ProfessionalKPIGrid({ stats }: KPIStatsProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
                       onClick={(e) => {
                         e.stopPropagation()
                         setExpandedKPI(isExpanded ? null : kpi.id)
@@ -158,15 +158,15 @@ export default function ProfessionalKPIGrid({ stats }: KPIStatsProps) {
                     </Button>
                   </div>
                 </div>
-                <CardTitle className="text-sm font-medium text-gray-600">{kpi.title}</CardTitle>
+                <CardTitle className="text-xs font-medium text-gray-600">{kpi.title}</CardTitle>
               </CardHeader>
 
               <CardContent className="pt-0">
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-baseline justify-between">
-                    <h3 className="text-2xl font-bold text-gray-900">{kpi.mainValue}</h3>
+                    <h3 className="text-lg font-bold text-gray-900">{kpi.mainValue}</h3>
                     {'secondaryValue' in kpi && kpi.secondaryValue && (
-                      <span className="text-sm font-medium text-gray-600">{kpi.secondaryValue}</span>
+                      <span className="text-xs font-medium text-gray-600">{kpi.secondaryValue}</span>
                     )}
                   </div>
 
@@ -176,9 +176,9 @@ export default function ProfessionalKPIGrid({ stats }: KPIStatsProps) {
                         <span className="text-gray-500">Target Progress</span>
                         <span className="font-medium">{kpi.progress!.toFixed(1)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
                         <div
-                          className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-300"
+                          className="bg-gradient-to-r from-green-500 to-green-600 h-1.5 rounded-full transition-all duration-300"
                           style={{ width: `${Math.min(kpi.progress as number, 100)}%` }}
                         />
                       </div>
@@ -188,22 +188,22 @@ export default function ProfessionalKPIGrid({ stats }: KPIStatsProps) {
                     </div>
                   )}
 
-                  <p className="text-sm text-gray-600">{kpi.subtitle}</p>
+                  <p className="text-xs text-gray-600">{kpi.subtitle}</p>
 
                   {hasAlerts && (
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {kpi.alerts.map((alert, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-xs text-red-600 bg-red-50 rounded p-2">
-                          <AlertTriangle className="h-3 w-3" />
+                        <div key={idx} className="flex items-center gap-1 text-xs text-red-600 bg-red-50 rounded p-1.5">
+                          <AlertTriangle className="h-3 w-3 flex-shrink-0" />
                           <span>{alert}</span>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="flex items-center text-xs text-blue-600">
-                      View details <ExternalLink className="h-3 w-3 ml-1" />
+                  <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center text-xs text-blue-600 gap-1">
+                      View details <ExternalLink className="h-3 w-3" />
                     </div>
                   </div>
                 </div>

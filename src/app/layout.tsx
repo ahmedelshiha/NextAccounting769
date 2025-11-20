@@ -7,10 +7,19 @@ import { authOptions } from '@/lib/auth'
 import { SchemaMarkup } from '@/components/seo/SchemaMarkup'
 import { getEffectiveOrgSettingsFromHeaders } from '@/lib/org-settings'
 import { SettingsProvider } from '@/components/providers/SettingsProvider'
-import { locales, type Locale } from '@/lib/i18n'
+import { locales, type Locale, localeConfig } from '@/lib/i18n'
 import '@/styles/dark-mode.css'
 
 const inter = Inter({ subsets: ['latin'] })
+
+// Import fonts that support Arabic and other scripts
+import { Noto_Sans_Arabic } from 'next/font/google'
+
+const notoSansArabic = Noto_Sans_Arabic({
+  subsets: ['arabic'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-noto-sans-arabic',
+})
 
 export const metadata = {
   title: 'Professional Accounting Services | Accounting Firm',
@@ -83,8 +92,10 @@ export default async function RootLayout({
     serverTranslations = undefined
   }
 
+  const dir = userLocale === 'ar' ? 'rtl' : 'ltr'
+
   return (
-    <html lang={userLocale}>
+    <html lang={userLocale} dir={dir} className={userLocale === 'ar' ? notoSansArabic.variable : ''}>
       <head>
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="icon" href="/next.svg" />
@@ -94,7 +105,7 @@ export default async function RootLayout({
         {/* Expose selected runtime env vars to client in a small safe object to support feature flags at runtime */}
         <script dangerouslySetInnerHTML={{ __html: `window.__ENV__ = Object.assign(window.__ENV__ || {}, { NEXT_PUBLIC_MENU_CUSTOMIZATION_ENABLED: ${JSON.stringify(process.env.NEXT_PUBLIC_MENU_CUSTOMIZATION_ENABLED)} });` }} />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className={`${inter.className} ${userLocale === 'ar' ? notoSansArabic.className : ''}`} suppressHydrationWarning>
         {/* Global skip link for keyboard users */}
         <a
           href="#site-main-content"
@@ -104,7 +115,15 @@ export default async function RootLayout({
         </a>
         <TranslationProvider initialLocale={userLocale as any} initialTranslations={serverTranslations}>
           <SettingsProvider initialSettings={{ name: orgName, logoUrl: orgLogoUrl ?? null, contactEmail: contactEmail ?? null, contactPhone: contactPhone ?? null, legalLinks: legalLinks ?? null, defaultLocale: orgLocale }}>
-              <ClientLayout session={session} orgName={orgName} orgLogoUrl={orgLogoUrl || undefined} contactEmail={contactEmail || undefined} contactPhone={contactPhone || undefined} legalLinks={legalLinks || undefined}>
+              <ClientLayout
+                session={session}
+                orgName={orgName}
+                orgLogoUrl={orgLogoUrl || undefined}
+                contactEmail={contactEmail || undefined}
+                contactPhone={contactPhone || undefined}
+                legalLinks={legalLinks || undefined}
+                locale={userLocale}
+              >
                 {children}
               </ClientLayout>
           </SettingsProvider>

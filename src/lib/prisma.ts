@@ -100,11 +100,21 @@ export async function getPrisma(): Promise<PrismaClientType> {
   }
 
   if (!dbUrl) {
-    // In test or development environments, prefer a safe mock client to avoid hard failures
+    // In production, throw error with diagnostic information
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('Database is not configured. Set NETLIFY_DATABASE_URL or DATABASE_URL to enable DB features.')
+      const envVars = {
+        DATABASE_URL: process.env.DATABASE_URL ? 'set' : 'not set',
+        NETLIFY_DATABASE_URL: process.env.NETLIFY_DATABASE_URL ? 'set' : 'not set',
+        NODE_ENV: process.env.NODE_ENV,
+      }
+      const error = new Error(
+        `Database is not configured. Set NETLIFY_DATABASE_URL or DATABASE_URL to enable DB features. Environment: ${JSON.stringify(envVars)}`
+      )
+      console.error('🔴 CRITICAL: Prisma initialization failed - database not configured', envVars)
+      throw error
     }
-    // Return a lightweight mock Prisma client so code paths that import prisma don't crash when DB is unavailable
+    // In test/dev, return a lightweight mock Prisma client to avoid crashes
+    console.warn('⚠️ Database URL not configured - using mock Prisma client')
     return buildMockPrisma()
   }
 
@@ -113,9 +123,29 @@ export async function getPrisma(): Promise<PrismaClientType> {
     | undefined
 
   if (!client) {
-    client = await createRealClient(dbUrl)
-    if (process.env.NODE_ENV !== 'production' && typeof global !== 'undefined') {
-      ;(global as any).__prisma__ = client
+    try {
+      console.log('📊 Initializing Prisma client...')
+      client = await createRealClient(dbUrl)
+
+      // Test the connection immediately
+      try {
+        await (client as any).$queryRaw`SELECT 1`
+        console.log('✅ Prisma client initialized and database connection verified')
+      } catch (connError) {
+        console.error('❌ Prisma client initialized but database connection failed:', connError)
+        // Still return the client - it might work on next attempt
+      }
+
+      if (process.env.NODE_ENV !== 'production' && typeof global !== 'undefined') {
+        ;(global as any).__prisma__ = client
+      }
+    } catch (error) {
+      console.error('🔴 CRITICAL: Failed to create Prisma client', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        nodeEnv: process.env.NODE_ENV,
+      })
+      throw error
     }
   }
 

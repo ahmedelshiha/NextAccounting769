@@ -433,24 +433,57 @@ export const POST = withTenantContext(async (request: Request) => {
             },
           })
         }
-      } catch {}
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        console.error('[SERVICE_REQUESTS_CREATE] Failed to log skipped occurrences:', error)
+      }
 
-      try { realtimeService.emitServiceRequestUpdate(parent.id, { action: 'created' }) } catch {}
+      try {
+        realtimeService.emitServiceRequestUpdate(parent.id, { action: 'created' })
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        console.error('[SERVICE_REQUESTS_CREATE] Failed to emit service request update:', error)
+      }
+
       try {
         const dates = new Set<string>()
-        try { dates.add(new Date((parent as any).scheduledAt).toISOString().slice(0,10)) } catch {}
+        try {
+          dates.add(new Date((parent as any).scheduledAt).toISOString().slice(0,10))
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err))
+          console.error('[SERVICE_REQUESTS_CREATE] Failed to parse parent scheduled date:', error)
+        }
+
         try {
           for (const item of plan.plan) {
             if (!item.conflict && item.start) {
               dates.add(new Date(item.start).toISOString().slice(0,10))
             }
           }
-        } catch {}
-        for (const d of Array.from(dates)) {
-          try { realtimeService.emitAvailabilityUpdate(parent.serviceId, { date: d }) } catch {}
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err))
+          console.error('[SERVICE_REQUESTS_CREATE] Failed to collect plan dates:', error)
         }
-      } catch {}
-      try { await logAudit({ action: 'service-request:create:recurring', actorId: ctx.userId ?? null, targetId: parent.id, details: { serviceId: parent.serviceId, occurrences: plan.plan.length, created: childrenCreated.length, skipped: skipped.length } }) } catch {}
+
+        for (const d of Array.from(dates)) {
+          try {
+            realtimeService.emitAvailabilityUpdate(parent.serviceId, { date: d })
+          } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err))
+            console.error('[SERVICE_REQUESTS_CREATE] Failed to emit availability update:', error)
+          }
+        }
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        console.error('[SERVICE_REQUESTS_CREATE] Failed to emit availability updates:', error)
+      }
+
+      try {
+        await logAudit({ action: 'service-request:create:recurring', actorId: ctx.userId ?? null, targetId: parent.id, details: { serviceId: parent.serviceId, occurrences: plan.plan.length, created: childrenCreated.length, skipped: skipped.length } })
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        console.error('[SERVICE_REQUESTS_CREATE] Failed to log audit for recurring creation:', error)
+      }
 
       return respond.created({ parent, childrenCreated, skipped })
     }
@@ -488,17 +521,46 @@ export const POST = withTenantContext(async (request: Request) => {
     try {
       const { autoAssignServiceRequest } = await import('@/lib/service-requests/assignment')
       await autoAssignServiceRequest(created.id)
-    } catch {}
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error('[SERVICE_REQUESTS_CREATE] Failed to auto-assign service request:', error)
+    }
 
-    try { realtimeService.emitServiceRequestUpdate(created.id, { action: 'created' }) } catch {}
-    try { realtimeService.broadcastToUser(String(created.clientId), { type: 'service-request-updated', data: { serviceRequestId: created.id, action: 'created' }, timestamp: new Date().toISOString() }) } catch {}
+    try {
+      realtimeService.emitServiceRequestUpdate(created.id, { action: 'created' })
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error('[SERVICE_REQUESTS_CREATE] Failed to emit service request update:', error)
+    }
+
+    try {
+      realtimeService.broadcastToUser(String(created.clientId), { type: 'service-request-updated', data: { serviceRequestId: created.id, action: 'created' }, timestamp: new Date().toISOString() })
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error('[SERVICE_REQUESTS_CREATE] Failed to broadcast to user:', error)
+    }
+
     try {
       if ((created as any)?.isBooking && (created as any)?.scheduledAt) {
         const d = new Date((created as any).scheduledAt).toISOString().slice(0,10)
-        try { realtimeService.emitAvailabilityUpdate(created.serviceId, { date: d }) } catch {}
+        try {
+          realtimeService.emitAvailabilityUpdate(created.serviceId, { date: d })
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err))
+          console.error('[SERVICE_REQUESTS_CREATE] Failed to emit availability update:', error)
+        }
       }
-    } catch {}
-    try { await logAudit({ action: 'service-request:create', actorId: ctx.userId ?? null, targetId: created.id, details: { clientId: created.clientId, serviceId: created.serviceId, priority: created.priority, serviceSnapshot: (created.requirements as any)?.serviceSnapshot ?? null } }) } catch {}
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error('[SERVICE_REQUESTS_CREATE] Failed to handle booking availability:', error)
+    }
+
+    try {
+      await logAudit({ action: 'service-request:create', actorId: ctx.userId ?? null, targetId: created.id, details: { clientId: created.clientId, serviceId: created.serviceId, priority: created.priority, serviceSnapshot: (created.requirements as any)?.serviceSnapshot ?? null } })
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error('[SERVICE_REQUESTS_CREATE] Failed to log audit:', error)
+    }
 
     return respond.created(created)
   } catch (e: any) {
@@ -538,14 +600,36 @@ export const POST = withTenantContext(async (request: Request) => {
         }
         if (isMultiTenancyEnabled() && tenantId) (created as any).tenantId = tenantId
         addRequest(id, created)
-        try { realtimeService.emitServiceRequestUpdate(id, { action: 'created' }) } catch {}
+
+        try {
+          realtimeService.emitServiceRequestUpdate(id, { action: 'created' })
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err))
+          console.error('[SERVICE_REQUESTS_CREATE] Failed to emit service request update (fallback):', error)
+        }
+
         try {
           if ((created as any)?.isBooking && (created as any)?.scheduledAt) {
             const d = new Date((created as any).scheduledAt).toISOString().slice(0,10)
-            try { realtimeService.emitAvailabilityUpdate(created.serviceId, { date: d }) } catch {}
+            try {
+              realtimeService.emitAvailabilityUpdate(created.serviceId, { date: d })
+            } catch (err) {
+              const error = err instanceof Error ? err : new Error(String(err))
+              console.error('[SERVICE_REQUESTS_CREATE] Failed to emit availability update (fallback):', error)
+            }
           }
-        } catch {}
-        try { await logAudit({ action: 'service-request:create', actorId: ctx.userId ?? null, targetId: id, details: { clientId: created.clientId, serviceId: created.serviceId, priority: created.priority } }) } catch {}
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err))
+          console.error('[SERVICE_REQUESTS_CREATE] Failed to handle booking availability (fallback):', error)
+        }
+
+        try {
+          await logAudit({ action: 'service-request:create', actorId: ctx.userId ?? null, targetId: id, details: { clientId: created.clientId, serviceId: created.serviceId, priority: created.priority } })
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err))
+          console.error('[SERVICE_REQUESTS_CREATE] Failed to log audit (fallback):', error)
+        }
+
         return respond.created(created)
       } catch {
         return respond.serverError()

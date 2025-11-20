@@ -65,10 +65,10 @@ export const GET = withTenantContext(async (request: NextRequest, props: { param
       orderBy: { createdAt: 'desc' }
     })
 
-    return respond.success({ shares, count: shares.length })
+    return respond.ok({ shares, count: shares.length })
   } catch (error) {
     console.error('[PresetShare GET] Error:', error)
-    return respond.internalError('Failed to fetch shares')
+    return respond.serverError('Failed to fetch shares')
   }
 })
 
@@ -188,6 +188,6 @@ export const POST = withTenantContext(async (request: NextRequest, props: { para
     if ((error as any).code === 'P2002') {
       return respond.badRequest('Preset is already shared with this user')
     }
-    return respond.internalError('Failed to create share')
+    return respond.serverError('Failed to create share')
   }
 })

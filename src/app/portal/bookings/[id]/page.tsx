@@ -69,7 +69,7 @@ export default async function PortalBookingDetail({ params }: any) {
               <Link href="/portal/bookings">Back to Appointments</Link>
             </Button>
             <Button variant="ghost" asChild>
-              <Link href="/portal">Back to Portal</Link>
+              <Link href="/portal/dashboard">Back to Dashboard</Link>
             </Button>
           </div>
         </div>

@@ -1,13 +1,16 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 // Use AsyncLocalStorage only on Node.js server. Avoid static import of 'async_hooks' which breaks Turbopack/browser builds.
 let AsyncLocalStorageClass: any = undefined
+let asyncLocalStorageAvailable = false
 if (typeof window === 'undefined') {
   try {
-     
+
     // Allow runtime require here because async_hooks is Node-only and static import breaks Turbopack
     AsyncLocalStorageClass = require('async_hooks').AsyncLocalStorage
+    asyncLocalStorageAvailable = true
   } catch (err) {
     AsyncLocalStorageClass = undefined
+    asyncLocalStorageAvailable = false
   }
 }
 
@@ -20,20 +23,29 @@ if (!AsyncLocalStorageClass) {
       // Support both synchronous and asynchronous callbacks. If the callback
       // returns a promise, ensure the store remains available until the promise
       // settles so async code can access the tenant context.
+      const previousStore = this._store
       this._store = store
-      const clear = () => { this._store = undefined }
+
       try {
         const result = callback()
         if (result && typeof (result as any).then === 'function') {
+          // For promises, we need to preserve the context through the entire async chain
           return (result as Promise<any>).then(
-            (v) => { clear(); return v },
-            (err) => { clear(); throw err }
+            (v) => {
+              this._store = previousStore
+              return v
+            },
+            (err) => {
+              this._store = previousStore
+              throw err
+            }
           )
         }
-        clear()
+        // For synchronous results, clear immediately
+        this._store = previousStore
         return result
       } catch (err) {
-        clear()
+        this._store = previousStore
         throw err
       }
     }
@@ -67,7 +79,11 @@ class TenantContextManager {
   getContext(): TenantContext {
     const context = this.storage.getStore()
     if (!context) {
-      throw new Error('Tenant context is not available on the current execution path')
+      const debugInfo = {
+        asyncLocalStorageAvailable,
+        isServerEnv: typeof window === 'undefined',
+      }
+      throw new Error(`Tenant context is not available on the current execution path. Debug: ${JSON.stringify(debugInfo)}`)
     }
     return context
   }

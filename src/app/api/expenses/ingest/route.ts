@@ -11,7 +11,7 @@ const Fields = z.object({
   tax: z.number().min(0).max(1_000_000).default(0),
   currency: z.string().min(1).max(10).default('USD'),
   category: z.string().min(1).max(60).default('general'),
-  notes: z.string().max(500).optional().default('')
+  notes: z.string().max(500).default('')
 })
 
 const Payload = z.object({

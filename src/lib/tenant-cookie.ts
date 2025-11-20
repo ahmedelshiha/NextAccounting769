@@ -30,14 +30,19 @@ async function getSubtleCrypto(): Promise<SubtleCrypto | null> {
 
   const proc = (globalThis as any).process
   if (proc?.versions?.node) {
-    const moduleNames = ['node:crypto', 'crypto']
-    for (const candidate of moduleNames) {
-      try {
-        const nodeCrypto: any = await import(candidate)
-        const webCrypto = (nodeCrypto as any)?.webcrypto
-        if (webCrypto?.subtle) return webCrypto.subtle as SubtleCrypto
-      } catch {}
-    }
+    try {
+      // Try node:crypto first (Node.js 16+)
+      const nodeCrypto: any = await import('node:crypto')
+      const webCrypto = (nodeCrypto as any)?.webcrypto
+      if (webCrypto?.subtle) return webCrypto.subtle as SubtleCrypto
+    } catch {}
+
+    try {
+      // Fallback to crypto
+      const nodeCrypto: any = await import('crypto')
+      const webCrypto = (nodeCrypto as any)?.webcrypto
+      if (webCrypto?.subtle) return webCrypto.subtle as SubtleCrypto
+    } catch {}
   }
 
   return null
@@ -47,12 +52,15 @@ async function loadNodeCrypto(): Promise<typeof import('crypto') | null> {
   const proc = (globalThis as any).process
   if (!proc?.versions?.node) return null
 
-  const moduleNames = ['node:crypto', 'crypto']
-  for (const candidate of moduleNames) {
-    try {
-      return await import(candidate) as typeof import('crypto')
-    } catch {}
-  }
+  try {
+    // Try node:crypto first (Node.js 16+)
+    return await import('node:crypto') as typeof import('crypto')
+  } catch {}
+
+  try {
+    // Fallback to crypto
+    return await import('crypto') as typeof import('crypto')
+  } catch {}
 
   return null
 }

@@ -1,4 +1,4 @@
-export function buildExportUrl(query: Record<string, string | undefined>) {
+export function buildExportUrl(query: Record<string, string | undefined>): string {
   const params = new URLSearchParams()
   for (const k of Object.keys(query)) {
     const v = (query as any)[k]
@@ -7,7 +7,7 @@ export function buildExportUrl(query: Record<string, string | undefined>) {
   return `/api/admin/export?${params.toString()}`
 }
 
-export function downloadExport(query: Record<string, string | undefined>) {
+export function downloadExport(query: Record<string, string | undefined>): void {
   if (typeof window === 'undefined') {
     throw new Error('downloadExport can only be used in the browser')
   }
@@ -16,7 +16,7 @@ export function downloadExport(query: Record<string, string | undefined>) {
   window.location.href = url
 }
 
-export async function fetchExportBlob(query: Record<string, string | undefined>) {
+export async function fetchExportBlob(query: Record<string, string | undefined>): Promise<Blob> {
   const url = buildExportUrl(query)
   const res = await fetch(url)
   if (!res.ok) throw new Error('Export failed')

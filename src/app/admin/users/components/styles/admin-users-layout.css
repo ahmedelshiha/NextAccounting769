@@ -1,7 +1,8 @@
 /**
  * AdminWorkBench Layout Styles
  *
- * Responsive grid layout for the new user management dashboard.
+ * Full-width responsive layout for the admin user management dashboard.
+ * Optimized for maximum horizontal space with KPI cards and user directory.
  * Light theme color palette for production deployment.
  *
  * Color Palette:
@@ -12,10 +13,17 @@
  * - Text primary: #111827
  * - Text secondary: #6b7280
  *
+ * Layout Structure:
+ * - Header: Sticky blue bar with quick actions
+ * - Main Content: Full-width flex layout
+ *   - KPI Cards: Responsive grid (5 columns desktop, 2 tablet, 1 mobile)
+ *   - Directory: User table with full remaining height
+ * - Footer: Sticky bulk actions panel (when users selected)
+ *
  * Breakpoints:
- * - Desktop: ≥1400px (3-column layout: sidebar | main | fixed width)
- * - Tablet: 768px-1399px (sidebar hidden, drawer toggle)
- * - Mobile: <768px (full-width, sidebar as drawer)
+ * - Desktop (≥1400px): Full-width, 5-column KPI grid
+ * - Tablet (768px-1399px): Full-width, 2-column KPI grid, reduced padding
+ * - Mobile (<768px): Full-width, 1-column KPI grid, minimal padding
  */
 
 /* ============================================================================
@@ -45,50 +53,15 @@
 }
 
 /* ============================================================================
-   MAIN CONTENT AREA - Flex Container
+   MAIN CONTENT AREA - Flex Container (Full Width)
    ============================================================================ */
 
 .admin-workbench-main {
   display: flex;
   flex: 1;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0;
+  padding: 1.5rem;
   overflow: hidden;
-}
-
-/* ============================================================================
-   SIDEBAR - Left Panel (Analytics + Filters)
-   ============================================================================ */
-
-.admin-workbench-sidebar {
-  display: flex;
-  flex-direction: column;
-  width: 320px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-  overflow-x: hidden;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.admin-workbench-sidebar.closed {
-  display: none;
-}
-
-.admin-workbench-sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.admin-workbench-sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.admin-workbench-sidebar::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 3px;
 }
 
 /* ============================================================================
@@ -99,7 +72,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 0.5rem;
+  gap: 0;
   min-width: 0;
   overflow: hidden;
 }
@@ -113,8 +86,9 @@
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.1);
-  padding: 1rem;
+  padding: 1.25rem;
   flex-shrink: 0;
+  margin-bottom: 1rem;
 }
 
 /* ============================================================================
@@ -127,6 +101,7 @@
   flex: 1;
   min-height: 0;
   height: 100%;
+  width: 100%;
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
@@ -161,26 +136,12 @@
    ============================================================================ */
 
 @media (max-width: 1399px) {
-  .admin-workbench-sidebar {
-    display: none;
-  }
-
-  .admin-workbench-sidebar.open {
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 50;
-    width: 280px;
-    height: 100vh;
-    border-radius: 0;
-    margin-top: 0;
-    display: flex;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
-  }
-
   .admin-workbench-main {
-    padding: 0.75rem;
-    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .admin-workbench-metrics {
+    padding: 1rem;
   }
 }
 
@@ -194,34 +155,13 @@
   }
 
   .admin-workbench-main {
-    padding: 0.5rem;
-    gap: 0.5rem;
+    padding: 0.75rem;
     flex-direction: column;
-  }
-
-  .admin-workbench-content {
-    gap: 0.5rem;
-  }
-
-  .admin-workbench-sidebar {
-    display: none;
-  }
-
-  .admin-workbench-sidebar.open {
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 50;
-    width: 100%;
-    max-width: 280px;
-    height: 100vh;
-    border-radius: 0;
-    display: flex;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
   }
 
   .admin-workbench-metrics {
     padding: 0.75rem;
+    margin-bottom: 0.75rem;
   }
 }
 
@@ -249,7 +189,8 @@
    ============================================================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-workbench-sidebar {
+  .admin-workbench-content,
+  .admin-workbench-metrics {
     transition: none;
   }
 }

@@ -35,7 +35,7 @@ export const UserCreateSchema = z.object({
   temporaryPassword: z.string()
     .optional()
     .describe('Generated temporary password for new user'),
-  tags: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).default([]),
 })
 
 /**

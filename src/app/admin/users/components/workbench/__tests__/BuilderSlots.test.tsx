@@ -183,7 +183,6 @@ describe('BuilderSlots Components', () => {
 
   describe('BuilderSidebarSlot', () => {
     const mockProps = {
-      onFilterChange: vi.fn(),
       onClose: vi.fn()
     }
 

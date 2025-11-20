@@ -40,13 +40,14 @@ const nextConfig = {
   },
   async headers() {
     const csp = [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
+      "default-src 'self' https://vercel.live",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://*.vercel.live",
       "style-src 'self' 'unsafe-inline'",
       "img-src * data: blob:",
-      "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://*.sentry.io https://*.netlify.app https://*.netlify.com https://*.vercel.app https://*.vercel.com",
+      "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://*.sentry.io https://*.netlify.app https://*.netlify.com https://*.vercel.app https://*.vercel.com https://vercel.live https://*.vercel.live",
       "font-src 'self' data:",
-      "frame-ancestors 'none'",
+      "frame-src 'self' https://vercel.live https://*.vercel.live",
+      "frame-ancestors 'self' https://vercel.live",
       "base-uri 'self'",
       "form-action 'self'",
     ].join('; ')
@@ -56,7 +57,7 @@ const nextConfig = {
         source: '/:path*',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Frame-Options', value: 'ALLOW-FROM https://vercel.live' },
           { key: 'Referrer-Policy', value: 'no-referrer' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           { key: 'Content-Security-Policy-Report-Only', value: csp },
@@ -80,17 +81,22 @@ const nextConfig = {
 
 const disableSourcemapsOnNetlify = !!process.env.NETLIFY
 
+// Disable Sentry if SENTRY_CLI_SKIP is set or if no valid token is available
+const hasSentryToken = process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_AUTH_TOKEN !== ''
+const skipSentryInCI = process.env.CI || process.env.VERCEL || process.env.NETLIFY || process.env.SENTRY_CLI_SKIP === 'true'
+const shouldUseSentry = process.env.NODE_ENV === 'production' && hasSentryToken && !skipSentryInCI
+
 const sentryPluginOptions = {
   silent: true,
   tunnelRoute: '/monitoring',
   sourcemaps: {
-    disable: disableSourcemapsOnNetlify,
+    disable: disableSourcemapsOnNetlify || !hasSentryToken,
     deleteSourcemapsAfterUpload: true,
   },
-  disableServerWebpackPlugin: disableSourcemapsOnNetlify,
-  disableClientWebpackPlugin: disableSourcemapsOnNetlify,
+  disableServerWebpackPlugin: disableSourcemapsOnNetlify || !hasSentryToken,
+  disableClientWebpackPlugin: disableSourcemapsOnNetlify || !hasSentryToken,
 }
 
-const configWithSentry = (process.env.NODE_ENV === 'production' && !!process.env.SENTRY_AUTH_TOKEN) ? withSentryConfig(nextConfig, sentryPluginOptions) : nextConfig
+const configWithSentry = shouldUseSentry ? withSentryConfig(nextConfig, sentryPluginOptions) : nextConfig
 
 export default configWithSentry

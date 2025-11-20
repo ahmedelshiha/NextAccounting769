@@ -1,108 +1,250 @@
-export const runtime = 'nodejs'
-
 import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
 import { withTenantContext } from '@/lib/api-wrapper'
 import { requireTenantContext } from '@/lib/tenant-utils'
+import { PERMISSIONS, hasPermission } from '@/lib/permissions'
+import { applyRateLimit, getClientIp } from '@/lib/rate-limit'
+import { logAudit } from '@/lib/audit'
+import { respond } from '@/lib/api-response'
+import { logger } from '@/lib/logger'
+import { publishBookingCreated } from '@/lib/realtime/booking-events'
 
-function withDeprecationHeaders(init?: ResponseInit) {
-  const headers = new Headers(init?.headers)
-  headers.set('Deprecation', 'true')
-  headers.set('Sunset', new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toUTCString())
-  headers.set('Link', '</api/admin/service-requests>; rel="successor-version"')
-  return { ...init, headers }
+/**
+ * Filter booking fields based on user role
+ * Admin sees all fields, Portal users see limited fields for their bookings
+ */
+function filterBookingFields(booking: any, userRole: string, userId: string) {
+  // Admin and team members can see all fields
+  if (userRole === 'ADMIN' || userRole === 'TEAM_LEAD' || userRole === 'TEAM_MEMBER') {
+    return booking
+  }
+
+  // Portal users can see most fields but not internal notes
+  const { internalNotes, profitMargin, costPerUnit, ...portalFields } = booking
+
+  return portalFields
 }
 
-function cloneRequestWithUrl(req: NextRequest | Request, url: URL, body?: any, method?: string): Request {
-  const init: RequestInit = {
-    method: method || (req as Request).method,
-    headers: (req as Request).headers,
-    body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
+/**
+ * Build where clause based on user role
+ */
+function buildBookingWhereClause(ctx: any) {
+  const baseClause: any = { tenantId: ctx.tenantId }
+
+  // Portal users only see their own bookings
+  if (ctx.role !== 'ADMIN' && ctx.role !== 'TEAM_LEAD' && ctx.role !== 'TEAM_MEMBER') {
+    baseClause.clientId = ctx.userId
   }
-  return new Request(url.toString(), init)
+
+  return baseClause
 }
 
-export const GET = withTenantContext(async (request: NextRequest) => {
-  const ctx = requireTenantContext()
-  if (!ctx.userId) return NextResponse.json({ success: false, error: { message: 'Unauthorized' } }, withDeprecationHeaders({ status: 401 }))
+/**
+ * GET /api/bookings
+ * List bookings with optional filters
+ * - Portal users: see only their own bookings, limited fields
+ * - Admin users: see all bookings, all fields, with optional filters
+ */
+export const GET = withTenantContext(
+  async (request: NextRequest) => {
+    try {
+      const ctx = requireTenantContext()
 
-  const url = new URL(request.url)
-  if (!url.searchParams.get('type')) {
-    url.searchParams.set('type', 'appointments')
-  }
+      // Rate limiting
+      const ip = getClientIp(request as any)
+      const rl = await applyRateLimit(`bookings-list:${ip}`, 100, 60_000)
+      if (rl && !rl.allowed) {
+        await logAudit({
+          action: 'security.ratelimit.block',
+          details: { ip, key: `bookings-list:${ip}`, route: new URL(request.url).pathname },
+        }).catch(() => {}) // Don't fail if audit logging fails
+        return respond.tooMany('Rate limit exceeded')
+      }
 
-  try {
-    const role = ctx.role ?? undefined
-    if (role === 'ADMIN' || role === 'TEAM_LEAD' || role === 'TEAM_MEMBER' || role === 'STAFF') {
-      const mod = await import('@/app/api/admin/service-requests/route')
-      const resp: Response = await mod.GET(cloneRequestWithUrl(request, url) as any, {} as any)
-      const data = await resp.json().catch(() => null)
-      return NextResponse.json(data, withDeprecationHeaders({ status: resp.status }))
-    } else {
-      const mod = await import('@/app/api/portal/service-requests/route')
-      const resp: Response = await mod.GET(cloneRequestWithUrl(request, url) as any, {} as any)
-      const data = await resp.json().catch(() => null)
-      return NextResponse.json(data, withDeprecationHeaders({ status: resp.status }))
+      // Check permission
+      if (ctx.role === 'ADMIN' || ctx.role === 'TEAM_LEAD' || ctx.role === 'TEAM_MEMBER') {
+        if (!hasPermission(ctx.role, PERMISSIONS.BOOKINGS_VIEW)) {
+          return respond.forbidden('You do not have permission to view bookings')
+        }
+      }
+
+      // Parse query parameters
+      const sp = new URL(request.url).searchParams
+      const status = sp.get('status') || undefined
+      const serviceId = sp.get('serviceId') || undefined
+      const clientId = sp.get('clientId') || undefined
+      const limit = Math.min(Number(sp.get('limit')) || 20, 100)
+      const offset = Number(sp.get('offset')) || 0
+      const sortBy = (sp.get('sortBy') || 'scheduledAt') as string
+      const sortOrder = (sp.get('sortOrder') || 'desc').toUpperCase()
+
+      // Build where clause
+      const where = buildBookingWhereClause(ctx)
+
+      // Apply optional filters
+      if (status) where.status = status
+      if (serviceId) where.serviceId = serviceId
+
+      // Admin can filter by client
+      if (clientId && (ctx.role === 'ADMIN' || ctx.role === 'TEAM_LEAD' || ctx.role === 'TEAM_MEMBER')) {
+        where.clientId = clientId
+      }
+
+      // Fetch bookings
+      const [bookings, total] = await Promise.all([
+        prisma.booking.findMany({
+          where,
+          take: limit,
+          skip: offset,
+          orderBy: { [sortBy]: sortOrder === 'ASC' ? 'asc' : 'desc' },
+          include: {
+            service: { select: { id: true, name: true, slug: true } },
+            client: { select: { id: true, email: true, name: true, image: true } },
+            assignedTeamMember: ctx.role === 'ADMIN' || ctx.role === 'TEAM_LEAD' ? { select: { id: true, email: true, name: true, image: true } } : false,
+          },
+        }),
+        prisma.booking.count({ where }),
+      ])
+
+      // Filter fields based on role
+      const filteredBookings = bookings.map((b) => filterBookingFields(b, ctx.role, ctx.userId))
+
+      return respond.ok(filteredBookings, {
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + bookings.length < total,
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to fetch bookings', { error })
+      return respond.serverError('Failed to fetch bookings')
     }
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: { message: 'Failed to fetch bookings' } }, withDeprecationHeaders({ status: 500 }))
-  }
-})
+  },
+  { requireAuth: true }
+)
 
-export const POST = withTenantContext(async (request: NextRequest) => {
-  const ctx = requireTenantContext()
-  if (!ctx.userId) return NextResponse.json({ success: false, error: { message: 'Unauthorized' } }, withDeprecationHeaders({ status: 401 }))
+/**
+ * POST /api/bookings
+ * Create a new booking
+ * - Portal users: can create their own bookings
+ * - Admin users: can create bookings for clients
+ */
+export const POST = withTenantContext(
+  async (request: NextRequest) => {
+    try {
+      const ctx = requireTenantContext()
 
-  let legacy: any = null
-  try {
-    legacy = await request.json()
-  } catch {}
+      // Rate limiting for creation
+      const rl = await applyRateLimit(`bookings-create:${ctx.userId}`, 10, 3600_000)
+      if (rl && !rl.allowed) {
+        return respond.tooMany('Too many booking creation attempts')
+      }
 
-  const bookingDetails: any = {
-    scheduledAt: legacy?.scheduledAt,
-    duration: legacy?.duration,
-    clientName: legacy?.clientName,
-    clientEmail: legacy?.clientEmail,
-    clientPhone: legacy?.clientPhone,
-    assignedTeamMemberId: legacy?.assignedTeamMemberId,
-  }
+      let body = await request.json()
 
-  const basePayload: any = {
-    serviceId: legacy?.serviceId,
-    title: legacy?.title || undefined,
-    description: legacy?.notes || legacy?.description || undefined,
-    requirements: { ...(legacy?.requirements || {}), booking: bookingDetails },
-    attachments: legacy?.attachments || undefined,
-  }
+      // Extract fields
+      const {
+        serviceId,
+        scheduledAt,
+        duration,
+        clientId,
+        clientName,
+        clientEmail,
+        clientPhone,
+        notes,
+        assignedTeamMemberId,
+      } = body
 
-  if (legacy?.scheduledAt) {
-    ;(basePayload as any).isBooking = true
-    ;(basePayload as any).scheduledAt = legacy.scheduledAt
-    if (legacy?.duration != null) (basePayload as any).duration = legacy.duration
-    if (legacy?.clientName) (basePayload as any).clientName = legacy.clientName
-    if (legacy?.clientEmail) (basePayload as any).clientEmail = legacy.clientEmail
-    if (legacy?.clientPhone) (basePayload as any).clientPhone = legacy.clientPhone
-    if (legacy?.bookingType) (basePayload as any).bookingType = legacy.bookingType
-    if (legacy?.recurringPattern) (basePayload as any).recurringPattern = legacy.recurringPattern
-  }
+      // Validation
+      if (!serviceId) return respond.badRequest('Service ID is required')
+      if (!scheduledAt) return respond.badRequest('Scheduled date is required')
 
-  const role = ctx.role ?? undefined
-  const url = new URL(request.url)
+      // Portal users create bookings for themselves
+      const actualClientId = ctx.role === 'ADMIN' ? clientId || ctx.userId : ctx.userId
 
-  try {
-    if (role === 'ADMIN' || role === 'TEAM_LEAD' || role === 'TEAM_MEMBER' || role === 'STAFF') {
-      basePayload.clientId = legacy?.clientId || ctx.userId
-      if (legacy?.assignedTeamMemberId) (basePayload as any).assignedTeamMemberId = legacy.assignedTeamMemberId
-      const mod = await import('@/app/api/admin/service-requests/route')
-      const resp: Response = await mod.POST(cloneRequestWithUrl(request, url, basePayload, 'POST') as any, {} as any)
-      const data = await resp.json().catch(() => null)
-      return NextResponse.json(data, withDeprecationHeaders({ status: resp.status }))
-    } else {
-      const mod = await import('@/app/api/portal/service-requests/route')
-      const resp: Response = await mod.POST(cloneRequestWithUrl(request, url, basePayload, 'POST') as any, {} as any)
-      const data = await resp.json().catch(() => null)
-      return NextResponse.json(data, withDeprecationHeaders({ status: resp.status }))
+      // Verify service exists
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+        select: { id: true, name: true, tenantId: true, duration: true },
+      })
+
+      if (!service || service.tenantId !== ctx.tenantId) {
+        return respond.badRequest('Service not found')
+      }
+
+      // Verify client exists if different from current user
+      if (actualClientId !== ctx.userId && ctx.role === 'ADMIN') {
+        const clientExists = await prisma.user.findFirst({
+          where: { id: actualClientId, tenantId: ctx.tenantId },
+          select: { id: true },
+        })
+        if (!clientExists) {
+          return respond.badRequest('Client not found')
+        }
+      }
+
+      // Create booking
+      const booking = await prisma.booking.create({
+        data: {
+          serviceId,
+          clientId: actualClientId,
+          tenantId: ctx.tenantId,
+          scheduledAt: new Date(scheduledAt),
+          duration: duration || service.duration || 60,
+          status: 'PENDING',
+          clientName: clientName || undefined,
+          clientEmail: clientEmail || undefined,
+          clientPhone: clientPhone || undefined,
+          notes: notes || undefined,
+          assignedTeamMemberId:
+            assignedTeamMemberId && (ctx.role === 'ADMIN' || ctx.role === 'TEAM_LEAD')
+              ? assignedTeamMemberId
+              : undefined,
+          createdBy: ctx.userId,
+        },
+        include: {
+          service: { select: { id: true, name: true, slug: true } },
+          client: { select: { id: true, email: true, name: true } },
+          assignedTeamMember: { select: { id: true, email: true, name: true } },
+        },
+      })
+
+      // Log audit
+      await logAudit({
+        action: 'booking.created',
+        actorId: ctx.userId,
+        targetId: booking.id,
+        details: {
+          serviceId: booking.serviceId,
+          clientId: booking.clientId,
+          scheduledAt: booking.scheduledAt,
+        },
+      })
+
+      // Publish real-time event for portal and admin notifications
+      publishBookingCreated({
+        id: booking.id,
+        serviceId: booking.serviceId,
+        action: 'created',
+      })
+
+      return respond.created(booking)
+    } catch (error) {
+      logger.error('Failed to create booking', { error })
+
+      if (error instanceof Error) {
+        if (error.message.includes('Zod') || error.message.includes('validation')) {
+          return respond.badRequest('Invalid booking data')
+        }
+        if (error.message.includes('conflict') || error.message.includes('constraint')) {
+          return respond.badRequest('Booking time slot is not available')
+        }
+      }
+
+      return respond.serverError('Failed to create booking')
     }
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: { message: 'Failed to create booking' } }, withDeprecationHeaders({ status: 500 }))
-  }
-})
+  },
+  { requireAuth: true }
+)

@@ -8,6 +8,7 @@ import { ChevronDown, X } from 'lucide-react'
 export interface FilterOption {
   value: string
   label: string
+  count?: number
 }
 
 export interface FilterMultiSelectProps {

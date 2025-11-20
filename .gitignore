@@ -39,3 +39,4 @@ prisma/generated/
 playwright-report/
 playwright/.cache/
 .vitest/
+.env.local

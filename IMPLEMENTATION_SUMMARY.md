@@ -1,514 +1,374 @@
-# User Profile Transformation Implementation Summary
+# Portal-Admin Integration: Complete Documentation Package
 
-**Completion Date:** October 21, 2025  
-**Status:** ✅ **PRODUCTION READY**  
-**Total Implementation Time:** ~8 hours  
-**Code Quality:** ✅ Verified  
-**Security:** ✅ Hardened  
-**Testing:** ✅ Comprehensive  
-**Documentation:** ✅ Complete
+**Created**: November 2024  
+**Status**: Ready for Implementation  
+**Total Documentation**: 4 New Files + Updated References
 
 ---
 
-## 🎉 Mission Accomplished
+## 📦 What Was Created
 
-The user profile transformation feature has been **completely implemented**, **thoroughly tested**, and is **ready for immediate production deployment**. This represents a significant enhancement to the admin dashboard, providing users with a modern, accessible, and secure profile management experience.
+### 1. **IMPLEMENTATION_INSTRUCTIONS.md** (553 lines)
+**Purpose**: Execute builder.io AI engine compatible instructions  
+**Contains**:
+- Role & context (you are a senior full-stack developer)
+- Step-by-step execution protocol
+- 5-step workflow per task (Plan → Implement → Validate → Document → Proceed)
+- Auto-proceed rules and pause conditions
+- Real-time documentation update format
+- Project structure reference with key directories
+- Phase execution order (all 6 phases)
+- Quality standards (code excellence, security, production-ready)
+- Status indicators (✅ ⚠️ ❌ 🔄 ⏸️)
+- Pre-phase checklists and completion criteria
+- Common commands and git workflow
+- Important notes on autonomous development
+- Production-ready code standards
 
----
+**Why It Matters**:
+- Built specifically for Builder.io AI engine
+- Clear, structured, unambiguous
+- Provides exact execution flow
+- Defines success criteria
+- Addresses autonomous component creation
 
-## 📋 What Was Implemented
-
-### ✅ Core Features (100% Complete)
-
-1. **User Profile Dropdown**
-   - Professional header with avatar, name, and role
-   - Theme switcher (Light/Dark/System) with next-themes integration
-   - Status selector (Online/Away/Busy) with visual indicators
-   - Quick links (Settings, Security & MFA, Billing, API Keys) with RBAC filtering
-   - Help menu (Support, Keyboard Shortcuts, Documentation)
-   - Sign-out with confirmation dialog
-   - Full keyboard navigation and accessibility
-
-2. **Profile Management Panel**
-   - Two-tab interface: Profile & Security
-   - Dynamic import for code-splitting (saves ~15KB on initial load)
-   - Profile Tab: Edit name, email, organization with verification badges
-   - Security Tab: Password, 2FA, email verification, sessions, account activity
-   - Editable fields with real-time save/cancel
-   - Loading skeletons and error states
-   - Mobile-responsive modal/drawer
-
-3. **Security Features**
-   - 2FA (TOTP) enrollment with QR code generation
-   - Authenticator app support (Google Authenticator, Authy, etc.)
-   - Backup codes generation and display
-   - Email verification flow
-   - Password change with current password verification
-   - Account lockout after failed login attempts
-   - Session invalidation on profile update
-
-4. **Status Management**
-   - Online/Away/Busy status with visual indicators
-   - Auto-away timeout after 5 minutes inactivity
-   - Persistent status in localStorage
-   - Real-time status updates across the UI
-   - Respects "Busy" status (overrides auto-away)
-
-5. **Theme Management**
-   - Light/Dark/System theme options
-   - Persists to localStorage
-   - Respects system preference (prefers-color-scheme)
-   - Smooth transitions between themes
-   - Integration with existing dark-mode.css
-
-### ✅ Technical Implementation (100% Complete)
-
-**Components Created:** 8+
-- UserProfileDropdown (main dropdown component)
-- Avatar (with initials fallback and status dot)
-- UserInfo (displays user name, email, role, organization)
-- ThemeSubmenu (radio selector for themes)
-- ProfileManagementPanel (two-tab panel)
-- EditableField (edit/save/cancel interface)
-- VerificationBadge (shows verification status)
-- MfaSetupModal (QR code and TOTP verification)
-
-**Hooks Created:** 3
-- useUserProfile (GET/PATCH /api/users/me)
-- useUserStatus (status management with auto-away)
-- useSecuritySettings (MFA, email verification, password management)
-
-**API Endpoints:** 1 Enhanced
-- GET /api/users/me (with rate limiting, ~60/min)
-- PATCH /api/users/me (with CSRF, rate limiting, password auth)
-- DELETE /api/users/me (with rate limiting, audit logging)
-
-**Database Schema:** 1 Model
-- UserProfile model with 12+ fields including 2FA, verification, audit data
-- Proper Prisma relations and cascading deletes
-- Ready for migration to staging/production
-
-**Tests:** Comprehensive
-- 12+ E2E tests (Playwright) covering all user interactions
-- Unit tests for core components (Avatar, Dropdown, Panel)
-- Manual test scenarios documented
-
-**Security Measures:**
-- CSRF protection on mutations (isSameOrigin check)
-- Rate limiting (60 GET/min, 20 PATCH/min per IP)
-- Password hashing with bcryptjs
-- Session isolation per tenant
-- Audit logging on profile changes
-
-**Performance Optimizations:**
-- Code-splitting with dynamic import (ProfileManagementPanel)
-- Component memoization (Avatar, UserProfileDropdown)
-- useCallback hooks for stable references
-- Tree-shakeable icons (lucide-react)
-- Estimated bundle impact: +25-35KB gzipped
-
-**Accessibility (WCAG 2.1 AA):**
-- ARIA labels and roles on all interactive elements
-- Keyboard navigation (Tab, Escape, Enter, Arrows)
-- Focus management with focus trap in modal
-- Live region announcements for status/theme changes
-- Sufficient color contrast on all UI elements
-- Screen reader tested and verified
-
-### ✅ Integration & Deployment (100% Complete)
-
-**Integration:**
-- ✅ Wired into existing AdminHeader component
-- ✅ Uses existing UI component library (Radix UI, shadcn/ui)
-- ✅ Uses existing authentication (NextAuth)
-- ✅ Uses existing permission system (RBAC)
-- ✅ Uses existing database (Prisma)
-- ✅ Uses existing theme provider (next-themes)
-
-**Documentation:**
-- ✅ Complete implementation guide
-- ✅ Deployment step-by-step guide
-- ✅ Quick reference for developers
-- ✅ Troubleshooting guide
-- ✅ Security verification checklist
-- ✅ Performance optimization tips
-
-**Quality Assurance:**
-- ✅ Code follows project conventions
-- ✅ TypeScript strict mode compliant
-- ✅ No hardcoded secrets or credentials
-- ✅ Error handling implemented
-- ✅ Loading states for all async operations
-- ✅ Graceful fallbacks for missing data
+**How to Use**:
+- Reference daily during implementation
+- Follow 5-step workflow for each task
+- Use status indicators to track progress
+- Update documentation after each task
+- Use pre-phase checklists before starting new phase
 
 ---
 
-## 📊 Implementation Statistics
+### 2. **PORTAL_ADMIN_INTEGRATION_ROADMAP.md** (2,382 lines)
+**Purpose**: Strategic overview and architecture  
+**Contains**:
+- Executive summary and vision
+- Current state analysis (Portal vs Admin - 3 features vs 40+ features)
+- Target integration architecture (visual diagrams)
+- Detailed entity integration map (12 core entities, 9 dimensions per entity)
+- Complete feature-by-feature analysis:
+  - Services (Portal/Admin features with integration opportunities)
+  - Bookings (Current state and improvement plan)
+  - Tasks (Limited → Full bidirectionality)
+  - Users & Team (Unified management)
+  - Documents (Full lifecycle integration)
+  - Invoicing & Payments (Admin creates, Portal views/pays)
+  - Approvals (Natural two-way flow)
+  - Messaging & Communication (Unified system)
+  - Compliance & KYC (Admin configures, Portal complies)
+  - Expenses & Bills (Two-way flow)
+- Complete API routes mapping (Portal vs Admin)
+- Shared components library (20+ components)
+- Shared hooks extraction (8+ hooks)
+- Cross-cutting concerns:
+  - Authentication & Authorization patterns
+  - Notification System (multi-channel)
+  - Audit Logging
+- Phase-based integration roadmap (6 phases × 18 weeks)
+- Success metrics (code reuse, API consolidation, feature coverage)
+- Risk analysis with mitigation strategies
+- Resource requirements (team, timeline, tech stack)
+- Complete file structure for implementation
+- Appendix with custom instructions and design patterns
 
-| Metric | Value |
-|--------|-------|
-| **Components Created** | 8+ |
-| **Lines of Code** | ~2,500 |
-| **Test Cases** | 12+ E2E, 4+ Unit |
-| **Files Created/Modified** | 30+ |
-| **Security Measures** | 8+ |
-| **Performance Optimizations** | 5+ |
-| **Accessibility Features** | 10+ |
-| **Documentation Pages** | 4 |
-| **Dependencies Added** | 0 (uses existing) |
-| **Breaking Changes** | 0 |
+**Why It Matters**:
+- Comprehensive strategic context
+- Shows what exists and what needs to be done
+- Provides architectural guidance
+- Includes code examples and patterns
+- Documents risk analysis and mitigation
 
----
-
-## 🔐 Security Verification
-
-### Implemented Security Measures
-
-1. **CSRF Protection**
-   - ✅ isSameOrigin check on all mutations
-   - ✅ NextAuth session tokens provide additional layer
-   - ✅ HTTP-only cookies for session tokens
-
-2. **Rate Limiting**
-   - ✅ GET: 60 requests/minute per IP
-   - ✅ PATCH: 20 requests/minute per IP
-   - ✅ DELETE: 5 requests/day per IP
-   - ✅ Returns 429 status when exceeded
-
-3. **Password Security**
-   - ✅ bcryptjs hashing with auto-salt
-   - ✅ bcrypt.compare for verification
-   - ✅ Current password required for changes
-   - ✅ Minimum 6 characters validation
-   - ✅ No passwords in logs
-
-4. **Authentication & Authorization**
-   - ✅ NextAuth session validation
-   - ✅ Tenant isolation (tenantId filtering)
-   - ✅ Role-based menu link visibility
-   - ✅ Permission checks on sensitive operations
-
-5. **Data Protection**
-   - ✅ Prisma ORM prevents SQL injection
-   - ✅ React auto-escapes XSS attacks
-   - ✅ Input validation with Zod schemas
-   - ✅ Email format validation
-   - ✅ Data encryption in transit (HTTPS)
-
-6. **Audit & Monitoring**
-   - ✅ Audit logging on profile changes
-   - ✅ Failed password attempt tracking
-   - ✅ Account lockout after N failed attempts
-   - ✅ Last login IP and timestamp tracking
-   - ✅ Sentry error monitoring ready
+**How to Use**:
+- Read at project start for context
+- Reference at phase start to understand strategic goals
+- Review entity sections before implementing features
+- Check risk analysis for potential blockers
+- Use success metrics to measure progress
 
 ---
 
-## 📈 Performance Verification
+### 3. **PORTAL_ADMIN_INTEGRATION_ROADMAP_todo.md** (3,727 lines)
+**Purpose**: Task-level implementation details  
+**Contains**:
+- All 240+ specific, actionable tasks across 6 phases
+- For each task:
+  - Clear objective statement
+  - Effort estimation (hours)
+  - Priority level (CRITICAL/HIGH/MEDIUM)
+  - Detailed checklist with sub-tasks
+  - Code examples specific to your codebase
+  - Testing requirements and patterns
+  - File paths (files to create/modify)
+  - Dependencies on other tasks
+  - Testing templates
+  - Implementation patterns
+- Phase-by-phase breakdown:
+  - Phase 1: Foundation (18 tasks, 130 hours)
+  - Phase 2: Services & Bookings (9 tasks, 60 hours)
+  - Phase 3: Tasks & Users (8 tasks, 45 hours)
+  - Phase 4: Documents & Communication (8 tasks, 60 hours)
+  - Phase 5: Real-time Events (4 tasks, 40 hours)
+  - Phase 6: Optimization & Testing (12 tasks, 110 hours)
+- Phase summaries with success criteria
+- Task workflow for each phase
+- Quality standards and best practices
+- Grand total statistics (240+ tasks, ~450-500 hours effort, 5 FTE)
+- Risk mitigation timeline
+- Custom instructions for autonomous development
+- Appendix with file structure and next steps
 
-### Optimization Results
+**Why It Matters**:
+- Exact tasks with effort estimates
+- Code examples from your codebase patterns
+- Clear success criteria for each task
+- Dependencies mapped between tasks
+- Everything needed to implement each feature
 
-| Metric | Target | Expected | Status |
-|--------|--------|----------|--------|
-| **Bundle Impact** | <50KB | 25-35KB | ✅ Pass |
-| **FCP** | <1.5s | <1.2s | ✅ Pass |
-| **LCP** | <2.5s | <2.0s | ✅ Pass |
-| **TTI** | <3s | <2.5s | ✅ Pass |
-| **CLS** | <0.1 | <0.05 | ✅ Pass |
-| **API Response** | <300ms | <100ms | ✅ Pass |
-| **Component Render** | <50ms | <20ms | ✅ Pass |
-
-**Optimizations Implemented:**
-- Dynamic import for ProfileManagementPanel
-- Component memoization (memo/useCallback)
-- Tree-shakeable icon imports
-- No external font loads
-- Lazy loading of non-critical content
+**How to Use**:
+- Reference constantly during implementation
+- Follow checklist for each task
+- Use code examples as implementation guide
+- Check dependencies before starting task
+- Update task status as you complete work
 
 ---
 
-## ♿ Accessibility Verification
+### 4. **docs/INTEGRATION_ROADMAP_INDEX.md** (442 lines)
+**Purpose**: Master index and quick reference  
+**Contains**:
+- Overview of all 4 documentation files
+- Quick start guide (5 minutes)
+- Project structure at a glance
+- Execution timeline (all 6 phases)
+- Success metrics (code reuse, quality targets)
+- How documents work together (reading guide by role)
+- Key files reference (which file for which task type)
+- How to use this index (at project start, phase start, during task)
+- Quick problem solving (FAQs)
+- Learning path (3 weeks understanding + ongoing daily workflow)
+- Progress tracking template
+- Final checklist before starting
 
-### WCAG 2.1 AA Compliance
+**Why It Matters**:
+- Central hub for all documentation
+- Quick reference when lost
+- Role-based reading guide (PM, Developer, etc.)
+- Problem solving guide
+- Execution timeline at a glance
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| **Keyboard Navigation** | ✅ | Tab, Escape, Enter, Arrows all working |
-| **Screen Readers** | ✅ | ARIA labels, roles, live regions implemented |
-| **Focus Management** | ✅ | Returns focus to trigger, focus trap in modal |
-| **Color Contrast** | ✅ | WCAG AA standards met (4.5:1 for text) |
-| **Motion** | ✅ | Respects prefers-reduced-motion |
-| **Zoom** | ✅ | Works at 200% zoom level |
-| **Mobile** | ✅ | Touch targets 44x44px minimum |
-| **Form Labels** | ✅ | All inputs properly labeled |
-| **Error Messages** | ✅ | Clear, announced to screen readers |
-| **Status Indicators** | ✅ | Not color-only (includes labels) |
+**How to Use**:
+- Bookmark this file
+- Reference when unsure which document to read
+- Use progress tracking template for reporting
+- Check quick problem solving section for common issues
+- Share with team members to get oriented
 
 ---
 
-## 🧪 Testing Coverage
+## 🎯 How These Documents Relate
 
-### E2E Tests (Playwright)
 ```
-✅ Dropdown trigger visible and clickable
-✅ Dropdown closes on Escape with focus return
-✅ Theme switcher works and persists
-✅ Status selector shows and updates
-✅ Avatar displays initials correctly
-✅ Sign-out confirmation appears
-✅ Keyboard navigation functional
-✅ Panel opens and closes correctly
-✅ Profile tab displays editable fields
-✅ Security tab shows security options
-✅ Tab switching works bidirectionally
-✅ Editable fields enter edit mode
-```
-
-### Unit Tests
-```
-✅ Component renders with trigger button
-✅ Avatar generates initials from user name
-✅ Status selector shows correct options
-✅ Theme menu displays theme options
-```
-
-### Manual Test Scenarios
-```
-✅ Desktop viewport (1920x1080)
-✅ Tablet viewport (768x1024)
-✅ Mobile viewport (375x667)
-✅ Dark mode theme
-✅ Light mode theme
-✅ Keyboard-only navigation
-✅ Screen reader testing
-✅ High contrast mode
-✅ Different user roles/permissions
+┌─────────────────────────────────────────────────────────────┐
+│         YOU (Senior Full-Stack Developer in Builder.io)     │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                 ┌───────────┼───────────┐
+                 │           │           │
+                 ▼           ▼           ▼
+        ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+        │ Day 1: Read  │ │ Days 2-3:    │ │ Daily Ref:  │
+        │ Instructions │ │ Read Context │ │ Task Details│
+        └──────────────┘ └──────────────┘ └─────────────���┘
+              │                 │                 │
+              ▼                 ▼                 ▼
+   ┌─────────────────┐ ┌──────────────────────┐ ┌──────────────────┐
+   │ How to Work     │ │ Why This Matters     │ │ What to Build    │
+   │ Daily Workflow  │ │ Strategic Context    │ │ Task Checklists  │
+   │ Quality Checks  │ │ Architectural Vision │ │ Code Examples    │
+   │ Commit Pattern  │ │ Risk Analysis        │ │ Testing Pattern  │
+   │ Pre-Checklist   │ │ Success Metrics      │ │ Dependencies     │
+   └─────────────────┘ └──────────────────────┘ └──────────────────┘
+         │                      │                       │
+         └──────────────────────┼───────────────────────┘
+                                │
+                ┌───────────────┴───────────────┐
+                │                               │
+                ▼                               ▼
+        ┌───────────────────┐         ┌──────────────────┐
+        │  When Lost?       │         │  Start Here →   │
+        │  Check Index      │         │  docs/Index.md  │
+        │  (Quick Ref)      │         │  (Master Map)   │
+        └───────────────────┘         └──────────────────┘
+                │                              │
+                └──────────────────┬───────────┘
+                                   │
+                       ┌───────────┴──────────┐
+                       │ Execute Phase 1.1.1  │
+                       │ Extract Shared Types │
+                       │ (First Task)         │
+                       └──────────────────────┘
 ```
 
 ---
 
-## 📚 Documentation Provided
+## 📊 Documentation Statistics
 
-1. **Implementation Guide** (`docs/user-profile-transformation-todo.md`)
-   - Complete feature list with status
-   - Architecture overview
-   - Component specifications
-   - API implementation details
-   - Database schema
-   - Testing strategy
-   - Deployment checklist
-
-2. **Deployment Guide** (`DEPLOYMENT_GUIDE.md`)
-   - Pre-deployment checklist
-   - Staging deployment steps
-   - Production deployment steps
-   - Smoke tests
-   - Performance audit procedures
-   - Security verification
-   - Rollback procedures
-   - Monitoring & alerting setup
-
-3. **Quick Reference** (`QUICK_REFERENCE.md`)
-   - File locations and structure
-   - Common development tasks
-   - Performance tips
-   - Security checklist
-   - Styling customization
-   - Testing guide
-   - Troubleshooting
-
-4. **Complete Summary** (`docs/USER_PROFILE_IMPLEMENTATION_COMPLETE.md`)
-   - Executive summary
-   - Implementation details
-   - Security details
-   - Accessibility details
-   - Performance details
-   - File inventory
-   - Known limitations & enhancements
+| Document | Lines | Read Time | Purpose |
+|----------|-------|-----------|---------|
+| IMPLEMENTATION_INSTRUCTIONS.md | 553 | 20 min | Execution guide |
+| PORTAL_ADMIN_INTEGRATION_ROADMAP.md | 2,382 | 60 min | Strategic overview |
+| PORTAL_ADMIN_INTEGRATION_ROADMAP_todo.md | 3,727 | Reference | Task details |
+| docs/INTEGRATION_ROADMAP_INDEX.md | 442 | 15 min | Quick reference |
+| **TOTAL** | **7,104** | **2.5 hours** | Complete package |
 
 ---
 
-## 🚀 Deployment Readiness
+## 🚀 Getting Started (Next 3 Hours)
 
-### Pre-Deployment Checklist
+### Hour 1: Understand the Vision
+- [ ] Read this file (10 mins)
+- [ ] Read IMPLEMENTATION_INSTRUCTIONS.md (20 mins)
+- [ ] Bookmark all 4 documents in your editor
+- [ ] Review project structure in docs/ folder (10 mins)
 
-- [x] Core functionality implemented and verified
-- [x] Security measures implemented (CSRF, rate limiting, hashing)
-- [x] Database schema ready (UserProfile model)
-- [x] API endpoints implemented with error handling
-- [x] Components follow accessibility standards
-- [x] Performance optimizations applied
-- [x] E2E and unit tests written
-- [x] Error handling implemented
-- [x] Documentation complete
-- [x] Code review ready
+### Hour 2: Study the Strategy
+- [ ] Read PORTAL_ADMIN_INTEGRATION_ROADMAP.md (60 mins)
+  - Focus on current state analysis
+  - Review entity integration map
+  - Understand architecture vision
 
-### Staging Deployment Steps
+### Hour 3: Learn the Tasks
+- [ ] Skim PORTAL_ADMIN_INTEGRATION_ROADMAP_todo.md (30 mins)
+  - Understand all 6 phases
+  - See task structure and examples
+  - Identify Phase 1 starting tasks
+- [ ] Review docs/portal/ folder (20 mins)
+  - Study existing feature implementations
+  - Note architectural patterns
+  - Understand naming conventions
 
-1. Create Prisma migration: `prisma migrate dev --name add_user_profile`
-2. Deploy to staging environment
-3. Run E2E tests against staging
-4. Performance audit with Lighthouse
-5. Security scan with OWASP tools
-6. Cross-browser testing
-7. Mobile device testing
-8. Accessibility audit
-
-### Production Deployment Steps
-
-1. Final staging verification
-2. Backup production database
-3. Apply Prisma migration: `prisma migrate deploy`
-4. Deploy application to production
-5. Monitor Sentry for 24 hours
-6. Track Core Web Vitals metrics
-7. Verify database queries performance
-8. Check API response times
-9. Collect user feedback
-
-### Success Criteria
-
-- ✅ Zero critical errors
-- ✅ API response time < 300ms (p99)
-- ✅ Error rate < 0.1%
-- ✅ Rate limiting working correctly
-- ✅ Theme/status persistence working
-- ✅ Profile updates successful
-- ✅ 2FA flows operational
-- ✅ Accessibility standards met
+### Hour 4+: Begin Implementation
+- [ ] Start Phase 1, Task 1.1.1
+- [ ] Follow IMPLEMENTATION_INSTRUCTIONS.md protocol
+- [ ] Use PORTAL_ADMIN_INTEGRATION_ROADMAP_todo.md for task details
+- [ ] Reference docs/portal/ for similar implementations
 
 ---
 
-## 🎯 Key Achievements
+## 📋 Complete Task List Summary
 
-### Code Quality
-- ✅ Follows project conventions and patterns
-- ✅ TypeScript strict mode compliant
-- ✅ Zero technical debt introduced
-- ✅ Proper error handling throughout
-- ✅ Comprehensive logging for debugging
+### Total Project Scope
+- **Phases**: 6 phases (3 weeks each = 18 weeks total)
+- **Tasks**: 240+ specific tasks
+- **Effort**: ~450-500 developer hours (5 FTE)
+- **Team**: 3-5 developers recommended
+- **Code Lines**: ~10,000 lines of new code
 
-### Security
-- ✅ CSRF protection on all mutations
-- ✅ Rate limiting prevents abuse
-- ✅ Password hashing with bcryptjs
-- ✅ Session isolation per tenant
-- ✅ Audit logging on changes
-
-### Performance
-- ✅ Code-splitting reduces initial bundle
-- ✅ Component memoization prevents re-renders
-- ✅ Hooks use useCallback for stability
-- ✅ Estimated impact: +25-35KB gzipped
-- ✅ All metrics within targets
-
-### Accessibility
-- ✅ WCAG 2.1 AA compliant
-- ✅ Full keyboard navigation
-- ✅ Screen reader tested
-- ✅ Focus management implemented
-- ✅ Color contrast verified
-
-### User Experience
-- ✅ Intuitive dropdown menu
-- ✅ Smooth theme switching
-- ✅ Easy status management
-- ✅ Simple profile editing
-- ✅ Clear error messages
-
-### Testing
-- ✅ 12+ E2E test cases
-- ✅ 4+ unit test cases
-- ✅ Manual test scenarios
-- ✅ Cross-browser tested
-- ✅ Mobile tested
+### Task Breakdown by Phase
+| Phase | Name | Tasks | Hours | Key Output |
+|-------|------|-------|-------|-----------|
+| 1 | Foundation & Architecture | 18 | 130 | Types, schemas, utilities, hooks, components |
+| 2 | Service & Booking | 9 | 60 | Unified APIs, real-time sync, calendar |
+| 3 | Tasks & Users | 8 | 45 | Portal tasks, user profiles, team visibility |
+| 4 | Documents & Communication | 8 | 60 | Document API, messaging, notifications |
+| 5 | Real-time Events & Workflows | 4 | 40 | Event system, real-time sync, approvals |
+| 6 | Optimization & Testing | 12 | 110 | Performance, tests (90% coverage), security |
+| **TOTAL** | | **59** | **445** | **Production-ready system** |
 
 ---
 
-## 📋 Final Checklist
+## ✅ Quality Assurance Checklist
 
-### Before Production Deployment
-
-- [ ] Run `npm run lint` - fix any warnings
-- [ ] Run `npm run typecheck` - fix any errors
-- [ ] Run `npm test` - all unit tests pass
-- [ ] Run `npm run test:e2e` - all E2E tests pass
-- [ ] Create Prisma migration - schema ready
-- [ ] Set environment variables - DB_URL, AUTH_SECRET
-- [ ] Run Lighthouse audit - scores > 90
-- [ ] Test on mobile devices - all features work
-- [ ] Test with screen reader - fully accessible
-- [ ] Monitor Sentry - no errors in 24h
-- [ ] Get team approval - stakeholder sign-off
-
-### After Production Deployment
-
-- [ ] Monitor error rate < 0.1% for 24h
-- [ ] Monitor API response times < 300ms
-- [ ] Verify database backups successful
-- [ ] Check Core Web Vitals metrics
-- [ ] Monitor user adoption rate
-- [ ] Collect user feedback
-- [ ] Review audit logs for issues
-- [ ] Schedule follow-up review in 1 week
+Before you start, verify:
+- [ ] Node.js version compatible (see package.json)
+- [ ] npm/yarn installed
+- [ ] Git configured and repo cloned
+- [ ] `.env` variables set up
+- [ ] Dev server runs: `npm run dev`
+- [ ] Tests pass: `npm run test`
+- [ ] Build succeeds: `npm run build`
+- [ ] Read all 4 documentation files
+- [ ] Understand task dependencies
+- [ ] Ready to start Phase 1, Task 1.1.1
 
 ---
 
-## 🎓 Lessons & Best Practices
+## 📞 Support & Resources
 
-### What Went Well
+### Documentation Files (Reference Constantly)
+1. **IMPLEMENTATION_INSTRUCTIONS.md** - Daily execution protocol
+2. **PORTAL_ADMIN_INTEGRATION_ROADMAP_todo.md** - Current task details
+3. **docs/INTEGRATION_ROADMAP_INDEX.md** - When you're lost
+4. **PORTAL_ADMIN_INTEGRATION_ROADMAP.md** - For strategic context
 
-1. **Component Architecture** - Breaking UI into smaller, reusable components
-2. **Type Safety** - Using TypeScript for better error detection
-3. **Security First** - Implementing CSRF and rate limiting from the start
-4. **Testing Coverage** - E2E tests catch integration issues early
-5. **Documentation** - Clear docs reduce support burden
+### Existing Code Examples
+- **docs/portal/** - Feature implementation examples
+- **src/components/portal/** - Existing portal components
+- **src/app/api/** - API route patterns
+- **src/hooks/** - Hook implementation patterns
+- **tests/** - Testing patterns
 
-### Areas for Future Improvement
-
-1. **Phone Verification** - Integrate Twilio for SMS verification
-2. **Passkeys Support** - Implement WebAuthn/FIDO2
-3. **Device Management** - Show/revoke active sessions
-4. **Export Data** - GDPR compliance feature
-5. **Advanced Analytics** - Track feature adoption and usage
-
----
-
-## ✅ Sign-Off
-
-The user profile transformation feature is **complete, tested, documented, and ready for production deployment**.
-
-### Implementation Team Sign-Off
-
-**Completed By:** Senior Full-Stack Development Team  
-**Date:** October 21, 2025  
-**Status:** ✅ **READY FOR PRODUCTION**
-
-### Quality Metrics
-
-- **Code Quality:** ✅ Excellent
-- **Security:** ✅ Hardened
-- **Performance:** ✅ Optimized
-- **Accessibility:** ✅ Compliant
-- **Testing:** ✅ Comprehensive
-- **Documentation:** ✅ Complete
-
-### Deployment Recommendation
-
-**✅ APPROVED FOR IMMEDIATE PRODUCTION DEPLOYMENT**
-
-This feature provides significant value to users with a modern, secure, and accessible profile management experience. All technical requirements have been met, and the codebase is stable and well-tested.
+### External References
+- [Builder.io Docs](https://www.builder.io/c/docs/projects)
+- [Next.js Docs](https://nextjs.org/)
+- [Prisma Docs](https://www.prisma.io/)
+- [React Docs](https://react.dev/)
 
 ---
 
-## 📞 Support
+## 🎯 Success Criteria
 
-For questions or issues:
-- **Code Issues:** Review `QUICK_REFERENCE.md` → Troubleshooting
-- **Deployment Issues:** Follow `DEPLOYMENT_GUIDE.md` step-by-step
-- **Feature Requests:** Open issue in project repository
-- **Security Concerns:** Escalate to security team immediately
+### Phase Completion
+- ✅ All tasks completed with ✅ status
+- ✅ 0 TypeScript errors
+- ✅ 0 ESLint critical warnings
+- ✅ All tests pass
+- ✅ >80% code coverage for new code
+- ✅ No breaking changes
+- ✅ Documentation updated
+
+### Overall Project Success
+- ✅ Code reuse increased from 20% → 75%
+- ✅ API routes consolidated from 60 → 30
+- ✅ Shared components count: 5 → 25
+- ✅ Real-time coverage: 0% → 90%
+- ✅ Test coverage: <20% → 90%
+- ✅ System production-ready
+- ✅ Deployment successful
 
 ---
 
-**Thank you for using this implementation guide. Happy deploying! 🚀**
+## 🎓 Final Words
+
+### For the AI Engine
+You have everything needed to implement this project:
+1. **Clear protocol** (IMPLEMENTATION_INSTRUCTIONS.md)
+2. **Complete task list** (PORTAL_ADMIN_INTEGRATION_ROADMAP_todo.md)
+3. **Strategic context** (PORTAL_ADMIN_INTEGRATION_ROADMAP.md)
+4. **Quick reference** (docs/INTEGRATION_ROADMAP_INDEX.md)
+5. **Code examples** (docs/portal/ and existing codebase)
+6. **Quality standards** (all documents define them)
+
+### For the Team
+This is your roadmap to transforming the system from two separate applications into one unified, bi-directional system where:
+- Portal users actively contribute data
+- Admin has real-time visibility
+- Both areas share components and APIs
+- Everything works seamlessly together
+
+### The Path Forward
+```
+Start → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Production
+1-3w    4-6w    7-9w    10-12w  13-15w  16-18w    ✅ Ready
+```
+
+**You are ready to begin. Start with Task 1.1.1.**
+
+---
+
+**Created**: November 2024  
+**For**: Senior Full-Stack Developers & Builder.io AI Engine  
+**Status**: Ready for Implementation  
+**Next Action**: Begin Phase 1, Task 1.1.1 in PORTAL_ADMIN_INTEGRATION_ROADMAP_todo.md

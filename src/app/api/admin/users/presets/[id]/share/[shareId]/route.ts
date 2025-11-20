@@ -71,10 +71,10 @@ export const GET = withTenantContext(async (request: NextRequest, props: { param
       return respond.notFound('Share not found')
     }
 
-    return respond.success(share)
+    return respond.ok(share)
   } catch (error) {
     console.error('[PresetShare GET] Error:', error)
-    return respond.internalError('Failed to fetch share')
+    return respond.serverError('Failed to fetch share')
   }
 })
 
@@ -175,10 +175,10 @@ export const PATCH = withTenantContext(async (request: NextRequest, props: { par
       }
     })
 
-    return respond.success(updated)
+    return respond.ok(updated)
   } catch (error) {
     console.error('[PresetShare PATCH] Error:', error)
-    return respond.internalError('Failed to update share')
+    return respond.serverError('Failed to update share')
   }
 })
 
@@ -251,12 +251,12 @@ export const DELETE = withTenantContext(async (request: NextRequest, props: { pa
       }
     })
 
-    return respond.success({
+    return respond.ok({
       message: 'Share revoked successfully',
       id: shareId
     })
   } catch (error) {
     console.error('[PresetShare DELETE] Error:', error)
-    return respond.internalError('Failed to revoke share')
+    return respond.serverError('Failed to revoke share')
   }
 })

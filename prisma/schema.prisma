@@ -97,6 +97,25 @@ model User {
   bulkOperationsApproved    BulkOperation[]         @relation("BulkOperationApprovedBy")
   bulkOperationResults      BulkOperationResult[]
   bulkOperationHistoryChanges BulkOperationHistory[] @relation("BulkOperationHistoryChangedBy")
+  reports                   Report[]
+  exportSchedules           ExportSchedule[]
+  entitiesCreated           Entity[]                @relation("EntityCreatedBy")
+  entitiesUpdated           Entity[]                @relation("EntityUpdatedBy")
+  filingPeriodAssignments   FilingPeriod[]          @relation("FilingPeriodAssignee")
+  consentsAccepted          Consent[]
+  verificationAttempts      VerificationAttempt[]   @relation("VerificationAttemptBy")
+  entityAuditLogs           EntityAuditLog[]
+  documentVersions          DocumentVersion[]       @relation("DocumentVersionUploader")
+  supportTicketsCreated     SupportTicket[]         @relation("SupportTicketsCreated")
+  supportTicketsAssigned    SupportTicket[]         @relation("SupportTicketsAssigned")
+  supportTicketComments     SupportTicketComment[]  @relation("SupportTicketComments")
+  knowledgeBaseArticles     KnowledgeBaseArticle[]  @relation("UserToKnowledgeBaseArticle")
+  paymentMethods            UserPaymentMethod[]     @relation("UserToUserPaymentMethod")
+  userOnEntities            UserOnEntity[]
+  approvalsRequested        Approval[]              @relation("ApprovalRequester")
+  approvalsToApprove        Approval[]              @relation("ApprovalApprover")
+  approvalsDecided          Approval[]              @relation("ApprovalDecider")
+  approvalHistoryActions    ApprovalHistory[]       @relation("ApprovalHistoryPerformer")
 
   @@unique([tenantId, email])
   @@index([tenantId, role])
@@ -114,6 +133,29 @@ model User {
   @@index([tenantId, tier, createdAt(sort: Desc)], name: "idx_users_tenantid_tier_created")
   @@index([tenantId, department, createdAt(sort: Desc)], name: "idx_users_tenantid_department_created")
   @@map("users")
+}
+
+model Invitation {
+  id String @id @default(cuid())
+  email String
+  tenantId String
+  role String // UserRole enum value as string
+  invitedBy String
+  token String @unique
+  status String @default("PENDING") // PENDING, ACCEPTED, EXPIRED, CANCELLED
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  acceptedAt DateTime?
+  acceptedBy String?
+  entityIds String[] @default([])
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId, status])
+  @@index([expiresAt])
+  @@map("invitations")
 }
 
 model UserProfile {
@@ -163,6 +205,7 @@ model FilterPreset {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   shares        PresetShare[]
+  exportSchedules ExportSchedule[]
 
   @@unique([userId, tenantId, name])
   @@index([tenantId, userId])
@@ -317,7 +360,31 @@ model Tenant {
   workflowTemplates     WorkflowTemplate[]
   bulkOperations        BulkOperation[]
   filterPresets         FilterPreset[]
+  reports               Report[]
   userManagementSettings UserManagementSettings?
+  exportSchedules       ExportSchedule[]
+  entities              Entity[]
+  consents              Consent[]
+  verificationAttempts  VerificationAttempt[]
+  documentVersions      DocumentVersion[]                 @relation("DocumentVersions")
+  documentLinks         DocumentLink[]                    @relation("DocumentLinks")
+  documentAuditLogs     DocumentAuditLog[]                @relation("DocumentAuditLogs")
+  supportTickets        SupportTicket[]                   @relation("SupportTickets")
+  knowledgeBaseCategories KnowledgeBaseCategory[]       @relation("KnowledgeBaseCategories")
+  knowledgeBaseArticles KnowledgeBaseArticle[]            @relation("TenantToKnowledgeBaseArticle")
+  userPaymentMethods    UserPaymentMethod[]               @relation("TenantToUserPaymentMethod")
+  bankingConnections    BankingConnection[]               @relation("BankingConnections")
+  bankingTransactions   BankingTransaction[]              @relation("BankingTransactions")
+  taxFilings            TaxFiling[]
+  parties               Party[]                           @relation("PartyMasterData")
+  products              Product[]                         @relation("ProductMasterData")
+  taxCodes              TaxCode[]                         @relation("TaxCodeMasterData")
+  mergeLogs             MergeLog[]                        @relation("MergeLogs")
+  survivorshipRules     SurvivorshipRule[]                @relation("SurvivorshipRules")
+  invitations           Invitation[]
+  bills                 Bill[]
+  approvals             Approval[]
+  approvalHistory       ApprovalHistory[]
 
   @@index([status])
 }
@@ -892,17 +959,89 @@ model Attachment {
   avThreatName     String?
   avScanTime       Float?
   provider         String?
+  isStarred        Boolean         @default(false)
+  metadata         Json?
   uploadedAt       DateTime        @default(now())
   uploaderId       String?
+  entityId         String?
   serviceRequestId String?
   tenantId         String
+  entity           Entity?         @relation(fields: [entityId], references: [id])
   serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
   tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   uploader         User?           @relation(fields: [uploaderId], references: [id])
   expenses         Expense[]
+  versions         DocumentVersion[]
+  links            DocumentLink[]
+  auditLogs        DocumentAuditLog[]
+  bills            Bill[]
 
   @@index([serviceRequestId])
   @@index([tenantId])
+}
+
+model DocumentVersion {
+  id                  String          @id @default(cuid())
+  attachmentId        String
+  versionNumber       Int
+  name                String?
+  size                Int?
+  contentType         String?
+  key                 String?
+  url                 String?
+  uploadedAt          DateTime        @default(now())
+  uploaderId          String?
+  changeDescription   String?
+  tenantId            String
+  createdAt           DateTime        @default(now())
+
+  attachment          Attachment      @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  uploader            User?           @relation("DocumentVersionUploader", fields: [uploaderId], references: [id])
+  tenant              Tenant          @relation("DocumentVersions", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([attachmentId, versionNumber])
+  @@index([attachmentId])
+  @@index([tenantId])
+  @@index([uploadedAt])
+}
+
+model DocumentLink {
+  id                  String          @id @default(cuid())
+  attachmentId        String
+  linkedToType        String          // 'FILING', 'TASK', 'SERVICE_REQUEST', etc.
+  linkedToId          String          // ID of the linked entity
+  linkedAt            DateTime        @default(now())
+  linkedBy            String?         // User who created the link
+  tenantId            String
+
+  attachment          Attachment      @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  tenant              Tenant          @relation("DocumentLinks", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([attachmentId, linkedToType, linkedToId])
+  @@index([attachmentId])
+  @@index([linkedToType])
+  @@index([linkedToId])
+  @@index([tenantId])
+}
+
+model DocumentAuditLog {
+  id                  String          @id @default(cuid())
+  attachmentId        String
+  action              String          // 'upload', 'download', 'delete', 'star', 'link', etc.
+  details             Json?
+  performedBy         String?
+  performedAt         DateTime        @default(now())
+  ipAddress           String?
+  userAgent           String?
+  tenantId            String
+
+  attachment          Attachment      @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  tenant              Tenant          @relation("DocumentAuditLogs", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([attachmentId])
+  @@index([performedAt])
+  @@index([tenantId])
+  @@index([action])
 }
 
 model WorkOrder {
@@ -1082,6 +1221,92 @@ model NotificationTemplate {
   @@map("notification_templates")
 }
 
+model UserPaymentMethod {
+  id                String    @id @default(cuid())
+  userId            String
+  tenantId          String
+  paymentMethodId   String    @unique // Stripe payment method ID
+  type              String    // 'card', 'bank_account', 'wallet'
+  isDefault         Boolean   @default(false)
+  status            String    @default("ACTIVE") // 'ACTIVE', 'INACTIVE', 'EXPIRED'
+  last4             String?   // Last 4 digits for display
+  brand             String?   // Card brand: visa, mastercard, etc.
+  expiryMonth       Int?
+  expiryYear        Int?
+  fingerprint       String?   // For deduplication
+  billingDetails    Json?     // Encrypted billing address
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation("UserToUserPaymentMethod", fields: [userId], references: [id], onDelete: Cascade)
+  tenant            Tenant    @relation("TenantToUserPaymentMethod", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, paymentMethodId])
+  @@index([userId])
+  @@index([tenantId])
+  @@index([isDefault])
+  @@index([status])
+  @@map("user_payment_methods")
+}
+
+model BankingConnection {
+  id                String    @id @default(cuid())
+  tenantId          String
+  entityId          String?   // Entity this account is linked to
+  provider          String    // 'plaid', 'uae', 'ksa', 'csv'
+  accountNumber     String
+  bankName          String
+  accountType       String    // 'checking', 'savings', 'business'
+  status            String    @default("ACTIVE") // 'ACTIVE', 'INACTIVE', 'ERROR'
+  lastSyncAt        DateTime?
+  lastSyncError     String?
+  sessionToken      String?   // Encrypted session token from provider
+  syncFrequency     String    @default("DAILY") // 'DAILY', 'WEEKLY', 'MONTHLY', 'MANUAL'
+  credentials       Json?     // Encrypted credentials for CSV/manual
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tenant            Tenant    @relation("BankingConnections", fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions      BankingTransaction[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([lastSyncAt])
+  @@map("banking_connections")
+}
+
+model BankingTransaction {
+  id                String    @id @default(cuid())
+  connectionId      String
+  tenantId          String
+  externalId        String?   // ID from bank
+  date              DateTime
+  description       String
+  amount            Decimal   @db.Decimal(19, 4)
+  currency          String    @default("AED")
+  type              String    // 'debit', 'credit'
+  balance           Decimal?  @db.Decimal(19, 4)
+  reference         String?
+  tags              String[]
+  matched           Boolean   @default(false) // Matched to invoice/expense
+  matchedToId       String?   // ID of matched invoice/expense
+  matchedToType     String?   // 'invoice', 'expense', 'bill'
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  connection        BankingConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  tenant            Tenant    @relation("BankingTransactions", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalId])
+  @@index([tenantId])
+  @@index([connectionId])
+  @@index([date])
+  @@index([matched])
+  @@map("banking_transactions")
+}
+
 model Invoice {
   id         String        @id @default(cuid())
   tenantId   String
@@ -1092,6 +1317,7 @@ model Invoice {
   currency   String        @default("USD")
   totalCents Int           @default(0)
   paidAt     DateTime?
+  pdfUrl     String?
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   items      InvoiceItem[]
@@ -1768,6 +1994,135 @@ model WorkflowHistory {
   @@map("workflow_history")
 }
 
+model SupportTicket {
+  id                    String                    @id @default(cuid())
+  tenantId              String
+  userId                String
+  assignedToId          String?
+  title                 String
+  description           String?
+  category              String                    @default("GENERAL")
+  priority              String                    @default("MEDIUM")
+  status                String                    @default("OPEN")
+  resolution            String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  resolvedAt            DateTime?
+  dueAt                 DateTime?
+  slaFirstResponseAt    DateTime?
+  slaResolutionAt       DateTime?
+  attachmentIds         String[]
+  tags                  String[]
+  metadata              Json?
+
+  tenant                Tenant                    @relation("SupportTickets", fields: [tenantId], references: [id], onDelete: Cascade)
+  user                  User                      @relation("SupportTicketsCreated", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo            User?                     @relation("SupportTicketsAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  comments              SupportTicketComment[]
+  statusHistory         SupportTicketStatusHistory[]
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([createdAt])
+  @@index([dueAt])
+  @@map("support_tickets")
+}
+
+model SupportTicketComment {
+  id                    String                    @id @default(cuid())
+  ticketId              String
+  authorId              String
+  content               String
+  attachmentIds         String[]
+  isInternal            Boolean                   @default(false)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  ticket                SupportTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author                User                      @relation("SupportTicketComments", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("support_ticket_comments")
+}
+
+model SupportTicketStatusHistory {
+  id                    String                    @id @default(cuid())
+  ticketId              String
+  previousStatus        String?
+  newStatus             String
+  changedBy             String?
+  reason                String?
+  changedAt             DateTime                  @default(now())
+
+  ticket                SupportTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([changedAt])
+  @@map("support_ticket_status_history")
+}
+
+model KnowledgeBaseCategory {
+  id                    String                    @id @default(cuid())
+  tenantId              String
+  name                  String                    @db.VarChar(255)
+  slug                  String                    @db.VarChar(255)
+  description           String?                   @db.Text
+  icon                  String?                   @db.VarChar(50)
+  order                 Int                       @default(0)
+  published             Boolean                   @default(true)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  tenant                Tenant                    @relation("KnowledgeBaseCategories", fields: [tenantId], references: [id], onDelete: Cascade)
+  articles              KnowledgeBaseArticle[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([published])
+  @@map("knowledge_base_categories")
+}
+
+model KnowledgeBaseArticle {
+  id                    String                    @id @default(cuid())
+  tenantId              String
+  categoryId            String
+  title                 String                    @db.VarChar(500)
+  slug                  String                    @db.VarChar(500)
+  content               String                    @db.Text
+  excerpt               String?                   @db.VarChar(1000)
+  authorId              String
+  published             Boolean                   @default(false)
+  featured              Boolean                   @default(false)
+  viewCount             Int                       @default(0)
+  helpfulCount          Int                       @default(0)
+  notHelpfulCount       Int                       @default(0)
+  tags                  String[]
+  relatedArticleIds     String[]
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  publishedAt           DateTime?
+
+  tenant                Tenant                    @relation("TenantToKnowledgeBaseArticle", fields: [tenantId], references: [id], onDelete: Cascade)
+  category              KnowledgeBaseCategory     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author                User                      @relation("UserToKnowledgeBaseArticle", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([published])
+  @@index([featured])
+  @@index([tags])
+  @@index([createdAt])
+  @@map("knowledge_base_articles")
+}
+
 enum TaskPriority {
   LOW
   MEDIUM
@@ -1919,6 +2274,241 @@ model BulkOperationHistory {
   @@map("bulk_operation_history")
 }
 
+// Phase 1 Entity Management Models
+model Entity {
+  id                    String                @id @default(cuid())
+  tenantId              String
+  country               String                @db.VarChar(2)
+  name                  String                @db.VarChar(255)
+  legalForm             String?               @db.VarChar(50)
+  status                String                @default("ACTIVE") @db.VarChar(20)
+  fiscalYearStart       DateTime?
+  registrationCertUrl   String?
+  registrationCertHash  String?
+  activityCode          String?               @db.VarChar(20)
+  parentEntityId        String?
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  createdBy             String
+  updatedBy             String?
+
+  tenant                Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator               User                  @relation("EntityCreatedBy", fields: [createdBy], references: [id])
+  updater               User?                 @relation("EntityUpdatedBy", fields: [updatedBy], references: [id])
+  parentEntity          Entity?               @relation("ParentEntity", fields: [parentEntityId], references: [id])
+  childEntities         Entity[]              @relation("ParentEntity")
+  licenses              EntityLicense[]
+  registrations         EntityRegistration[]
+  obligations           Obligation[]
+  auditLogs             EntityAuditLog[]
+  consents              Consent[]
+  taxFilings            TaxFiling[]
+  userOnEntities        UserOnEntity[]
+  attachments           Attachment[]
+  bills                 Bill[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, country])
+  @@index([tenantId, status])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@map("entities")
+}
+
+model UserOnEntity {
+  id        String   @id @default(cuid())
+  userId    String
+  entityId  String
+  role      String?
+  createdAt DateTime @default(now())
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entity    Entity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityId])
+  @@index([entityId])
+  @@map("user_on_entities")
+}
+
+model EntityLicense {
+  id                    String                @id @default(cuid())
+  entityId              String
+  country               String                @db.VarChar(2)
+  authority             String                @db.VarChar(100)
+  licenseNumber         String                @db.VarChar(100)
+  legalForm             String?               @db.VarChar(50)
+  issuedAt              DateTime?
+  expiresAt             DateTime?
+  economicZoneId        String?
+  status                String                @default("ACTIVE") @db.VarChar(20)
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  verifiedAt            DateTime?
+
+  entity                Entity                @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  economicZone          EconomicZone?         @relation(fields: [economicZoneId], references: [id], onDelete: SetNull)
+
+  @@unique([entityId, country, licenseNumber])
+  @@index([entityId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("entity_licenses")
+}
+
+model EntityRegistration {
+  id                    String                @id @default(cuid())
+  entityId              String
+  type                  String                @db.VarChar(20)
+  value                 String                @db.VarChar(100)
+  verifiedAt            DateTime?
+  source                String?               @db.VarChar(50)
+  status                String                @default("PENDING") @db.VarChar(20)
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  entity                Entity                @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([entityId, type])
+  @@index([entityId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("entity_registrations")
+}
+
+model EconomicZone {
+  id                    String                @id @default(cuid())
+  country               String                @db.VarChar(2)
+  name                  String                @db.VarChar(255)
+  authorityCode         String?               @db.VarChar(50)
+  city                  String?               @db.VarChar(100)
+  region                String?               @db.VarChar(100)
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  licenses              EntityLicense[]
+
+  @@unique([country, name])
+  @@index([country])
+  @@index([city])
+  @@map("economic_zones")
+}
+
+model Obligation {
+  id                    String                @id @default(cuid())
+  entityId              String
+  type                  String                @db.VarChar(50)
+  country               String                @db.VarChar(2)
+  frequency             String                @db.VarChar(20)
+  ruleConfig            Json?
+  active                Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  entity                Entity                @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  periods               FilingPeriod[]
+
+  @@unique([entityId, type, country])
+  @@index([entityId])
+  @@index([country])
+  @@index([type])
+  @@map("obligations")
+}
+
+model FilingPeriod {
+  id                    String                @id @default(cuid())
+  obligationId          String
+  periodStart           DateTime
+  periodEnd             DateTime
+  dueAt                 DateTime
+  status                String                @default("UPCOMING") @db.VarChar(20)
+  assigneeId            String?
+  snoozeUntil           DateTime?
+  notes                 String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  obligation            Obligation            @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  assignee              User?                 @relation("FilingPeriodAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([obligationId])
+  @@index([status])
+  @@index([dueAt])
+  @@index([assigneeId])
+  @@map("filing_periods")
+}
+
+model Consent {
+  id                    String                @id @default(cuid())
+  tenantId              String
+  entityId              String?
+  userId                String?
+  type                  String                @db.VarChar(50)
+  version               String                @db.VarChar(20)
+  acceptedBy            String
+  acceptedAt            DateTime              @default(now())
+  ip                    String?               @db.VarChar(45)
+  userAgent             String?
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+
+  tenant                Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entity                Entity?               @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  user                  User?                 @relation(fields: [acceptedBy], references: [id])
+
+  @@index([tenantId])
+  @@index([entityId])
+  @@index([acceptedBy])
+  @@index([createdAt])
+  @@map("consents")
+}
+
+model VerificationAttempt {
+  id                    String                @id @default(cuid())
+  tenantId              String
+  type                  String                @db.VarChar(50)
+  value                 String                @db.VarChar(255)
+  country               String                @db.VarChar(2)
+  status                String                @db.VarChar(20)
+  result                Json?
+  attemptedBy           String?
+  attemptedAt           DateTime              @default(now())
+  correlationId         String?               @db.VarChar(100)
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+
+  tenant                Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user                  User?                 @relation("VerificationAttemptBy", fields: [attemptedBy], references: [id])
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([correlationId])
+  @@map("verification_attempts")
+}
+
+model EntityAuditLog {
+  id                    String                @id @default(cuid())
+  entityId              String
+  userId                String
+  action                String                @db.VarChar(50)
+  changes               Json?
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+
+  entity                Entity                @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  user                  User                  @relation(fields: [userId], references: [id])
+
+  @@index([entityId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("entity_audit_logs")
+}
+
 // Phase 3 Workflow Designer Models
 model Workflow {
   id              String                @id @default(cuid())
@@ -1955,4 +2545,612 @@ model WorkflowSimulation {
 
   @@index([workflowId, createdAt])
   @@map("workflow_simulations")
+}
+
+// Phase 14: Report Builder Models
+model Report {
+  id                String                        @id @default(cuid())
+  tenantId          String
+  userId            String
+  name              String                        @db.VarChar(255)
+  description       String?
+  format            String                        @default("table") // table, grid, pivot, chart
+  sections          Json                          @default("[]") // ReportSection[]
+  pageSize          String                        @default("A4") // A4, Letter, Tabloid
+  orientation       String                        @default("portrait") // portrait, landscape
+  includeHeader     Boolean                       @default(true)
+  includeFooter     Boolean                       @default(true)
+  headerText        String?
+  footerText        String?
+  templateId        String?
+  lastGeneratedAt   DateTime?
+  generationCount   Int                           @default(0)
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  // Relations
+  tenant            Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator           User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  executions        ReportExecution[]
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+  @@map("reports")
+}
+
+model ReportExecution {
+  id                String                        @id @default(cuid())
+  reportId          String
+  status            String                        // pending, generating, completed, failed
+  filePath          String?
+  fileSizeBytes     Int?
+  generationTimeMs  Int?
+  errorMessage      String?
+  executedAt        DateTime                      @default(now())
+  completedAt       DateTime?
+  createdAt         DateTime                      @default(now())
+
+  // Relations
+  report            Report                        @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId, status])
+  @@index([executedAt])
+  @@map("report_executions")
+}
+
+// Phase 13: Export Scheduler Models
+model ExportSchedule {
+  id                String                        @id @default(cuid())
+  tenantId          String
+  userId            String
+  name              String                        @db.VarChar(255)
+  description       String?
+  frequency         String                        // daily, weekly, biweekly, monthly, quarterly, yearly
+  format            String                        // csv, xlsx, json, pdf
+  recipients        String[]                      // Email addresses
+  dayOfWeek         String?                       // monday, tuesday, ... (for weekly)
+  dayOfMonth        Int?                          // 1-31 (for monthly/quarterly/yearly)
+  time              String?                       @default("09:00") // HH:mm format
+  emailSubject      String?
+  emailBody         String?
+  filterPresetId    String?                       // Optional: specific filter preset to export
+  isActive          Boolean                       @default(true)
+  lastExecutedAt    DateTime?
+  nextExecutedAt    DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  // Relations
+  tenant            Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user              User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filterPreset      FilterPreset?                 @relation(fields: [filterPresetId], references: [id], onDelete: SetNull)
+  executions        ExportScheduleExecution[]
+
+  @@index([tenantId, isActive])
+  @@index([userId, createdAt])
+  @@index([nextExecutedAt, isActive])
+  @@map("export_schedules")
+}
+
+model ExportScheduleExecution {
+  id                String                        @id @default(cuid())
+  scheduleId        String
+  status            String                        // pending, processing, completed, failed
+  executedAt        DateTime                      @default(now())
+  recordCount       Int                           @default(0)
+  fileSizeBytes     Int?
+  errorMessage      String?
+  deliveryStatus    Json?                         // Record<string, 'sent' | 'bounced' | 'failed'>
+  createdAt         DateTime                      @default(now())
+
+  // Relations
+  schedule          ExportSchedule                @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, status])
+  @@index([executedAt])
+  @@map("export_schedule_executions")
+}
+
+// Phase 7: Tax Workflows
+model TaxFiling {
+  id                String                        @id @default(cuid())
+  tenantId          String
+  entityId          String
+  country           String                        @db.VarChar(3) // AE, SA, EG
+  taxType           String                        @db.VarChar(50) // VAT, CORPORATE_TAX, ZAKAT, WHT, ESR, UBO, ETA, E_RECEIPT
+  periodStartDate   DateTime
+  periodEndDate     DateTime
+  status            String                        @default("DRAFT") // DRAFT, SUBMITTED, ACCEPTED, REJECTED, AMENDED
+  data              String                        @db.Text // JSON stringified filing data
+  calculations      String                        @db.Text // JSON stringified TaxCalculations
+  taxAmount         Decimal                       @db.Decimal(19, 4) // Calculated tax amount
+  attachmentIds     String[]                      @default([]) // Document IDs
+  submittedAt       DateTime?
+  submittedBy       String?
+  rejectionReason   String?
+  metadata          String?                       @db.Text // JSON additional metadata
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  // Relations
+  tenant            Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entity            Entity                        @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, country, taxType])
+  @@index([tenantId, status])
+  @@index([entityId])
+  @@index([periodStartDate, periodEndDate])
+  @@index([submittedAt])
+  @@map("tax_filings")
+}
+
+// ============================================================================
+// Master Data Management (MDM) Models
+// ============================================================================
+
+/// Party Master Data - Represents vendors, customers, employees, etc.
+model Party {
+  id                    String                    @id @default(cuid())
+  tenantId              String
+  partyType             PartyType                 // VENDOR, CUSTOMER, EMPLOYEE, PARTNER
+  name                  String                    @db.VarChar(255)
+  legalName             String?                   @db.VarChar(255)
+  registrationNumber    String?                   @db.VarChar(100)
+  taxId                 String?                   @db.VarChar(100)
+  email                 String?                   @db.VarChar(255)
+  phone                 String?                   @db.VarChar(20)
+  address               String?                   @db.Text
+  city                  String?                   @db.VarChar(100)
+  country               String?                   @db.VarChar(2)
+  status                PartyStatus               @default(ACTIVE) // ACTIVE, INACTIVE, MERGED, DELETED
+
+  // Master record tracking
+  isMasterRecord        Boolean                   @default(false)
+  masterRecordId        String?                   // Points to the master if this is a duplicate
+
+  // Data quality metrics
+  dataQualityScore      Decimal                   @default(0) @db.Decimal(5, 2) // 0-100
+  lastValidatedAt       DateTime?
+  validationErrors      String[]                  @default([])
+
+  // Metadata
+  metadata              Json?
+  externalId            String?                   @db.VarChar(255)
+  source                String?                   @db.VarChar(100) // DATA_SOURCE, MANUAL, IMPORT, API
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  createdBy             String?
+  updatedBy             String?
+
+  // Relations
+  tenant                Tenant                    @relation("PartyMasterData", fields: [tenantId], references: [id], onDelete: Cascade)
+  masterRecord          Party?                    @relation("PartyDuplicates", fields: [masterRecordId], references: [id])
+  duplicates            Party[]                   @relation("PartyDuplicates")
+  products              Product[]                 @relation("PartyProducts")
+
+  @@unique([tenantId, registrationNumber])
+  @@unique([tenantId, taxId])
+  @@index([tenantId, partyType])
+  @@index([tenantId, status])
+  @@index([tenantId, isMasterRecord])
+  @@index([masterRecordId])
+  @@index([dataQualityScore])
+  @@map("parties")
+}
+
+/// Product Master Data - Represents products/services offered
+model Product {
+  id                    String                    @id @default(cuid())
+  tenantId              String
+  productCode           String                    @db.VarChar(100)
+  productName           String                    @db.VarChar(255)
+  description           String?                   @db.Text
+  productType           ProductType               // GOOD, SERVICE, BUNDLE
+  category              String?                   @db.VarChar(100)
+  unitOfMeasure         String?                   @db.VarChar(50)
+
+  // Pricing
+  standardPrice         Decimal?                  @db.Decimal(19, 4)
+  currency              String?                   @db.VarChar(3) // ISO 4217
+
+  // Tax & Compliance
+  taxCodeId             String?
+  taxRate               Decimal?                  @db.Decimal(5, 2)
+
+  // Master record tracking
+  isMasterRecord        Boolean                   @default(false)
+  masterRecordId        String?
+
+  // Status & Lifecycle
+  status                ProductStatus             @default(ACTIVE) // ACTIVE, INACTIVE, DISCONTINUED, MERGED
+  effectiveFrom         DateTime?
+  effectiveTo           DateTime?
+
+  // Data quality
+  dataQualityScore      Decimal                   @default(0) @db.Decimal(5, 2)
+  lastValidatedAt       DateTime?
+
+  // Metadata
+  metadata              Json?
+  externalId            String?                   @db.VarChar(255)
+  source                String?                   @db.VarChar(100)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  createdBy             String?
+  updatedBy             String?
+
+  // Relations
+  tenant                Tenant                    @relation("ProductMasterData", fields: [tenantId], references: [id], onDelete: Cascade)
+  taxCode               TaxCode?                  @relation(fields: [taxCodeId], references: [id])
+  masterRecord          Product?                  @relation("ProductDuplicates", fields: [masterRecordId], references: [id])
+  duplicates            Product[]                 @relation("ProductDuplicates")
+  party                 Party?                    @relation("PartyProducts", fields: [id], references: [id])
+
+  @@unique([tenantId, productCode])
+  @@index([tenantId, productType])
+  @@index([tenantId, status])
+  @@index([tenantId, isMasterRecord])
+  @@index([masterRecordId])
+  @@index([taxCodeId])
+  @@map("products")
+}
+
+/// Tax Code Master Data - Tax classification codes
+model TaxCode {
+  id                    String                    @id @default(cuid())
+  tenantId              String
+  taxCodeValue          String                    @db.VarChar(50)
+  description           String?                   @db.VarChar(255)
+  taxType               TaxType                   // VAT, INCOME_TAX, WITHHOLDING, ZAKAT, etc.
+  country               String                    @db.VarChar(2) // ISO 3166-1 alpha-2
+  taxRate               Decimal                   @db.Decimal(5, 2)
+
+  // Master record tracking
+  isMasterRecord        Boolean                   @default(false)
+  masterRecordId        String?
+
+  // Status & Lifecycle
+  status                TaxCodeStatus             @default(ACTIVE) // ACTIVE, INACTIVE, SUPERSEDED, MERGED
+  effectiveFrom         DateTime
+  effectiveTo           DateTime?
+
+  // Metadata
+  metadata              Json?
+  externalId            String?                   @db.VarChar(255)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  createdBy             String?
+  updatedBy             String?
+
+  // Relations
+  tenant                Tenant                    @relation("TaxCodeMasterData", fields: [tenantId], references: [id], onDelete: Cascade)
+  masterRecord          TaxCode?                  @relation("TaxCodeDuplicates", fields: [masterRecordId], references: [id])
+  duplicates            TaxCode[]                 @relation("TaxCodeDuplicates")
+  products              Product[]
+
+  @@unique([tenantId, taxCodeValue, country])
+  @@index([tenantId, taxType])
+  @@index([tenantId, country])
+  @@index([tenantId, status])
+  @@index([tenantId, isMasterRecord])
+  @@index([masterRecordId])
+  @@map("tax_codes")
+}
+
+/// Merge Log - Tracks party/product/taxcode merges and unmerges
+model MergeLog {
+  id                    String                    @id @default(cuid())
+  tenantId              String
+  recordType            MergeRecordType           // PARTY, PRODUCT, TAX_CODE
+
+  // Master and duplicate records
+  masterRecordId        String
+  masterRecordName      String                    @db.VarChar(255)
+  duplicateRecordId     String
+  duplicateRecordName   String                    @db.VarChar(255)
+
+  // Merge details
+  mergeReason           String?                   @db.Text
+  survivorshipRuleId    String?
+  survivorshipStrategy  SurvivorshipStrategy      @default(MANUAL) // MANUAL, AUTOMATIC, RULE_BASED
+
+  // Merge result
+  mergeStatus           MergeStatus               @default(PENDING) // PENDING, COMPLETED, FAILED, ROLLED_BACK
+  mergeErrors           String[]                  @default([])
+
+  // Unmerge capability
+  canUnmerge            Boolean                   @default(true)
+  unmergeReason         String?                   @db.Text
+  unmergedAt            DateTime?
+  unmergedBy            String?
+
+  // Audit trail
+  mergedAt              DateTime                  @default(now())
+  mergedBy              String
+  metadata              Json?
+
+  // Relations
+  tenant                Tenant                    @relation("MergeLogs", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, recordType])
+  @@index([tenantId, mergeStatus])
+  @@index([masterRecordId])
+  @@index([duplicateRecordId])
+  @@index([mergedAt])
+  @@index([tenantId, mergedAt(sort: Desc)])
+  @@map("merge_logs")
+}
+
+/// Survivorship Rule - Defines how to handle conflicts during merge
+model SurvivorshipRule {
+  id                    String                    @id @default(cuid())
+  tenantId              String
+  recordType            MergeRecordType           // PARTY, PRODUCT, TAX_CODE
+  ruleName              String                    @db.VarChar(255)
+  description           String?                   @db.Text
+
+  // Rule definition
+  fieldMappings         Json                      // { "fieldName": "MASTER|DUPLICATE|NEWER|OLDER|CUSTOM" }
+  customLogic           String?                   @db.Text // JavaScript or expression for custom logic
+  priority              Int                       @default(0)
+
+  // Status
+  isActive              Boolean                   @default(true)
+
+  // Metadata
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  createdBy             String?
+  updatedBy             String?
+
+  // Relations
+  tenant                Tenant                    @relation("SurvivorshipRules", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, ruleName])
+  @@index([tenantId, recordType])
+  @@index([tenantId, isActive])
+  @@map("survivorship_rules")
+}
+
+// ============================================================================
+// MDM Enums
+// ============================================================================
+
+enum PartyType {
+  VENDOR
+  CUSTOMER
+  EMPLOYEE
+  PARTNER
+  INTERNAL
+}
+
+enum PartyStatus {
+  ACTIVE
+  INACTIVE
+  MERGED
+  DELETED
+}
+
+enum ProductType {
+  GOOD
+  SERVICE
+  BUNDLE
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+  MERGED
+}
+
+enum TaxType {
+  VAT
+  INCOME_TAX
+  WITHHOLDING_TAX
+  ZAKAT
+  CORPORATE_TAX
+  STAMP_DUTY
+  OTHER
+}
+
+enum TaxCodeStatus {
+  ACTIVE
+  INACTIVE
+  SUPERSEDED
+  MERGED
+}
+
+enum MergeRecordType {
+  PARTY
+  PRODUCT
+  TAX_CODE
+}
+
+enum MergeStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+enum SurvivorshipStrategy {
+  MANUAL
+  AUTOMATIC
+  RULE_BASED
+}
+
+
+// Bills Management
+model Bill {
+  id                String      @id @default(cuid())
+  tenantId          String
+  entityId          String?
+  
+  // Basic info
+  billNumber        String?
+  vendor            String
+  amount            Float
+  currency          String      @default("USD")
+  date              DateTime
+  dueDate           DateTime?
+  
+  // Status
+  status            BillStatus  @default(PENDING)
+  approvedBy        String?
+  approvedAt        DateTime?
+  
+  // OCR data
+  ocrStatus         OcrStatus   @default(PENDING)
+  ocrData           Json?
+  ocrConfidence     Float?
+  
+  // Attachments
+  attachmentId      String?
+  attachment        Attachment? @relation(fields: [attachmentId], references: [id])
+  
+  // Metadata
+  category          String?
+  description       String?
+  notes             String?
+  tags              String[]
+  
+  // Timestamps
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  // Relations
+  tenant            Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entity            Entity?     @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  
+  @@index([tenantId, status])
+  @@index([tenantId, date])
+  @@index([tenantId, vendor])
+  @@index([attachmentId])
+  @@map("bills")
+}
+
+enum BillStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum OcrStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+
+// Approvals Management
+model Approval {
+  id                String          @id @default(cuid())
+  tenantId          String
+  
+  // Item reference
+  itemType          ApprovalItemType
+  itemId            String
+  itemData          Json?
+  
+  // Requester
+  requesterId       String
+  requesterName     String?
+  requestedAt       DateTime        @default(now())
+  
+  // Approver
+  approverId        String
+  approverName      String?
+  
+  // Status
+  status            ApprovalStatus  @default(PENDING)
+  priority          ApprovalPriority @default(NORMAL)
+  
+  // Decision
+  decision          String?
+  decisionAt        DateTime?
+  decisionBy        String?
+  decisionNotes     String?
+  
+  // Workflow
+  workflowId        String?
+  workflowStep      Int?            @default(1)
+  totalSteps        Int?            @default(1)
+  
+  // Metadata
+  reason            String?
+  notes             String?
+  tags              String[]
+  metadata          Json?
+  
+  // Timestamps
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  expiresAt         DateTime?
+  
+  // Relations
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requester         User            @relation("ApprovalRequester", fields: [requesterId], references: [id])
+  approver          User            @relation("ApprovalApprover", fields: [approverId], references: [id])
+  decider           User?           @relation("ApprovalDecider", fields: [decisionBy], references: [id])
+  history           ApprovalHistory[]
+  
+  @@index([tenantId, status])
+  @@index([tenantId, approverId, status])
+  @@index([tenantId, itemType, itemId])
+  @@index([expiresAt])
+  @@map("approvals")
+}
+
+model ApprovalHistory {
+  id                String          @id @default(cuid())
+  approvalId        String
+  tenantId          String
+  
+  action            String
+  performedBy       String
+  performedAt       DateTime        @default(now())
+  
+  fromStatus        ApprovalStatus?
+  toStatus          ApprovalStatus?
+  
+  notes             String?
+  metadata          Json?
+  
+  approval          Approval        @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  performer         User            @relation("ApprovalHistoryPerformer", fields: [performedBy], references: [id])
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([approvalId])
+  @@index([tenantId])
+  @@map("approval_history")
+}
+
+enum ApprovalItemType {
+  BILL
+  EXPENSE
+  DOCUMENT
+  INVOICE
+  SERVICE_REQUEST
+  ENTITY
+  USER
+  OTHER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DELEGATED
+  ESCALATED
+  EXPIRED
+}
+
+enum ApprovalPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }

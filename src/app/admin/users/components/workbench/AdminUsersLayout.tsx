@@ -5,12 +5,11 @@ import { QuickActionsBar } from '../QuickActionsBar'
 import { ImportWizard } from '../ImportWizard'
 import { CreateUserModal } from '@/components/admin/shared/CreateUserModal'
 import OverviewCards from './OverviewCards'
-import AdminSidebar from './AdminSidebar'
 import UserDirectorySection from './UserDirectorySection'
 import BulkActionsPanel from './BulkActionsPanel'
 import InlineCreateUser from './InlineCreateUser'
 import InlineUserProfile from './InlineUserProfile'
-import { BuilderHeaderSlot, BuilderMetricsSlot, BuilderSidebarSlot, BuilderFooterSlot } from './BuilderSlots'
+import { BuilderHeaderSlot, BuilderMetricsSlot, BuilderFooterSlot } from './BuilderSlots'
 import { useIsBuilderEnabled } from '@/hooks/useIsBuilderEnabled'
 import { useUsersContext } from '../../contexts/UsersContextProvider'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -23,7 +22,7 @@ import '../styles/admin-users-layout.css'
  * Layout structure:
  * ┌─────────────────────────────────────────────┐
  * │        Sticky Header: QuickActionsBar        │
- * ├──────────────┬─────────────────��───────������─┤
+ * ├──────────────┬─────────────────���───────���������┤
  * │              │                            │
  * │   Sidebar    │     Main Content Area      │
  * ���  (Analytics  │   ┌──────────────────��    │
@@ -45,7 +44,6 @@ import '../styles/admin-users-layout.css'
  */
 export default function AdminUsersLayout() {
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [filters, setFilters] = useState<Record<string, any>>({})
   const [showImportWizard, setShowImportWizard] = useState(false)
   const [showCreateUserModal, setShowCreateUserModal] = useState(false)
@@ -64,7 +62,6 @@ export default function AdminUsersLayout() {
   const handleAddUser = () => {
     setShowCreateUserModal(false)
     setShowCreateUserInline(true)
-    setSidebarOpen(false)
   }
 
   const handleUserCreated = (userId: string) => {
@@ -177,33 +174,16 @@ export default function AdminUsersLayout() {
 
       {/* Main Content Area */}
       <div className="admin-workbench-main">
-        {/* Left Sidebar - Analytics & Filters (hidden on tablet/mobile) - Builder.io slot with fallback */}
-        <aside className={`admin-workbench-sidebar ${sidebarOpen ? 'open' : 'closed'}`} data-testid="admin-sidebar">
-          {isBuilderEnabled ? (
-            <BuilderSidebarSlot
-              onFilterChange={setFilters}
-              onClose={() => setSidebarOpen(false)}
-            />
-          ) : (
-            <AdminSidebar
-              onFilterChange={setFilters}
-              onClose={() => setSidebarOpen(false)}
-            />
-          )}
-        </aside>
-
         {/* Main Content */}
         <main className="admin-workbench-content" data-testid="admin-main-content">
           {showCreateUserInline ? (
             <InlineCreateUser
               onBack={() => {
                 setShowCreateUserInline(false)
-                setSidebarOpen(true)
               }}
               onSuccess={(id: string) => {
                 toast.success('User created successfully')
                 setShowCreateUserInline(false)
-                setSidebarOpen(true)
                 context.refreshUsers?.()
               }}
             />
@@ -211,7 +191,6 @@ export default function AdminUsersLayout() {
             <InlineUserProfile
               onBack={() => {
                 setInlineProfileUser(null)
-                setSidebarOpen(true)
               }}
             />
           ) : (
@@ -230,7 +209,6 @@ export default function AdminUsersLayout() {
                   onViewProfileInline={(user) => {
                     context.setSelectedUser(user)
                     setInlineProfileUser(user)
-                    setSidebarOpen(false)
                   }}
                 />
               </div>

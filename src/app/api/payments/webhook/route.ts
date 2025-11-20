@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { withTenantContext } from '@/lib/api-wrapper'
+import { logger } from '@/lib/logger'
 
 /**
  * Stripe Webhook Handler with Enhanced Security and Idempotency
@@ -17,14 +18,14 @@ const _api_POST = async (request: NextRequest) => {
   
   // Environment validation
   if (!STRIPE_WEBHOOK_SECRET || !STRIPE_SECRET_KEY) {
-    console.error('Stripe webhook: Missing required environment variables')
+    logger.error('Stripe webhook: Missing required environment variables')
     return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 501 })
   }
 
   // Signature validation
   const sig = request.headers.get('stripe-signature')
   if (!sig) {
-    console.error('Stripe webhook: Missing stripe-signature header')
+    logger.error('Stripe webhook: Missing stripe-signature header')
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
   }
 
@@ -42,8 +43,8 @@ const _api_POST = async (request: NextRequest) => {
     // This will throw if signature is invalid
     event = stripe.webhooks.constructEvent(rawBody, sig, STRIPE_WEBHOOK_SECRET)
   } catch (err: any) {
-    console.error('Stripe webhook signature verification failed:', err.message)
-    return NextResponse.json({ 
+    logger.error('Stripe webhook signature verification failed', { message: err?.message }, err instanceof Error ? err : new Error(String(err)))
+    return NextResponse.json({
       error: 'Invalid signature',
       message: 'Webhook signature verification failed'
     }, { status: 400 })
@@ -52,7 +53,7 @@ const _api_POST = async (request: NextRequest) => {
   // Idempotency check using Stripe event ID
   const eventId = event.id
   if (!eventId) {
-    console.error('Stripe webhook: Missing event ID')
+    logger.error('Stripe webhook: Missing event ID')
     return NextResponse.json({ error: 'Missing event ID' }, { status: 400 })
   }
 
@@ -68,7 +69,7 @@ const _api_POST = async (request: NextRequest) => {
       })
 
       if (existingKey?.status === 'PROCESSED') {
-        console.log(`Stripe webhook: Event ${eventId} already processed, returning success`)
+        logger.info(`Stripe webhook: Event ${eventId} already processed`)
         return NextResponse.json({ received: true, message: 'Already processed' })
       }
 
@@ -105,11 +106,11 @@ const _api_POST = async (request: NextRequest) => {
       } catch {}
     }
 
-    console.log(`Stripe webhook: Successfully processed event ${eventId} of type ${event.type}`)
+    logger.info('Stripe webhook: Successfully processed event', { eventId, eventType: event.type })
     return NextResponse.json({ received: true })
 
   } catch (error: any) {
-    console.error(`Stripe webhook processing error for event ${eventId}:`, error)
+    logger.error('Stripe webhook processing error', { eventId, error: error instanceof Error ? error.message : String(error) })
 
     // Mark as failed for potential retry
     if (defaultTenant?.id) {
@@ -122,7 +123,7 @@ const _api_POST = async (request: NextRequest) => {
           }
         })
       } catch (dbError) {
-        console.error('Failed to update idempotency key status:', dbError)
+        logger.error('Failed to update idempotency key status', { error: dbError instanceof Error ? dbError.message : String(dbError) })
       }
     }
 
@@ -141,28 +142,28 @@ async function processStripeEvent(event: any) {
     case 'checkout.session.completed':
       await handleCheckoutSessionCompleted(event.data.object)
       break
-      
+
     case 'checkout.session.expired':
     case 'payment_intent.payment_failed':
       await handlePaymentFailed(event.data.object)
       break
-      
+
     case 'payment_intent.succeeded':
       await handlePaymentSucceeded(event.data.object)
       break
-      
+
     case 'invoice.payment_succeeded':
       await handleInvoicePaymentSucceeded(event.data.object)
       break
-      
+
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted':
       await handleSubscriptionChange(event.data.object, event.type)
       break
-      
+
     default:
-      console.log(`Stripe webhook: Unhandled event type ${event.type}`)
+      logger.debug('Stripe webhook: Unhandled event type', { eventType: event.type })
   }
 }
 
@@ -170,7 +171,7 @@ async function processStripeEvent(event: any) {
  * Handle successful checkout session completion
  */
 async function handleCheckoutSessionCompleted(session: any) {
-  console.log('Processing checkout.session.completed:', session.id)
+  logger.debug('Processing checkout.session.completed', { sessionId: session.id })
   
   const explicitId = String(session?.metadata?.serviceRequestId || '')
   if (explicitId) {
@@ -241,7 +242,7 @@ async function handleCheckoutSessionCompleted(session: any) {
  * Handle payment failures
  */
 async function handlePaymentFailed(paymentObject: any) {
-  console.log('Processing payment failure:', paymentObject.id)
+  logger.info('Processing payment failure', { paymentObjectId: paymentObject.id })
   
   const sessionId = paymentObject?.id || paymentObject?.checkout_session || null
   if (sessionId) {
@@ -257,7 +258,7 @@ async function handlePaymentFailed(paymentObject: any) {
  * Handle successful payment intent
  */
 async function handlePaymentSucceeded(paymentIntent: any) {
-  console.log('Processing payment_intent.succeeded:', paymentIntent.id)
+  logger.debug('Processing payment_intent.succeeded', { paymentIntentId: paymentIntent.id })
   // Implementation depends on your payment flow
   // This is typically handled by checkout.session.completed instead
 }
@@ -266,7 +267,7 @@ async function handlePaymentSucceeded(paymentIntent: any) {
  * Handle invoice payment success
  */
 async function handleInvoicePaymentSucceeded(invoice: any) {
-  console.log('Processing invoice.payment_succeeded:', invoice.id)
+  logger.debug('Processing invoice.payment_succeeded', { invoiceId: invoice.id })
   // Implementation for subscription or invoice payments
 }
 
@@ -274,7 +275,7 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
  * Handle subscription changes
  */
 async function handleSubscriptionChange(subscription: any, eventType: string) {
-  console.log(`Processing ${eventType}:`, subscription.id)
+  logger.debug('Processing subscription change', { eventType, subscriptionId: subscription.id })
   // Implementation for subscription lifecycle management
 }
 

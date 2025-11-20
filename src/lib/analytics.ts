@@ -41,7 +41,7 @@ export const EVENTS: Record<AnalyticsEvent, AnalyticsEvent> = {
   'users.delete_user': 'users.delete_user',
 }
 
-export const trackConversion = (eventName: string, data?: Record<string, any>) => {
+export const trackConversion = (eventName: string, data?: Record<string, any>): void => {
   // Google Analytics 4
   if (typeof (globalThis as any).gtag !== 'undefined') {
     ;(globalThis as any).gtag('event', eventName, {
@@ -58,7 +58,7 @@ export const trackConversion = (eventName: string, data?: Record<string, any>) =
   }
 }
 
-export function trackEvent(eventName: AnalyticsEvent | string, properties: Record<string, any> = {}) {
+export function trackEvent(eventName: AnalyticsEvent | string, properties: Record<string, any> = {}): void {
   if (typeof window !== 'undefined') {
     try {
       ;(window as any).gtag?.('event', eventName, properties)
