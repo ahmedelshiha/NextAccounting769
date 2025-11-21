@@ -30,6 +30,8 @@ export const GET = withTenantContext(
       const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
       const offset = parseInt(searchParams.get('offset') || '0')
 
+      const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+
       // Build where clause
       const where: any = {
         tenantId,
@@ -38,7 +40,7 @@ export const GET = withTenantContext(
       }
 
       // For portal users: only show team members from their bookings/tasks
-      if (!user.isAdmin) {
+      if (!isAdmin) {
         // Get all team member IDs that are assigned to this user's bookings or tasks
         const [taskAssignees, bookingAssignees] = await Promise.all([
           prisma.task.findMany({
@@ -73,6 +75,7 @@ export const GET = withTenantContext(
 
         // Add booking assignees
         bookingAssignees.forEach((b) => {
+          // @ts-ignore - assignedToId exists in schema but types might lag
           if (b.assignedToId) teamMemberIds.add(b.assignedToId)
         })
 

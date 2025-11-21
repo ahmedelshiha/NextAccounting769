@@ -20,7 +20,7 @@ export const GET = withTenantContext(
       const { user, tenantId } = ctx
 
       // Verify admin access
-      if (!user?.role !== 'SUPER_ADMIN' && !user?.tenantRole?.includes('ADMIN')) {
+      if (user?.role !== 'SUPER_ADMIN' && !user?.tenantRole?.includes('ADMIN')) {
         return respond.forbidden('Only administrators can access this endpoint')
       }
 
@@ -189,10 +189,11 @@ export const POST = withTenantContext(
       // Log audit event
       await logAudit({
         userId: ctx.userId,
+        tenantId: ctx.tenantId,
         action: 'TASK_CREATED',
-        entity: 'Task',
-        entityId: task.id,
-        changes: {
+        resource: 'Task',
+        details: {
+          taskId: task.id,
           title: task.title,
           priority: task.priority,
           assigneeId: task.assigneeId,

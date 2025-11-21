@@ -42,7 +42,7 @@ export const GET = withTenantContext(
       return NextResponse.json({
         success: true,
         data: {
-          processes,
+          processes: processes.map(p => ({ ...p, id: p.id || 'default-id' })),
           total: processes.length,
         },
       });

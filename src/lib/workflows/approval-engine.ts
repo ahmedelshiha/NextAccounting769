@@ -55,9 +55,9 @@ export class ApprovalEngine {
         approverId,
         requesterId,
         status: 'PENDING',
-        priority,
+        priority: priority.toUpperCase() as any, // Ensure correct enum case
         expiresAt: expiresAt || this.getDefaultExpiration(),
-        metadata,
+        metadata: metadata ?? undefined, // Convert null/undefined to undefined for Prisma JSON compatibility
       },
       include: {
         approver: true,
@@ -114,7 +114,7 @@ export class ApprovalEngine {
         decisionAt: new Date(),
         decisionBy: approverId,
         decisionNotes: notes,
-        metadata,
+        metadata: metadata ?? undefined,
       },
       include: { approver: true, requester: true },
     })
@@ -187,10 +187,11 @@ export class ApprovalEngine {
       where: { id: approvalId },
       data: {
         status: 'REJECTED',
-        rejectedAt: new Date(),
-        rejectedBy: approverId,
-        notes,
-        metadata,
+        decision: 'REJECTED', // Use decision field for rejection status too
+        decisionAt: new Date(), // Use decisionAt instead of rejectedAt
+        decisionBy: approverId, // Use decisionBy instead of rejectedBy
+        decisionNotes: notes,
+        metadata: metadata ?? undefined,
       },
       include: { approver: true, requester: true },
     })
@@ -263,7 +264,7 @@ export class ApprovalEngine {
         approverId: toUserId,
         status: 'DELEGATED',
         metadata: {
-          ...approval.metadata,
+          ...(typeof approval.metadata === 'object' && approval.metadata ? approval.metadata : {}),
           delegatedFrom: fromUserId,
           delegationReason: reason,
           delegatedAt: new Date(),

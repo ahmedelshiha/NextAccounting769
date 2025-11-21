@@ -21,6 +21,8 @@ export const GET = withTenantContext(
         return respond.badRequest('Invalid user ID')
       }
 
+      const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+
       // Fetch the target user
       const targetUser = await prisma.user.findUnique({
         where: { id: targetUserId },
@@ -33,8 +35,8 @@ export const GET = withTenantContext(
           position: true,
           createdAt: true,
           // Only admins see these fields
-          isAdmin: user.isAdmin,
-          emailVerified: user.isAdmin,
+          isAdmin: isAdmin,
+          emailVerified: isAdmin,
           // Only self can see these
           phone: user.id === targetUserId,
         },
@@ -45,7 +47,7 @@ export const GET = withTenantContext(
       }
 
       // Check authorization
-      if (user.id !== targetUserId && !user.isAdmin) {
+      if (user.id !== targetUserId && !isAdmin) {
         // Portal users can only see team members they work with
         const isTeamMember = await checkIfTeamMember(user.id, targetUserId, tenantId)
 
@@ -68,7 +70,7 @@ export const GET = withTenantContext(
       const response = {
         ...targetUser,
         // Remove admin-only fields for non-admins
-        ...(user.isAdmin ? {} : { isAdmin: undefined, emailVerified: undefined }),
+        ...(isAdmin ? {} : { isAdmin: undefined, emailVerified: undefined }),
         // Remove personal fields for non-self users
         ...(user.id !== targetUserId ? { phone: undefined } : {}),
       }
@@ -103,8 +105,10 @@ export const PUT = withTenantContext(
         return respond.badRequest('Invalid user ID')
       }
 
+      const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+
       // Check authorization
-      if (user.id !== targetUserId && !user.isAdmin) {
+      if (user.id !== targetUserId && !isAdmin) {
         return respond.forbidden('You can only update your own profile')
       }
 
@@ -138,7 +142,7 @@ export const PUT = withTenantContext(
       }
 
       // Only admins can update these fields
-      if (user.isAdmin) {
+      if (isAdmin) {
         if (body.department !== undefined) {
           updateData.department = typeof body.department === 'string' ? body.department.trim() : null
         }

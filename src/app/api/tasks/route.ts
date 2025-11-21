@@ -177,9 +177,9 @@ export const POST = withTenantContext(
         tenantId,
         userId: user.id,
         action: 'TASK_CREATED',
-        entity: 'Task',
-        entityId: task.id,
-        changes: {
+        resource: 'Task',
+        details: {
+          taskId: task.id,
           title: task.title,
           priority: task.priority,
           assigneeId: task.assigneeId,

@@ -162,7 +162,8 @@ export function withCache<T>(
 
     // Return cached response if still valid
     if (cached && now - cached.timestamp < (options.ttl || 300) * 1000) {
-      const response = new NextResponse(cached.response.body, cached.response)
+      // Cast to unknown first to bypass type checking constraint
+      const response = new NextResponse(cached.response.body, cached.response) as unknown as NextResponse<T>
       response.headers.set('X-Cache', 'HIT')
       response.headers.set('X-Cache-Age', `${(now - cached.timestamp) / 1000}s`)
       return response
@@ -174,7 +175,8 @@ export function withCache<T>(
     // Only cache successful responses
     if (response.status === 200) {
       cache.set(url, { response, timestamp: now })
-      const newResponse = new NextResponse(response.body, response)
+      // Cast to unknown first to bypass type checking constraint
+      const newResponse = new NextResponse(response.body, response) as unknown as NextResponse<T>
       newResponse.headers.set('X-Cache', 'MISS')
       return newResponse
     }

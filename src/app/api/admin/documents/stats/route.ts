@@ -154,7 +154,7 @@ export const GET = withAdminAuth(async (request, context) => {
         },
         pendingScans,
         metrics: {
-          totalDocuments,
+          totalDocuments: total,
           infectionRate: total > 0 ? ((infected / total) * 100).toFixed(2) + '%' : '0%',
           avgUploadSize: total > 0 ? Math.round((sizeData._sum.size || 0) / total) : 0,
           healthStatus: infected > 0 ? 'warning' : 'healthy',

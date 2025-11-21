@@ -102,7 +102,9 @@ export async function checkRateLimit(
 
   try {
     const current = await redis.get(key)
-    const count = current ? parseInt(String(current)) + 1 : 1
+    // Handle potentially unknown return type from redis.get
+    const currentVal = current !== null && current !== undefined ? String(current) : null
+    const count = currentVal ? parseInt(currentVal) + 1 : 1
     const now = Date.now()
     const resetAt = now + config.windowSeconds * 1000
 

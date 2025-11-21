@@ -57,7 +57,9 @@ export async function getCachedData<T>(
       const cached = await redis.get(key)
       if (cached) {
         try {
-          return JSON.parse(cached) as T
+          // Ensure we handle both string and object returns from Redis client
+          const cachedString = typeof cached === 'string' ? cached : JSON.stringify(cached)
+          return JSON.parse(cachedString) as T
         } catch {
           // Invalid JSON, skip cache
         }

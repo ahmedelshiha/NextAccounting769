@@ -295,6 +295,16 @@ export const PERMISSION_METADATA: Record<Permission, PermissionMetadata> = {
     icon: 'Edit',
     tags: ['tasks', 'edit', 'update', 'content'],
   },
+  [PERMISSIONS.TASKS_EDIT]: {
+    key: PERMISSIONS.TASKS_EDIT,
+    label: 'Edit Tasks',
+    description: 'Edit existing task entries',
+    category: PermissionCategory.CONTENT,
+    risk: RiskLevel.MEDIUM,
+    dependencies: [PERMISSIONS.TASKS_CREATE],
+    icon: 'Edit',
+    tags: ['tasks', 'edit', 'content'],
+  },
   [PERMISSIONS.TASKS_DELETE]: {
     key: PERMISSIONS.TASKS_DELETE,
     label: 'Delete Tasks',
@@ -417,6 +427,16 @@ export const PERMISSION_METADATA: Record<Permission, PermissionMetadata> = {
     dependencies: [PERMISSIONS.SERVICES_VIEW],
     icon: 'Edit',
     tags: ['services', 'edit', 'catalog'],
+  },
+  [PERMISSIONS.SERVICES_UPDATE]: {
+    key: PERMISSIONS.SERVICES_UPDATE,
+    label: 'Update Services',
+    description: 'Update existing service information',
+    category: PermissionCategory.CONTENT,
+    risk: RiskLevel.MEDIUM,
+    dependencies: [PERMISSIONS.SERVICES_VIEW],
+    icon: 'Edit',
+    tags: ['services', 'update', 'catalog'],
   },
   [PERMISSIONS.SERVICES_DELETE]: {
     key: PERMISSIONS.SERVICES_DELETE,
@@ -1188,6 +1208,15 @@ export const PERMISSION_METADATA: Record<Permission, PermissionMetadata> = {
     icon: 'Eye',
     tags: ['bookings', 'view', 'all'],
   },
+  [PERMISSIONS.BOOKINGS_VIEW]: {
+    key: PERMISSIONS.BOOKINGS_VIEW,
+    label: 'View Booking',
+    description: 'View individual booking details',
+    category: PermissionCategory.BOOKINGS,
+    risk: RiskLevel.LOW,
+    icon: 'Eye',
+    tags: ['bookings', 'view'],
+  },
   [PERMISSIONS.BOOKINGS_EDIT]: {
     key: PERMISSIONS.BOOKINGS_EDIT,
     label: 'Edit Bookings',
@@ -1254,6 +1283,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.DOCUMENTS_UPLOAD,
     PERMISSIONS.INVOICES_READ,
     PERMISSIONS.INVOICES_PAY,
+    PERMISSIONS.BOOKINGS_VIEW,
   ],
   TEAM_MEMBER: [
     PERMISSIONS.SERVICE_REQUESTS_READ_ALL,
@@ -1272,6 +1302,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.DOCUMENTS_DOWNLOAD,
     PERMISSIONS.DOCUMENTS_UPLOAD,
     PERMISSIONS.INVOICES_READ,
+    PERMISSIONS.BOOKINGS_VIEW,
     // Settings visibility (read-only)
     PERMISSIONS.BOOKING_SETTINGS_VIEW,
     PERMISSIONS.ORG_SETTINGS_VIEW,
@@ -1302,6 +1333,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.INVOICES_READ,
     PERMISSIONS.INVOICES_UPDATE,
     PERMISSIONS.INVOICES_SEND,
+    PERMISSIONS.BOOKINGS_VIEW,
     // Booking settings (no import/reset for TEAM_LEAD)
     PERMISSIONS.BOOKING_SETTINGS_VIEW,
     PERMISSIONS.BOOKING_SETTINGS_EDIT,

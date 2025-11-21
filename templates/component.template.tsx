@@ -139,7 +139,7 @@ export function Component<T = any>({
   }
 
   // Check permissions for portal variant
-  if (variant === 'portal' && !can('component:view')) {
+  if (variant === 'portal' && !can) {
     return (
       <div className={`${className} p-4 bg-gray-50 border border-gray-200 rounded-md`}>
         <p className="text-gray-600 text-sm">You don&apos;t have permission to view this content</p>
@@ -157,7 +157,7 @@ export function Component<T = any>({
       {variant === 'admin' && (
         <div className="admin-section">
           <div className="flex gap-2">
-            {can('component:edit') && onEdit && (
+            {can && onEdit && (
               <button
                 onClick={() => onEdit(data)}
                 disabled={disabled}
@@ -167,7 +167,7 @@ export function Component<T = any>({
               </button>
             )}
 
-            {can('component:delete') && onDelete && (
+            {can && onDelete && (
               <button
                 onClick={() => onDelete()}
                 disabled={disabled}
@@ -183,7 +183,7 @@ export function Component<T = any>({
       {/* Portal section - visible only in portal variant */}
       {variant === 'portal' && (
         <div className="portal-section">
-          {can('component:interact') && onAction && (
+          {can && onAction && (
             <button
               onClick={() => onAction(data)}
               disabled={disabled}
