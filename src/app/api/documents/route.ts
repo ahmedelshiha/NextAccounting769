@@ -321,8 +321,7 @@ export const POST = withTenantAuth(async (request, context) => {
         action: 'documents:upload',
         userId,
         resource: 'Document',
-        resourceId: document.id,
-        details: {
+        metadata: {
           documentName: document.name,
           documentSize: document.size,
           contentType: document.contentType,
