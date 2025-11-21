@@ -1,11 +1,17 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
 
+interface Task {
+  id?: string
+  title: string
+  description?: string
+}
+
 interface Props {
   open: boolean
   onClose: () => void
   onConfirm: () => Promise<void>
-  task?: any
+  task?: Task
 }
 
 export default function TaskDeleteModal({ open, onClose, onConfirm, task }: Props) {
