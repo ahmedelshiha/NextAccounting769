@@ -467,8 +467,9 @@ export default function LocalizationContent() {
       await loadLanguages()
       toast.success('Language status updated')
     } catch (e: unknown) {
-      setError(e?.message)
-      toast.error(e?.message)
+      const error = e instanceof Error ? e.message : String(e)
+      setError(error)
+      toast.error(error)
     } finally {
       setSaving(false)
     }
